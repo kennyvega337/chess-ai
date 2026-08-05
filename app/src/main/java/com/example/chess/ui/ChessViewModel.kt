@@ -1,22 +1,36 @@
 package com.example.chess.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.chess.audio.SoundManager
+import com.example.chess.data.GameHistoryItem
+import com.example.chess.data.GameHistoryManager
 import com.example.chess.engine.ChessAI
 import com.example.chess.engine.ChessBoard
+import com.example.chess.data.ChessThemeManager
+import com.example.chess.model.AppScreen
+import com.example.chess.model.ChessTheme
+import com.example.chess.model.DifficultyLevel
+import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
 import com.example.chess.model.Move
 import com.example.chess.model.PieceColor
 import com.example.chess.model.PieceType
 import com.example.chess.model.Position
+import com.example.chess.model.SideOption
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ChessUiState(
+    val currentScreen: AppScreen = AppScreen.SETUP,
+    val selectedSideOption: SideOption = SideOption.WHITE,
+    val gameMode: GameMode = GameMode.VS_AI,
     val board: ChessBoard = ChessBoard(),
     val userColor: PieceColor = PieceColor.WHITE,
     val currentTurn: PieceColor = PieceColor.WHITE,
@@ -30,33 +44,176 @@ data class ChessUiState(
     val isCheck: Boolean = false,
     val showCheckPopup: Boolean = false,
     val lastMove: Move? = null,
+    val playerLastMove: Move? = null,
+    val aiLastMove: Move? = null,
+    val difficulty: DifficultyLevel = DifficultyLevel.MEDIUM,
     val isAiThinking: Boolean = false,
-    val showSideSelectionModal: Boolean = true,
+    val showSideSelectionModal: Boolean = false,
     val showResignConfirmationModal: Boolean = false,
+    val showCapturedPiecesModal: Boolean = false,
+    val showHistoryModal: Boolean = false,
+    val showThemeModal: Boolean = false,
+    val selectedTheme: ChessTheme = ChessTheme.CLASSIC,
     val pendingPromotionMove: Move? = null,
-    val hintMove: Move? = null
+    val hintMove: Move? = null,
+    val tutorialPiece: PieceType? = null,
+    val boardViewMode: com.example.chess.model.BoardViewMode = com.example.chess.model.BoardViewMode.VIEW_2D
 )
 
-class ChessViewModel : ViewModel() {
+class ChessViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _uiState = MutableStateFlow(ChessUiState())
+    private val historyManager = GameHistoryManager(application)
+    private val themeManager = ChessThemeManager(application)
+    private var hasSavedHistoryForMatch = false
+
+    private val _uiState = MutableStateFlow(ChessUiState(
+        selectedTheme = themeManager.getSelectedTheme(),
+        boardViewMode = themeManager.getSelectedViewMode(),
+        gameMode = themeManager.getSelectedGameMode(),
+        difficulty = themeManager.getSelectedDifficulty(),
+        selectedSideOption = themeManager.getSelectedSideOption()
+    ))
     val uiState: StateFlow<ChessUiState> = _uiState.asStateFlow()
 
-    fun selectSide(chosenColor: PieceColor) {
-        val newBoard = ChessBoard()
-        _uiState.value = ChessUiState(
-            board = newBoard,
-            userColor = chosenColor,
-            currentTurn = PieceColor.WHITE,
-            gameStatus = GameStatus.IN_PROGRESS,
-            showSideSelectionModal = false,
-            hintMove = null
+    private fun recordMatchHistory(
+        isQuitOrAppClosed: Boolean = false,
+        forcedGameMode: GameMode? = null,
+        forcedUserColor: PieceColor? = null,
+        forcedStatus: GameStatus? = null,
+        forcedWinner: PieceColor? = null
+    ) {
+        val state = _uiState.value
+        val mode = forcedGameMode ?: state.gameMode
+
+        if (mode == GameMode.TUTORIAL) return
+        if (hasSavedHistoryForMatch) return
+        if (state.moveHistory.isEmpty()) return
+
+        val userCol = forcedUserColor ?: state.userColor
+        val status = forcedStatus ?: state.gameStatus
+        val win = forcedWinner ?: state.winner
+
+        val displayText = GameHistoryManager.generateHistoryText(
+            gameMode = mode,
+            userColor = userCol,
+            gameStatus = status,
+            winner = win,
+            isQuitOrAppClosed = isQuitOrAppClosed
         )
 
-        // If user chose Black, AI plays White first!
-        if (chosenColor == PieceColor.BLACK) {
+        val historyItem = GameHistoryItem(
+            dateFormatted = GameHistoryManager.formatDate(),
+            gameMode = mode,
+            text = displayText
+        )
+
+        historyManager.addHistoryItem(historyItem)
+        hasSavedHistoryForMatch = true
+    }
+
+    fun handleAppQuitOrPause() {
+        val state = _uiState.value
+        if (state.gameStatus == GameStatus.IN_PROGRESS &&
+            state.moveHistory.isNotEmpty() &&
+            !hasSavedHistoryForMatch &&
+            state.gameMode != GameMode.TUTORIAL
+        ) {
+            // For 2 players, if quitting it's a draw.
+            // For AI, if quitting it's a "bỏ cuộc" (quit) for the user.
+            recordMatchHistory(isQuitOrAppClosed = true)
+        }
+    }
+
+    fun startNewGame(
+        sideOption: SideOption = SideOption.WHITE,
+        chosenDifficulty: DifficultyLevel = DifficultyLevel.MEDIUM,
+        gameMode: GameMode = GameMode.VS_AI
+    ) {
+        val previousState = _uiState.value
+        if (previousState.gameStatus == GameStatus.IN_PROGRESS &&
+            previousState.moveHistory.isNotEmpty() &&
+            !hasSavedHistoryForMatch &&
+            previousState.gameMode != GameMode.TUTORIAL
+        ) {
+            recordMatchHistory(isQuitOrAppClosed = true)
+        }
+
+        hasSavedHistoryForMatch = false
+
+        // Save settings if not tutorial
+        if (gameMode != GameMode.TUTORIAL) {
+            themeManager.saveGameMode(gameMode)
+            themeManager.saveDifficulty(chosenDifficulty)
+            themeManager.saveSideOption(sideOption)
+        }
+
+        val actualUserColor = if (gameMode == GameMode.TWO_PLAYERS) {
+            PieceColor.WHITE
+        } else {
+            when (sideOption) {
+                SideOption.WHITE -> PieceColor.WHITE
+                SideOption.BLACK -> PieceColor.BLACK
+                SideOption.RANDOM -> if (kotlin.random.Random.nextBoolean()) PieceColor.WHITE else PieceColor.BLACK
+            }
+        }
+
+        val newBoard = ChessBoard()
+        val savedTheme = themeManager.getSelectedTheme()
+        val savedViewMode = themeManager.getSelectedViewMode()
+
+        _uiState.value = ChessUiState(
+            currentScreen = AppScreen.GAME,
+            selectedSideOption = sideOption,
+            gameMode = gameMode,
+            board = newBoard,
+            userColor = actualUserColor,
+            currentTurn = PieceColor.WHITE,
+            difficulty = chosenDifficulty,
+            gameStatus = GameStatus.IN_PROGRESS,
+            showSideSelectionModal = false,
+            playerLastMove = null,
+            aiLastMove = null,
+            lastMove = null,
+            hintMove = null,
+            selectedTheme = savedTheme,
+            boardViewMode = savedViewMode
+        )
+
+        // If VS_AI mode and user is Black, AI plays White first!
+        if (gameMode == GameMode.VS_AI && actualUserColor == PieceColor.BLACK) {
             triggerAiMove(PieceColor.WHITE)
         }
+    }
+
+    fun navigateToSetup() {
+        _uiState.value = _uiState.value.copy(currentScreen = AppScreen.SETUP)
+    }
+
+    fun returnToCurrentGame() {
+        if (_uiState.value.gameStatus == GameStatus.IN_PROGRESS) {
+            syncTheme()
+            _uiState.value = _uiState.value.copy(currentScreen = AppScreen.GAME)
+        }
+    }
+
+    fun syncTheme() {
+        val savedTheme = themeManager.getSelectedTheme()
+        val savedViewMode = themeManager.getSelectedViewMode()
+        if (_uiState.value.selectedTheme != savedTheme || _uiState.value.boardViewMode != savedViewMode) {
+            _uiState.value = _uiState.value.copy(
+                selectedTheme = savedTheme,
+                boardViewMode = savedViewMode
+            )
+        }
+    }
+
+    fun selectSide(chosenColor: PieceColor, chosenDifficulty: DifficultyLevel = _uiState.value.difficulty) {
+        val option = if (chosenColor == PieceColor.WHITE) SideOption.WHITE else SideOption.BLACK
+        startNewGame(option, chosenDifficulty)
+    }
+
+    fun setDifficulty(difficulty: DifficultyLevel) {
+        _uiState.value = _uiState.value.copy(difficulty = difficulty)
     }
 
     fun openSideSelectionModal() {
@@ -72,13 +229,45 @@ class ChessViewModel : ViewModel() {
     fun onSquareClick(pos: Position) {
         val currentState = _uiState.value
         if (currentState.gameStatus != GameStatus.IN_PROGRESS ||
-            currentState.currentTurn != currentState.userColor ||
             currentState.isAiThinking ||
             currentState.showSideSelectionModal
         ) {
             return
         }
 
+        // Dedicated Tutorial Mode handling
+        if (currentState.gameMode == GameMode.TUTORIAL) {
+            val board = currentState.board
+            val activeTurnColor = currentState.userColor
+            val selected = currentState.selectedPosition
+
+            if (selected != null) {
+                val matchingMove = currentState.legalMovesForSelected.find { it.to == pos }
+                if (matchingMove != null) {
+                    executeUserMove(matchingMove)
+                    return
+                }
+            }
+
+            // Clicked on a piece
+            val clickedPiece = board.getPiece(pos)
+            if (clickedPiece != null && clickedPiece.color == activeTurnColor) {
+                val legalMoves = board.getLegalMovesForPosition(pos)
+                _uiState.value = currentState.copy(
+                    selectedPosition = pos,
+                    legalMovesForSelected = legalMoves,
+                    hintMove = null
+                )
+            }
+            return
+        }
+
+        // In VS_AI mode, only allow clicks when it's user's turn
+        if (currentState.gameMode == GameMode.VS_AI && currentState.currentTurn != currentState.userColor) {
+            return
+        }
+
+        val activeTurnColor = currentState.currentTurn
         val board = currentState.board
         val selected = currentState.selectedPosition
 
@@ -99,9 +288,9 @@ class ChessViewModel : ViewModel() {
                 return
             }
 
-            // Clicked on another piece of user's color
+            // Clicked on another piece of active turn's color
             val clickedPiece = board.getPiece(pos)
-            if (clickedPiece != null && clickedPiece.color == currentState.userColor) {
+            if (clickedPiece != null && clickedPiece.color == activeTurnColor) {
                 val legalMoves = board.getLegalMovesForPosition(pos)
                 _uiState.value = currentState.copy(
                     selectedPosition = pos,
@@ -120,7 +309,7 @@ class ChessViewModel : ViewModel() {
         } else {
             // Select piece
             val clickedPiece = board.getPiece(pos)
-            if (clickedPiece != null && clickedPiece.color == currentState.userColor) {
+            if (clickedPiece != null && clickedPiece.color == activeTurnColor) {
                 val legalMoves = board.getLegalMovesForPosition(pos)
                 _uiState.value = currentState.copy(
                     selectedPosition = pos,
@@ -140,13 +329,42 @@ class ChessViewModel : ViewModel() {
 
     private fun executeUserMove(move: Move) {
         val currentState = _uiState.value
+
+        if (currentState.gameMode == GameMode.TUTORIAL) {
+            val board = currentState.board.copy()
+            board.applyMove(move)
+
+            SoundManager.playMoveSound(
+                pieceType = move.piece.type,
+                isCapture = move.capturedPiece != null,
+                isCheck = false
+            )
+
+            val newPos = move.to
+            val movedPiece = board.getPiece(newPos)
+            val newLegalMoves = if (movedPiece != null && movedPiece.color == currentState.userColor) {
+                board.getLegalMovesForPosition(newPos)
+            } else emptyList()
+
+            _uiState.value = currentState.copy(
+                board = board,
+                selectedPosition = if (newLegalMoves.isNotEmpty()) newPos else null,
+                legalMovesForSelected = newLegalMoves,
+                lastMove = move,
+                playerLastMove = move,
+                hintMove = null
+            )
+            return
+        }
+
         val board = currentState.board.copy()
         board.applyMove(move)
 
         val updatedHistory = currentState.moveHistory + move
         val (capWhite, capBlack) = updateCapturedPieces(currentState, move)
 
-        val opponent = currentState.userColor.opposite
+        val currentTurnColor = move.piece.color
+        val opponent = currentTurnColor.opposite
         val opponentLegalMoves = board.getLegalMoves(opponent)
         val opponentInCheck = board.isKingInCheck(opponent)
 
@@ -156,7 +374,7 @@ class ChessViewModel : ViewModel() {
         if (opponentLegalMoves.isEmpty()) {
             if (opponentInCheck) {
                 newStatus = GameStatus.CHECKMATE
-                winner = currentState.userColor
+                winner = currentTurnColor
             } else {
                 newStatus = GameStatus.STALEMATE
             }
@@ -170,7 +388,7 @@ class ChessViewModel : ViewModel() {
             isCheck = opponentInCheck
         )
 
-        if (newStatus == GameStatus.CHECKMATE && winner == currentState.userColor) {
+        if (newStatus == GameStatus.CHECKMATE && winner != null) {
             SoundManager.playVictorySound()
         }
 
@@ -187,10 +405,22 @@ class ChessViewModel : ViewModel() {
             isCheck = opponentInCheck,
             showCheckPopup = (opponentInCheck && newStatus == GameStatus.IN_PROGRESS),
             lastMove = move,
+            playerLastMove = move,
             hintMove = null
         )
 
-        if (newStatus == GameStatus.IN_PROGRESS) {
+        if (newStatus != GameStatus.IN_PROGRESS) {
+            recordMatchHistory(
+                isQuitOrAppClosed = false,
+                forcedStatus = newStatus,
+                forcedWinner = winner
+            )
+        } else if (updatedHistory.size == 1) {
+            // Reset flag for a new match with moves
+            hasSavedHistoryForMatch = false
+        }
+
+        if (newStatus == GameStatus.IN_PROGRESS && currentState.gameMode == GameMode.VS_AI) {
             triggerAiMove(opponent)
         }
     }
@@ -198,12 +428,14 @@ class ChessViewModel : ViewModel() {
     private fun triggerAiMove(aiColor: PieceColor) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAiThinking = true)
-            delay(1000) // Delay 1 second before AI makes a move
+            delay(500)
 
             val currentState = _uiState.value
             val board = currentState.board.copy()
-            val ai = ChessAI(aiColor)
-            val aiMove = ai.chooseMove(board)
+            val aiMove = withContext(Dispatchers.Default) {
+                val ai = ChessAI(aiColor)
+                ai.chooseMove(board, currentState.difficulty)
+            }
 
             if (aiMove != null) {
                 board.applyMove(aiMove)
@@ -249,8 +481,19 @@ class ChessViewModel : ViewModel() {
                     isCheck = userInCheck,
                     showCheckPopup = (userInCheck && newStatus == GameStatus.IN_PROGRESS),
                     lastMove = aiMove,
+                    aiLastMove = aiMove,
                     isAiThinking = false
                 )
+
+                if (newStatus != GameStatus.IN_PROGRESS) {
+                    recordMatchHistory(
+                        isQuitOrAppClosed = false,
+                        forcedStatus = newStatus,
+                        forcedWinner = winner
+                    )
+                } else if (updatedHistory.size == 1) {
+                    hasSavedHistoryForMatch = false
+                }
             } else {
                 // AI has no moves -> Stalemate or user checkmated AI
                 _uiState.value = currentState.copy(isAiThinking = false)
@@ -276,8 +519,12 @@ class ChessViewModel : ViewModel() {
         val currentState = _uiState.value
         if (currentState.isAiThinking || currentState.moveHistory.isEmpty()) return
 
-        // Undo 2 moves (AI move + User move) if user's turn, or 1 move if user just moved
-        val movesToPop = if (currentState.moveHistory.size >= 2) 2 else 1
+        // Undo 1 move in TWO_PLAYERS mode, 2 moves in VS_AI mode (AI + User)
+        val movesToPop = if (currentState.gameMode == GameMode.TWO_PLAYERS) {
+            1
+        } else {
+            if (currentState.moveHistory.size >= 2) 2 else 1
+        }
         val newHistory = currentState.moveHistory.dropLast(movesToPop)
 
         // Replay board from scratch
@@ -294,7 +541,15 @@ class ChessViewModel : ViewModel() {
             lastM = m
         }
 
-        val userInCheck = newBoard.isKingInCheck(currentState.userColor)
+        val newCurrentTurn = if (newHistory.isEmpty()) {
+            PieceColor.WHITE
+        } else {
+            newHistory.last().piece.color.opposite
+        }
+
+        val inCheck = newBoard.isKingInCheck(newCurrentTurn)
+        val pLast = newHistory.findLast { it.piece.color == currentState.userColor }
+        val aLast = newHistory.findLast { it.piece.color != currentState.userColor }
 
         _uiState.value = currentState.copy(
             board = newBoard,
@@ -303,11 +558,13 @@ class ChessViewModel : ViewModel() {
             moveHistory = newHistory,
             capturedWhitePieces = capWhite,
             capturedBlackPieces = capBlack,
-            currentTurn = currentState.userColor,
+            currentTurn = newCurrentTurn,
             gameStatus = GameStatus.IN_PROGRESS,
             winner = null,
-            isCheck = userInCheck,
+            isCheck = inCheck,
             lastMove = lastM,
+            playerLastMove = pLast,
+            aiLastMove = aLast,
             isAiThinking = false,
             hintMove = null
         )
@@ -315,20 +572,23 @@ class ChessViewModel : ViewModel() {
 
     fun showHint() {
         val state = _uiState.value
-        if (state.gameStatus != GameStatus.IN_PROGRESS ||
-            state.currentTurn != state.userColor ||
-            state.isAiThinking
-        ) return
+        if (state.gameStatus != GameStatus.IN_PROGRESS || state.isAiThinking || state.gameMode == GameMode.TWO_PLAYERS) return
 
-        val ai = ChessAI(state.userColor)
-        val hint = ai.chooseMove(state.board) ?: return
-        val legalMoves = state.board.getLegalMovesForPosition(hint.from)
+        viewModelScope.launch {
+            val hint = withContext(Dispatchers.Default) {
+                val ai = ChessAI(state.currentTurn)
+                ai.chooseMove(state.board, DifficultyLevel.HARD)
+            } ?: return@launch
+            val legalMoves = state.board.getLegalMovesForPosition(hint.from)
 
-        _uiState.value = state.copy(
-            selectedPosition = hint.from,
-            legalMovesForSelected = legalMoves,
-            hintMove = hint
-        )
+            val currentState = _uiState.value
+            _uiState.value = currentState.copy(
+                selectedPosition = hint.from,
+                legalMovesForSelected = legalMoves,
+                hintMove = hint,
+                playerLastMove = null
+            )
+        }
     }
 
     fun requestResign() {
@@ -344,17 +604,145 @@ class ChessViewModel : ViewModel() {
     fun confirmResign() {
         val state = _uiState.value
         if (state.gameStatus != GameStatus.IN_PROGRESS || state.isAiThinking) return
-        val opponentColor = if (state.userColor == PieceColor.WHITE) PieceColor.BLACK else PieceColor.WHITE
+        val winnerColor = state.currentTurn.opposite
         _uiState.value = state.copy(
             gameStatus = GameStatus.RESIGNED,
-            winner = opponentColor,
+            winner = winnerColor,
             selectedPosition = null,
             legalMovesForSelected = emptyList(),
             showResignConfirmationModal = false
         )
+        recordMatchHistory(
+            isQuitOrAppClosed = false,
+            forcedStatus = GameStatus.RESIGNED,
+            forcedWinner = winnerColor
+        )
+    }
+
+    fun openHistoryModal() {
+        _uiState.value = _uiState.value.copy(showHistoryModal = true)
+    }
+
+    fun closeHistoryModal() {
+        _uiState.value = _uiState.value.copy(showHistoryModal = false)
     }
 
     fun dismissCheckPopup() {
         _uiState.value = _uiState.value.copy(showCheckPopup = false)
+    }
+
+    fun openCapturedPiecesModal() {
+        _uiState.value = _uiState.value.copy(showCapturedPiecesModal = true)
+    }
+
+    fun closeCapturedPiecesModal() {
+        _uiState.value = _uiState.value.copy(showCapturedPiecesModal = false)
+    }
+
+    fun openThemeModal() {
+        _uiState.value = _uiState.value.copy(showThemeModal = true)
+    }
+
+    fun closeThemeModal() {
+        _uiState.value = _uiState.value.copy(showThemeModal = false)
+    }
+
+    fun setBoardViewMode(mode: com.example.chess.model.BoardViewMode) {
+        themeManager.saveViewMode(mode)
+        _uiState.value = _uiState.value.copy(boardViewMode = mode)
+    }
+
+    fun selectTheme(theme: ChessTheme) {
+        themeManager.saveTheme(theme.name)
+        _uiState.value = _uiState.value.copy(
+            selectedTheme = theme,
+            showThemeModal = false
+        )
+    }
+
+    fun startTutorialMode(pieceType: PieceType = PieceType.ROOK) {
+        val board = ChessBoard(initialize = false)
+        val userColor = PieceColor.WHITE
+        val opponentColor = PieceColor.BLACK
+
+        var primaryPos = Position(4, 3) // d4
+
+        when (pieceType) {
+            PieceType.ROOK -> { // Xe: Đi thẳng, ngang không giới hạn ô
+                primaryPos = Position(4, 3)
+                board.setPiece(primaryPos, com.example.chess.model.Piece(PieceType.ROOK, userColor))
+                board.setPiece(Position(7, 4), com.example.chess.model.Piece(PieceType.KING, userColor))
+                board.setPiece(Position(0, 0), com.example.chess.model.Piece(PieceType.KING, opponentColor))
+                board.setPiece(Position(2, 3), com.example.chess.model.Piece(PieceType.PAWN, opponentColor))
+                board.setPiece(Position(4, 1), com.example.chess.model.Piece(PieceType.PAWN, userColor))
+                board.setPiece(Position(4, 6), com.example.chess.model.Piece(PieceType.KNIGHT, opponentColor))
+            }
+            PieceType.KNIGHT -> { // Mã: Đi hình chữ L
+                primaryPos = Position(4, 3)
+                board.setPiece(primaryPos, com.example.chess.model.Piece(PieceType.KNIGHT, userColor))
+                board.setPiece(Position(7, 4), com.example.chess.model.Piece(PieceType.KING, userColor))
+                board.setPiece(Position(0, 0), com.example.chess.model.Piece(PieceType.KING, opponentColor))
+                board.setPiece(Position(2, 4), com.example.chess.model.Piece(PieceType.PAWN, opponentColor))
+                board.setPiece(Position(3, 1), com.example.chess.model.Piece(PieceType.BISHOP, opponentColor))
+                board.setPiece(Position(3, 3), com.example.chess.model.Piece(PieceType.PAWN, userColor))
+                board.setPiece(Position(4, 2), com.example.chess.model.Piece(PieceType.PAWN, userColor))
+            }
+            PieceType.BISHOP -> { // Tượng: Đi chéo không giới hạn ô
+                primaryPos = Position(4, 3)
+                board.setPiece(primaryPos, com.example.chess.model.Piece(PieceType.BISHOP, userColor))
+                board.setPiece(Position(7, 4), com.example.chess.model.Piece(PieceType.KING, userColor))
+                board.setPiece(Position(0, 0), com.example.chess.model.Piece(PieceType.KING, opponentColor))
+                board.setPiece(Position(2, 5), com.example.chess.model.Piece(PieceType.KNIGHT, opponentColor))
+                board.setPiece(Position(6, 1), com.example.chess.model.Piece(PieceType.PAWN, userColor))
+                board.setPiece(Position(2, 1), com.example.chess.model.Piece(PieceType.PAWN, opponentColor))
+            }
+            PieceType.QUEEN -> { // Hậu: Đi thẳng, ngang, chéo tự do
+                primaryPos = Position(4, 3)
+                board.setPiece(primaryPos, com.example.chess.model.Piece(PieceType.QUEEN, userColor))
+                board.setPiece(Position(7, 4), com.example.chess.model.Piece(PieceType.KING, userColor))
+                board.setPiece(Position(0, 0), com.example.chess.model.Piece(PieceType.KING, opponentColor))
+                board.setPiece(Position(2, 3), com.example.chess.model.Piece(PieceType.ROOK, opponentColor))
+                board.setPiece(Position(2, 5), com.example.chess.model.Piece(PieceType.BISHOP, opponentColor))
+                board.setPiece(Position(6, 3), com.example.chess.model.Piece(PieceType.PAWN, userColor))
+                board.setPiece(Position(4, 6), com.example.chess.model.Piece(PieceType.KNIGHT, opponentColor))
+            }
+            PieceType.KING -> { // Vua: Đi 1 ô theo mọi hướng
+                primaryPos = Position(4, 3)
+                board.setPiece(primaryPos, com.example.chess.model.Piece(PieceType.KING, userColor))
+                board.setPiece(Position(0, 0), com.example.chess.model.Piece(PieceType.KING, opponentColor))
+                board.setPiece(Position(3, 3), com.example.chess.model.Piece(PieceType.PAWN, opponentColor))
+                board.setPiece(Position(5, 2), com.example.chess.model.Piece(PieceType.PAWN, userColor))
+                board.setPiece(Position(3, 4), com.example.chess.model.Piece(PieceType.KNIGHT, opponentColor))
+            }
+            PieceType.PAWN -> { // Tốt: Đi thẳng 1 ô (ô đầu đi 2 ô), ăn chéo
+                primaryPos = Position(6, 4)
+                board.setPiece(primaryPos, com.example.chess.model.Piece(PieceType.PAWN, userColor))
+                board.setPiece(Position(4, 2), com.example.chess.model.Piece(PieceType.PAWN, userColor))
+                board.setPiece(Position(7, 4), com.example.chess.model.Piece(PieceType.KING, userColor))
+                board.setPiece(Position(0, 0), com.example.chess.model.Piece(PieceType.KING, opponentColor))
+                board.setPiece(Position(5, 3), com.example.chess.model.Piece(PieceType.PAWN, opponentColor))
+                board.setPiece(Position(3, 3), com.example.chess.model.Piece(PieceType.KNIGHT, opponentColor))
+            }
+        }
+
+        val legalMoves = board.getLegalMovesForPosition(primaryPos)
+
+        _uiState.value = ChessUiState(
+            currentScreen = AppScreen.GAME,
+            selectedSideOption = SideOption.WHITE,
+            gameMode = GameMode.TUTORIAL,
+            board = board,
+            userColor = userColor,
+            currentTurn = userColor,
+            selectedPosition = primaryPos,
+            legalMovesForSelected = legalMoves,
+            gameStatus = GameStatus.IN_PROGRESS,
+            tutorialPiece = pieceType
+        )
+    }
+
+    fun resetTutorialBoard() {
+        val currentPiece = _uiState.value.tutorialPiece ?: PieceType.ROOK
+        startTutorialMode(currentPiece)
     }
 }

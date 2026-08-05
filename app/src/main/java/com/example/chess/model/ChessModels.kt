@@ -1,12 +1,12 @@
 package com.example.chess.model
 
-enum class PieceType(val symbolWhite: String, val symbolBlack: String, val value: Int, val displayNameVi: String) {
-    PAWN("♙", "♟", 100, "Tốt"),
-    KNIGHT("♘", "♞", 320, "Mã"),
-    BISHOP("♗", "♝", 330, "Tượng"),
-    ROOK("♖", "♜", 500, "Xe"),
-    QUEEN("♕", "♛", 900, "Hậu"),
-    KING("♔", "♚", 20000, "Vua")
+enum class PieceType(val symbolWhite: String, val symbolBlack: String, val value: Int, val pointValue: Int, val displayNameVi: String) {
+    PAWN("♙", "♟", 100, 1, "Tốt"),
+    KNIGHT("♘", "♞", 320, 3, "Mã"),
+    BISHOP("♗", "♝", 330, 3, "Tượng"),
+    ROOK("♖", "♜", 500, 5, "Xe"),
+    QUEEN("♕", "♛", 900, 9, "Hậu"),
+    KING("♔", "♚", 20000, 0, "Vua")
 }
 
 enum class PieceColor(val displayNameVi: String) {
@@ -52,4 +52,56 @@ enum class GameStatus {
     CHECKMATE,
     STALEMATE,
     RESIGNED
+}
+
+enum class AppScreen {
+    SETUP,
+    GAME
+}
+
+enum class BoardViewMode {
+    VIEW_2D,
+    VIEW_3D
+}
+
+enum class GameMode(val displayNameVi: String, val subtitleVi: String) {
+    VS_AI("Đấu Với Máy AI", "1 Người chơi đấu với máy"),
+    TWO_PLAYERS("2 Người Chơi", "Chơi 2 người trên cùng 1 máy"),
+    TUTORIAL("Hướng Dẫn", "Học cách đi cờ 6 quân")
+}
+
+enum class SideOption(val displayNameVi: String, val subtitleVi: String, val iconSymbol: String) {
+    WHITE("Bạch Vương (Trắng)", "Đi trước - Chủ động tấn công", "♔"),
+    RANDOM("Ngẫu Nhiên", "Hệ thống tự chọn Trắng hoặc Đen", "🎲"),
+    BLACK("Hắc Vương (Đen)", "Đi sau - Phòng thủ phản công", "♚")
+}
+
+enum class DifficultyLevel(val displayNameVi: String, val descriptionVi: String) {
+    EASY("Dễ", "Máy đánh đơn giản, tạo cơ hội thư giãn"),
+    MEDIUM("Trung Bình", "Máy có tính toán cân bằng và phòng thủ khá"),
+    HARD("Khó", "Tính toán sâu 5+ nước đi, tối ưu chiến thuật & phản công sắc bén")
+}
+
+data class ChessTheme(
+    val name: String,
+    val lightSquareColor: Long,
+    val darkSquareColor: Long,
+    val displayName: String
+) {
+    companion object {
+        val CLASSIC = ChessTheme("Classic", 0xFFEBECD0, 0xFF779556, "Cổ điển")
+        val WOOD = ChessTheme("Wood", 0xFFDDB88C, 0xFFA06F3E, "Gỗ")
+        val BLUE = ChessTheme("Blue", 0xFFDEE3E6, 0xFF8CA2AD, "Xanh biển")
+        val DARK = ChessTheme("Dark", 0xFF707070, 0xFF303030, "Tối")
+        val SAND = ChessTheme("Sand", 0xFFE4C16F, 0xFFB88B4A, "Cát")
+        val ROYAL = ChessTheme("Royal", 0xFFE8D19F, 0xFF1F1F1F, "Hoàng Gia")
+        val MARBLE = ChessTheme("Marble", 0xFFF0F0F0, 0xFF708090, "Cẩm Thạch")
+        val MIDNIGHT = ChessTheme("Midnight", 0xFF2C3E50, 0xFF000000, "Bóng Đêm")
+
+        val themes = listOf(CLASSIC, WOOD, BLUE, DARK, SAND, ROYAL, MARBLE, MIDNIGHT)
+
+        fun fromName(name: String): ChessTheme {
+            return themes.find { it.name == name } ?: CLASSIC
+        }
+    }
 }

@@ -6,7 +6,7 @@ import com.example.chess.model.PieceColor
 import com.example.chess.model.PieceType
 import com.example.chess.model.Position
 
-class ChessBoard {
+class ChessBoard(initialize: Boolean = true) {
     private val board: Array<Array<Piece?>> = Array(8) { Array(8) { null } }
     
     // Track castling eligibility
@@ -18,14 +18,16 @@ class ChessBoard {
     var blackRookQueensideMoved = false
 
     init {
-        setupInitialBoard()
+        if (initialize) {
+            setupInitialBoard()
+        }
     }
 
     fun copy(): ChessBoard {
-        val newBoard = ChessBoard()
+        val newBoard = ChessBoard(initialize = false)
         for (r in 0..7) {
             for (c in 0..7) {
-                newBoard.board[r][c] = this.board[r][c]?.copy()
+                newBoard.board[r][c] = this.board[r][c]
             }
         }
         newBoard.whiteKingMoved = this.whiteKingMoved
@@ -281,66 +283,89 @@ class ChessBoard {
     }
 
     fun isSquareAttacked(pos: Position, attackerColor: PieceColor): Boolean {
-        for (r in 0..7) {
-            for (c in 0..7) {
-                val p = board[r][c]
-                if (p != null && p.color == attackerColor) {
-                    val attackerPos = Position(r, c)
-                    when (p.type) {
-                        PieceType.PAWN -> {
-                            val dir = if (attackerColor == PieceColor.WHITE) -1 else 1
-                            if (pos.row == r + dir && (pos.col == c - 1 || pos.col == c + 1)) return true
-                        }
-                        PieceType.KNIGHT -> {
-                            val dr = Math.abs(pos.row - r)
-                            val dc = Math.abs(pos.col - c)
-                            if ((dr == 1 && dc == 2) || (dr == 2 && dc == 1)) return true
-                        }
-                        PieceType.BISHOP -> {
-                            if (isDiagonalPathClear(attackerPos, pos)) return true
-                        }
-                        PieceType.ROOK -> {
-                            if (isStraightPathClear(attackerPos, pos)) return true
-                        }
-                        PieceType.QUEEN -> {
-                            if (isDiagonalPathClear(attackerPos, pos) || isStraightPathClear(attackerPos, pos)) return true
-                        }
-                        PieceType.KING -> {
-                            if (Math.abs(pos.row - r) <= 1 && Math.abs(pos.col - c) <= 1) return true
-                        }
-                    }
-                }
+        val r = pos.row
+        val c = pos.col
+
+        // 1. Pawn attacks
+        val pawnDir = if (attackerColor == PieceColor.WHITE) 1 else -1
+        val pawnRow = r + pawnDir
+        if (pawnRow in 0..7) {
+            if (c - 1 >= 0) {
+                val p = board[pawnRow][c - 1]
+                if (p != null && p.color == attackerColor && p.type == PieceType.PAWN) return true
+            }
+            if (c + 1 <= 7) {
+                val p = board[pawnRow][c + 1]
+                if (p != null && p.color == attackerColor && p.type == PieceType.PAWN) return true
             }
         }
+
+        // 2. Knight attacks
+        val knightOffsets = arrayOf(
+            Pair(-2, -1), Pair(-2, 1), Pair(-1, -2), Pair(-1, 2),
+            Pair(1, -2), Pair(1, 2), Pair(2, -1), Pair(2, 1)
+        )
+        for ((dr, dc) in knightOffsets) {
+            val nr = r + dr
+            val nc = c + dc
+            if (nr in 0..7 && nc in 0..7) {
+                val p = board[nr][nc]
+                if (p != null && p.color == attackerColor && p.type == PieceType.KNIGHT) return true
+            }
+        }
+
+        // 3. Sliding diagonal (Bishop / Queen)
+        val diagDirs = arrayOf(Pair(-1, -1), Pair(-1, 1), Pair(1, -1), Pair(1, 1))
+        for ((dr, dc) in diagDirs) {
+            var nr = r + dr
+            var nc = c + dc
+            while (nr in 0..7 && nc in 0..7) {
+                val p = board[nr][nc]
+                if (p != null) {
+                    if (p.color == attackerColor && (p.type == PieceType.BISHOP || p.type == PieceType.QUEEN)) {
+                        return true
+                    }
+                    break
+                }
+                nr += dr
+                nc += dc
+            }
+        }
+
+        // 4. Sliding straight (Rook / Queen)
+        val straightDirs = arrayOf(Pair(-1, 0), Pair(1, 0), Pair(0, -1), Pair(0, 1))
+        for ((dr, dc) in straightDirs) {
+            var nr = r + dr
+            var nc = c + dc
+            while (nr in 0..7 && nc in 0..7) {
+                val p = board[nr][nc]
+                if (p != null) {
+                    if (p.color == attackerColor && (p.type == PieceType.ROOK || p.type == PieceType.QUEEN)) {
+                        return true
+                    }
+                    break
+                }
+                nr += dr
+                nc += dc
+            }
+        }
+
+        // 5. King attacks
+        val kingOffsets = arrayOf(
+            Pair(-1, -1), Pair(-1, 0), Pair(-1, 1),
+            Pair(0, -1),               Pair(0, 1),
+            Pair(1, -1),  Pair(1, 0),  Pair(1, 1)
+        )
+        for ((dr, dc) in kingOffsets) {
+            val nr = r + dr
+            val nc = c + dc
+            if (nr in 0..7 && nc in 0..7) {
+                val p = board[nr][nc]
+                if (p != null && p.color == attackerColor && p.type == PieceType.KING) return true
+            }
+        }
+
         return false
-    }
-
-    private fun isStraightPathClear(from: Position, to: Position): Boolean {
-        if (from.row != to.row && from.col != to.col) return false
-        val dr = Integer.signum(to.row - from.row)
-        val dc = Integer.signum(to.col - from.col)
-        var currR = from.row + dr
-        var currC = from.col + dc
-        while (currR != to.row || currC != to.col) {
-            if (getPiece(currR, currC) != null) return false
-            currR += dr
-            currC += dc
-        }
-        return true
-    }
-
-    private fun isDiagonalPathClear(from: Position, to: Position): Boolean {
-        if (Math.abs(to.row - from.row) != Math.abs(to.col - from.col)) return false
-        val dr = Integer.signum(to.row - from.row)
-        val dc = Integer.signum(to.col - from.col)
-        var currR = from.row + dr
-        var currC = from.col + dc
-        while (currR != to.row || currC != to.col) {
-            if (getPiece(currR, currC) != null) return false
-            currR += dr
-            currC += dc
-        }
-        return true
     }
 
     fun findKing(color: PieceColor): Position? {

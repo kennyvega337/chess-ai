@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.chess.model.DifficultyLevel
+import com.example.chess.model.GameMode
 import com.example.chess.model.PieceColor
 import com.example.chess.model.PieceType
 import com.example.ui.theme.MedievalGold
@@ -51,6 +54,9 @@ fun PlayerCard(
     isCurrentTurn: Boolean,
     isAiThinking: Boolean = false,
     capturedPieces: List<PieceType>,
+    difficulty: DifficultyLevel? = null,
+    gameMode: GameMode = GameMode.VS_AI,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -64,10 +70,21 @@ fun PlayerCard(
         label = "alpha"
     )
 
-    Surface(
-        modifier = modifier
+    val isHumanPlayer = gameMode == GameMode.TWO_PLAYERS || isUser
+
+    val surfaceModifier = if (onClick != null) {
+        modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+    } else {
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+    }
+
+    Surface(
+        modifier = surfaceModifier
             .border(
                 width = if (isCurrentTurn) 2.dp else 1.dp,
                 color = if (isCurrentTurn) MedievalGold else Color(0x33D4AF37),
@@ -88,12 +105,12 @@ fun PlayerCard(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(if (isUser) Color(0xFF1E3A8A) else Color(0xFF881337))
+                        .background(if (isHumanPlayer) Color(0xFF1E3A8A) else Color(0xFF881337))
                         .border(1.dp, MedievalGold, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (isUser) Icons.Default.Person else Icons.Default.Computer,
+                        imageVector = if (isHumanPlayer) Icons.Default.Person else Icons.Default.Computer,
                         contentDescription = null,
                         tint = MedievalGoldLight,
                         modifier = Modifier.size(22.dp)
@@ -104,8 +121,15 @@ fun PlayerCard(
 
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val titleText = when {
+                            gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.WHITE -> "Người chơi 1"
+                            gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.BLACK -> "Người chơi 2"
+                            isUser -> "Bàn Cờ Bạn"
+                            else -> "Máy (${difficulty?.displayNameVi ?: "Trung Bình"})"
+                        }
+
                         Text(
-                            text = if (isUser) "Bàn Cờ Bạn" else "Máy (Cấp Dễ)",
+                            text = titleText,
                             color = MedievalParchment,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
@@ -120,7 +144,7 @@ fun PlayerCard(
                     }
 
                     // Turn status / Thinking indicator
-                    if (!isUser && isAiThinking) {
+                    if (gameMode == GameMode.VS_AI && !isUser && isAiThinking) {
                         Text(
                             text = "Đang tính nước đi...",
                             color = MedievalGold,
@@ -136,7 +160,7 @@ fun PlayerCard(
                         )
                     } else {
                         Text(
-                            text = "Chờ đối thủ...",
+                            text = "Chờ đến lượt...",
                             color = Color.Gray,
                             fontSize = 11.sp
                         )
