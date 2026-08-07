@@ -76,10 +76,20 @@ enum class SideOption(val displayNameVi: String, val subtitleVi: String, val ico
     BLACK("Hắc Vương (Đen)", "Đi sau - Phòng thủ phản công", "♚")
 }
 
-enum class DifficultyLevel(val displayNameVi: String, val descriptionVi: String) {
-    EASY("Dễ", "Máy đánh đơn giản, tạo cơ hội thư giãn"),
-    MEDIUM("Trung Bình", "Máy có tính toán cân bằng và phòng thủ khá"),
-    HARD("Khó", "Tính toán sâu 5+ nước đi, tối ưu chiến thuật & phản công sắc bén")
+enum class DifficultyLevel(val level: Int, val displayNameVi: String) {
+    LEVEL_1(1, "Dễ"),
+    LEVEL_2(2, "T.Bình"),
+    LEVEL_3(3, "Khó 3"),
+    LEVEL_4(4, "Khó 4"),
+    LEVEL_5(5, "Khó 5"),
+    LEVEL_6(6, "Khó 6"),
+    LEVEL_7(7, "Khó 7");
+
+    companion object {
+        fun fromInt(level: Int): DifficultyLevel {
+            return entries.find { it.level == level } ?: LEVEL_2
+        }
+    }
 }
 
 data class ChessTheme(

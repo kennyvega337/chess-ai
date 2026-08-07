@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -38,141 +39,159 @@ fun ChessThemeDialog(
     onViewModeChange: (BoardViewMode) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Trạng thái tạm thời khi người dùng chọn (chưa nhấn Áp dụng)
     var tempTheme by remember { mutableStateOf(selectedTheme) }
     var tempViewMode by remember { mutableStateOf(viewMode) }
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            usePlatformDefaultWidth = true, 
-            decorFitsSystemWindows = false // Thay đổi thành false để kiểm soát insets tốt hơn
+            usePlatformDefaultWidth = false, 
+            decorFitsSystemWindows = false
         )
     ) {
-        HideSystemBarsInDialog() // Gọi lại hàm ẩn thanh hệ thống cho Dialog
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight() // Tự động co dãn theo nội dung để nằm giữa
-                .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
-                .testTag("chess_theme_dialog"),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1D0E06))
+        HideSystemBarsInDialog()
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+                    .fillMaxWidth(if (isLandscape) 0.75f else 0.88f)
+                    .fillMaxHeight(if (isLandscape) 0.9f else 0.8f)
+                    .wrapContentHeight(),
+                contentAlignment = Alignment.TopEnd
             ) {
-                // Header - SỬ DỤNG SPACE BETWEEN ĐỂ ĐẨY 2 BÊN
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
+                        .testTag("chess_theme_dialog"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1D0E06))
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Palette,
-                            contentDescription = null,
-                            tint = MedievalGold,
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "GIAO DIỆN BÀN CỜ",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MedievalGoldLight
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onDismiss,
+                    Column(
                         modifier = Modifier
-                            .size(32.dp)
-                            .background(Color(0xFF382315), CircleShape)
+                            .fillMaxWidth()
+                            .padding(if (isLandscape) 12.dp else 16.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Đóng",
-                            tint = MedievalGoldLight,
-                            modifier = Modifier.size(18.dp)
+                        // Header
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = null,
+                                tint = MedievalGold,
+                                modifier = Modifier.size(if (isLandscape) 22.dp else 26.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "GIAO DIỆN BÀN CỜ",
+                                fontSize = if (isLandscape) 16.sp else 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MedievalGoldLight
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 20.dp))
+
+                        Text(
+                            text = "CHẾ ĐỘ HIỂN THỊ",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MedievalParchment,
+                            modifier = Modifier.padding(bottom = 6.dp)
                         )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            ViewModeButton(
+                                text = "CHẾ ĐỘ 2D",
+                                isSelected = tempViewMode == BoardViewMode.VIEW_2D,
+                                onClick = { tempViewMode = BoardViewMode.VIEW_2D },
+                                modifier = Modifier.weight(1f),
+                                height = if (isLandscape) 36.dp else 44.dp
+                            )
+                            ViewModeButton(
+                                text = "CHẾ ĐỘ 3D",
+                                isSelected = tempViewMode == BoardViewMode.VIEW_3D,
+                                onClick = { tempViewMode = BoardViewMode.VIEW_3D },
+                                modifier = Modifier.weight(1f),
+                                height = if (isLandscape) 36.dp else 44.dp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(if (isLandscape) 14.dp else 24.dp))
+
+                        Text(
+                            text = "CHỦ ĐỀ BÀN CỜ",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MedievalParchment,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(if (isLandscape) 3 else 2),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(if (isLandscape) 8.dp else 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(if (isLandscape) 8.dp else 12.dp)
+                        ) {
+                            items(ChessTheme.themes) { theme ->
+                                ThemeItem(
+                                    theme = theme,
+                                    isSelected = theme.name == tempTheme.name,
+                                    onClick = { tempTheme = theme },
+                                    isLandscape = isLandscape
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
+
+                        Button(
+                            onClick = {
+                                onThemeSelect(tempTheme)
+                                onViewModeChange(tempViewMode)
+                                onDismiss()
+                            },
+                            modifier = Modifier.fillMaxWidth().height(if (isLandscape) 40.dp else 48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MedievalGold),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                text = "ÁP DỤNG THAY ĐỔI", 
+                                color = Color(0xFF1D0E06), 
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = if (isLandscape) 13.sp else 14.sp
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // === CHẾ ĐỘ HIỂN THỊ (2D / 3D) ===
-                Text(
-                    text = "CHẾ ĐỘ HIỂN THỊ",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MedievalParchment,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                // Overflowing Close Button (X) - Stuck to corner
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .offset(x = 10.dp, y = (-10).dp)
+                        .size(34.dp)
+                        .background(Color(0xFF382315), CircleShape)
+                        .border(2.dp, MedievalGold, CircleShape)
+                        .shadow(8.dp, CircleShape)
                 ) {
-                    ViewModeButton(
-                        text = "CHẾ ĐỘ 2D",
-                        isSelected = tempViewMode == BoardViewMode.VIEW_2D,
-                        onClick = { tempViewMode = BoardViewMode.VIEW_2D },
-                        modifier = Modifier.weight(1f)
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Đóng",
+                        tint = MedievalGoldLight,
+                        modifier = Modifier.size(18.dp)
                     )
-                    ViewModeButton(
-                        text = "CHẾ ĐỘ 3D",
-                        isSelected = tempViewMode == BoardViewMode.VIEW_3D,
-                        onClick = { tempViewMode = BoardViewMode.VIEW_3D },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // === CHỦ ĐỀ BÀN CỜ ===
-                Text(
-                    text = "CHỦ ĐỀ BÀN CỜ",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MedievalParchment,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                // Bây giờ tất cả các theme đều được hiển thị cho cả 2D và 3D
-                val allThemes = ChessTheme.themes
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(allThemes) { theme ->
-                        ThemeItem(
-                            theme = theme,
-                            isSelected = theme.name == tempTheme.name,
-                            onClick = { tempTheme = theme }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        onThemeSelect(tempTheme)
-                        onViewModeChange(tempViewMode)
-                        onDismiss()
-                    },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MedievalGold),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("ÁP DỤNG THAY ĐỔI", color = Color(0xFF1D0E06), fontWeight = FontWeight.ExtraBold)
                 }
             }
         }
@@ -184,21 +203,23 @@ private fun ViewModeButton(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp = 44.dp
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
+        modifier = modifier.height(height),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isSelected) MedievalGold else Color(0xFF382315)
         ),
         shape = RoundedCornerShape(8.dp),
-        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, MedievalGold.copy(alpha = 0.3f)) else null
+        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, MedievalGold.copy(alpha = 0.3f)) else null,
+        contentPadding = PaddingValues(0.dp)
     ) {
         Text(
             text = text,
             color = if (isSelected) Color(0xFF1D0E06) else MedievalGoldLight,
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
     }
@@ -208,7 +229,8 @@ private fun ViewModeButton(
 private fun ThemeItem(
     theme: ChessTheme,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isLandscape: Boolean = false
 ) {
     Column(
         modifier = Modifier
@@ -220,13 +242,12 @@ private fun ThemeItem(
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable { onClick() }
-            .padding(8.dp),
+            .padding(if (isLandscape) 4.dp else 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Mini Board Preview
         Box(
             modifier = Modifier
-                .size(80.dp)
+                .size(if (isLandscape) 60.dp else 80.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .border(1.dp, Color.Black.copy(alpha = 0.5f))
         ) {
@@ -246,13 +267,11 @@ private fun ThemeItem(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+        Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
         Text(
             text = theme.displayName,
             color = if (isSelected) MedievalGoldLight else MedievalParchment,
-            fontSize = 14.sp,
+            fontSize = if (isLandscape) 12.sp else 14.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
         )
     }

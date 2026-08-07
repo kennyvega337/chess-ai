@@ -44,8 +44,8 @@ class ChessThemeManager(context: Context) {
     }
 
     fun getSelectedDifficulty(): com.example.chess.model.DifficultyLevel {
-        val name = prefs.getString("selected_difficulty", com.example.chess.model.DifficultyLevel.MEDIUM.name)
-        return try { com.example.chess.model.DifficultyLevel.valueOf(name!!) } catch (e: Exception) { com.example.chess.model.DifficultyLevel.MEDIUM }
+        val name = prefs.getString("selected_difficulty", com.example.chess.model.DifficultyLevel.LEVEL_2.name)
+        return try { com.example.chess.model.DifficultyLevel.valueOf(name!!) } catch (e: Exception) { com.example.chess.model.DifficultyLevel.LEVEL_2 }
     }
 
     fun saveSideOption(option: com.example.chess.model.SideOption) {

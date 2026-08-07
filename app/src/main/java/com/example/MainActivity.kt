@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
         if (gameModeStr != null) {
             val gameMode = try { GameMode.valueOf(gameModeStr) } catch (e: Exception) { GameMode.VS_AI }
             val sideOption = try { SideOption.valueOf(sideOptionStr ?: "WHITE") } catch (e: Exception) { SideOption.WHITE }
-            val difficulty = try { DifficultyLevel.valueOf(difficultyStr ?: "MEDIUM") } catch (e: Exception) { DifficultyLevel.MEDIUM }
+            val difficulty = try { DifficultyLevel.valueOf(difficultyStr ?: "LEVEL_2") } catch (e: Exception) { DifficultyLevel.LEVEL_2 }
 
             if (gameMode == GameMode.TUTORIAL && tutorialPieceStr != null) {
                 val pieceType = try { PieceType.valueOf(tutorialPieceStr) } catch (e: Exception) { PieceType.ROOK }

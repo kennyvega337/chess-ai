@@ -1,6 +1,7 @@
 package com.example.chess.data
 
 import android.content.Context
+import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
 import com.example.chess.model.PieceColor
@@ -80,17 +81,20 @@ class GameHistoryManager(context: Context) {
             userColor: PieceColor,
             gameStatus: GameStatus,
             winner: PieceColor?,
-            isQuitOrAppClosed: Boolean
+            isQuitOrAppClosed: Boolean,
+            difficulty: DifficultyLevel? = null
         ): String {
             if (gameMode == GameMode.VS_AI) {
                 val colorStr = if (userColor == PieceColor.WHITE) "Trắng" else "Đen"
-                return if (isQuitOrAppClosed || gameStatus == GameStatus.RESIGNED) {
-                    "$colorStr bỏ cuộc"
+                val diffStr = difficulty?.displayNameVi ?: ""
+                val statusStr = if (isQuitOrAppClosed || gameStatus == GameStatus.RESIGNED) {
+                    "bỏ cuộc"
                 } else if (gameStatus == GameStatus.CHECKMATE) {
-                    if (winner == userColor) "$colorStr thắng" else "$colorStr thua"
+                    if (winner == userColor) "thắng" else "thua"
                 } else {
-                    "$colorStr hòa"
+                    "hòa"
                 }
+                return "$colorStr $statusStr (Máy $diffStr)"
             } else { // TWO_PLAYERS
                 return if (isQuitOrAppClosed) {
                     "Trắng hòa Đen hòa (2 người chơi)"

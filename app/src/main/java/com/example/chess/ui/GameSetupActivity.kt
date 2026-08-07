@@ -36,7 +36,7 @@ class GameSetupActivity : ComponentActivity() {
 
         val initialGameMode = try { GameMode.valueOf(initialGameModeStr) } catch (e: Exception) { GameMode.VS_AI }
         val initialSide = try { SideOption.valueOf(initialSideStr) } catch (e: Exception) { SideOption.WHITE }
-        val initialDifficulty = try { DifficultyLevel.valueOf(initialDifficultyStr) } catch (e: Exception) { DifficultyLevel.MEDIUM }
+        val initialDifficulty = try { DifficultyLevel.valueOf(initialDifficultyStr) } catch (e: Exception) { DifficultyLevel.LEVEL_2 }
 
         setContent {
             MyApplicationTheme {
@@ -51,7 +51,7 @@ class GameSetupActivity : ComponentActivity() {
                         launchGame(sideOption, difficulty, gameMode, null)
                     },
                     onStartTutorialPiece = { pieceType ->
-                        launchGame(SideOption.WHITE, DifficultyLevel.EASY, GameMode.TUTORIAL, pieceType)
+                        launchGame(SideOption.WHITE, DifficultyLevel.LEVEL_1, GameMode.TUTORIAL, pieceType)
                     },
                     onReturnToCurrentGame = {
                         finish()

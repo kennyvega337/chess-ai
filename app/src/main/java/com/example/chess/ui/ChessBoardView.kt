@@ -18,6 +18,7 @@ fun ChessBoardView(
     hintMove: Move? = null,
     isCheck: Boolean,
     currentTurn: PieceColor,
+    checkingPieces: List<Position> = emptyList(),
     onSquareClick: (Position) -> Unit,
     theme: ChessTheme = ChessTheme.CLASSIC,
     viewMode: BoardViewMode = BoardViewMode.VIEW_2D,
@@ -40,6 +41,7 @@ fun ChessBoardView(
                     aiLastMove = aiLastMove,
                     hintMove = hintMove,
                     kingInCheckPos = kingInCheckPos,
+                    checkingPieces = checkingPieces,
                     theme = theme,
                     onSquareClick = onSquareClick,
                     modifier = Modifier.fillMaxSize()
@@ -51,7 +53,11 @@ fun ChessBoardView(
                     userColor = userColor,
                     selectedPosition = selectedPosition,
                     legalMoves = legalMoves,
+                    playerLastMove = playerLastMove,
+                    aiLastMove = aiLastMove,
                     hintMove = hintMove,
+                    kingInCheckPos = kingInCheckPos,
+                    checkingPieces = checkingPieces,
                     theme = theme,
                     onSquareClick = onSquareClick,
                     modifier = Modifier.fillMaxSize()

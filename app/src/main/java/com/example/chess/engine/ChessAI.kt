@@ -1,5 +1,6 @@
 package com.example.chess.engine
 
+import android.content.Context
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.Move
 import com.example.chess.model.Piece
@@ -10,15 +11,10 @@ import kotlin.random.Random
 
 /**
  * Optimized Advanced Chess Engine for Hard AI Difficulty
- * Features:
- * - Minimax + Alpha-Beta Pruning with strict time budget (~800ms - 1200ms)
- * - Iterative Deepening (Depth 1 to 5) with PV Move prioritization
- * - Fast Quiescence Search for tactile capture stability
- * - Transposition Table with Zobrist Hashing
- * - Fast MVV-LVA Move Ordering & Early Pruning
- * - Positional Tables (PST) & Positional Evaluation
  */
-class ChessAI(private val aiColor: PieceColor) {
+class ChessAI(private val aiColor: PieceColor, private val context: Context? = null) {
+
+    // ... (rest of the properties)
 
     // --- Zobrist Hashing & Transposition Table ---
     private val zobristPieces = Array(64) { LongArray(12) { Random.nextLong() } }
@@ -115,14 +111,25 @@ class ChessAI(private val aiColor: PieceColor) {
         intArrayOf(-50,-30,-30,-30,-30,-30,-30,-50)
     )
 
-    fun chooseMove(board: ChessBoard, difficulty: DifficultyLevel = DifficultyLevel.MEDIUM): Move? {
+    fun chooseMove(board: ChessBoard, difficulty: DifficultyLevel = DifficultyLevel.LEVEL_2): Move? {
         val legalMoves = board.getLegalMoves(aiColor)
         if (legalMoves.isEmpty()) return null
 
+        // Cấp độ 7 sử dụng Stockfish (không NNUE) nếu có context
+        if (difficulty == DifficultyLevel.LEVEL_7 && context != null) {
+            val stockfish = StockfishEngine(context)
+            val fen = board.toFen(aiColor)
+            val bestUci = stockfish.getBestMove(fen, depth = 14)
+            if (bestUci != null) {
+                val move = stockfish.parseUciMove(board, bestUci)
+                if (move != null) return move
+            }
+        }
+
         return when (difficulty) {
-            DifficultyLevel.EASY -> chooseEasyMove(board, legalMoves)
-            DifficultyLevel.MEDIUM -> chooseMediumMove(board, legalMoves)
-            DifficultyLevel.HARD -> chooseHardMove(board, legalMoves)
+            DifficultyLevel.LEVEL_1 -> chooseEasyMove(board, legalMoves)
+            DifficultyLevel.LEVEL_2 -> chooseMediumMove(board, legalMoves)
+            else -> chooseHardMove(board, legalMoves, maxTargetDepth = difficulty.level)
         }
     }
 
@@ -203,17 +210,15 @@ class ChessAI(private val aiColor: PieceColor) {
      * Fast Hard AI: Time-budgeted Iterative Deepening Minimax with Alpha-Beta Pruning
      * Maximum response time is strictly capped (~800ms - 1000ms) for snappy gameplay.
      */
-    private fun chooseHardMove(board: ChessBoard, legalMoves: List<Move>): Move {
+    private fun chooseHardMove(board: ChessBoard, legalMoves: List<Move>, maxTargetDepth: Int): Move {
         transpositionTable.clear()
 
         val moveCandidates = orderMoves(legalMoves).toMutableList()
         var overallBestMove: Move = moveCandidates.first()
 
         val startTime = System.currentTimeMillis()
-        val maxTimeMs = 1000L // 1.0 second strict target budget for maximum responsiveness
+        val maxTimeMs = 1500L // Slightly more time for deeper levels
         val timeDeadline = startTime + maxTimeMs
-
-        val maxTargetDepth = 5
 
         for (targetDepth in 1..maxTargetDepth) {
             if (System.currentTimeMillis() >= timeDeadline && targetDepth > 2) {

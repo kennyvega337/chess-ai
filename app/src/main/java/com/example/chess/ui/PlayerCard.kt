@@ -47,6 +47,9 @@ import com.example.ui.theme.MedievalGoldLight
 import com.example.ui.theme.MedievalParchment
 import com.example.ui.theme.MedievalParchmentDark
 
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
+
 @Composable
 fun PlayerCard(
     isUser: Boolean,
@@ -59,6 +62,8 @@ fun PlayerCard(
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val alphaAnim by infiniteTransition.animateFloat(
         initialValue = 0.4f,
@@ -120,50 +125,86 @@ fun PlayerCard(
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isLandscape) {
                         val titleText = when {
                             gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.WHITE -> "Người chơi 1"
                             gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.BLACK -> "Người chơi 2"
                             isUser -> "Bàn Cờ Bạn"
                             else -> "Máy (${difficulty?.displayNameVi ?: "Trung Bình"})"
                         }
-
                         Text(
                             text = titleText,
                             color = MedievalParchment,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                            fontSize = 13.sp
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (playerColor == PieceColor.WHITE) "(Trắng ♔)" else "(Đen ♚)",
+                            text = if (playerColor == PieceColor.WHITE) "Trắng" else "Đen",
                             color = MedievalGold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
                         )
-                    }
-
-                    // Turn status / Thinking indicator
-                    if (gameMode == GameMode.VS_AI && !isUser && isAiThinking) {
-                        Text(
-                            text = "Đang tính nước đi...",
-                            color = MedievalGold,
-                            fontSize = 11.sp,
-                            modifier = Modifier.alpha(alphaAnim)
-                        )
-                    } else if (isCurrentTurn) {
-                        Text(
-                            text = "⚡ Đến lượt đi",
-                            color = Color(0xFF22C55E),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        if (isCurrentTurn) {
+                            Text(
+                                text = "Đến lượt đi",
+                                color = Color(0xFF22C55E),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else {
+                            Text(
+                                text = "Đang chờ...",
+                                color = Color.Gray,
+                                fontSize = 11.sp
+                            )
+                        }
                     } else {
-                        Text(
-                            text = "Chờ đến lượt...",
-                            color = Color.Gray,
-                            fontSize = 11.sp
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val titleText = when {
+                                gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.WHITE -> "Người chơi 1"
+                                gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.BLACK -> "Người chơi 2"
+                                isUser -> "Bàn Cờ Bạn"
+                                else -> "Máy (${difficulty?.displayNameVi ?: "Trung Bình"})"
+                            }
+
+                            Text(
+                                text = titleText,
+                                color = MedievalParchment,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (playerColor == PieceColor.WHITE) "(Trắng ♔)" else "(Đen ♚)",
+                                color = MedievalGold,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        // Turn status / Thinking indicator
+                        if (isAiThinking && isCurrentTurn) {
+                            val thinkingText = if (isUser) "Đang tìm gợi ý..." else "Đang tính nước đi..."
+                            Text(
+                                text = thinkingText,
+                                color = MedievalGold,
+                                fontSize = 11.sp,
+                                modifier = Modifier.alpha(alphaAnim)
+                            )
+                        } else if (isCurrentTurn) {
+                            Text(
+                                text = "⚡ Đến lượt đi",
+                                color = Color(0xFF22C55E),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else {
+                            Text(
+                                text = "Chờ đến lượt...",
+                                color = Color.Gray,
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
             }

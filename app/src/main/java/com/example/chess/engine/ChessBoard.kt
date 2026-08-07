@@ -17,6 +17,9 @@ class ChessBoard(initialize: Boolean = true) {
     var blackRookKingsideMoved = false
     var blackRookQueensideMoved = false
 
+    // Track En Passant target square (the square behind the pawn that just moved 2 squares)
+    var enPassantTarget: Position? = null
+
     init {
         if (initialize) {
             setupInitialBoard()
@@ -36,6 +39,7 @@ class ChessBoard(initialize: Boolean = true) {
         newBoard.blackKingMoved = this.blackKingMoved
         newBoard.blackRookKingsideMoved = this.blackRookKingsideMoved
         newBoard.blackRookQueensideMoved = this.blackRookQueensideMoved
+        newBoard.enPassantTarget = this.enPassantTarget
         return newBoard
     }
 
@@ -78,6 +82,7 @@ class ChessBoard(initialize: Boolean = true) {
         blackKingMoved = false
         blackRookKingsideMoved = false
         blackRookQueensideMoved = false
+        enPassantTarget = null
     }
 
     fun getPiece(pos: Position): Piece? {
@@ -112,6 +117,12 @@ class ChessBoard(initialize: Boolean = true) {
         // Place at target
         board[move.to.row][move.to.col] = finalPiece
 
+        // Handle En Passant capture (remove the captured pawn from its special position)
+        if (move.isEnPassant) {
+            // The captured pawn is on the same row as 'from' and same column as 'to'
+            board[move.from.row][move.to.col] = null
+        }
+
         // Castling rook movement
         if (move.isCastling) {
             if (move.to.col == 6) { // Kingside
@@ -123,6 +134,14 @@ class ChessBoard(initialize: Boolean = true) {
                 board[move.from.row][0] = null
                 board[move.from.row][3] = rook
             }
+        }
+
+        // Update En Passant target square for the NEXT move
+        // It's set only if a pawn moves 2 squares
+        enPassantTarget = if (piece.type == PieceType.PAWN && Math.abs(move.to.row - move.from.row) == 2) {
+            Position((move.from.row + move.to.row) / 2, move.from.col)
+        } else {
+            null
         }
 
         // Update movement flags
@@ -185,14 +204,19 @@ class ChessBoard(initialize: Boolean = true) {
         val captureCols = intArrayOf(pos.col - 1, pos.col + 1)
         for (c in captureCols) {
             if (c in 0..7) {
-                val targetPiece = getPiece(oneStepRow, c)
+                val target = Position(oneStepRow, c)
+                val targetPiece = getPiece(target)
+                
                 if (targetPiece != null && targetPiece.color != piece.color) {
-                    val target = Position(oneStepRow, c)
                     if (oneStepRow == promotionRow) {
                         addPromotionMoves(pos, target, piece, targetPiece, moves)
                     } else {
                         moves.add(Move(pos, target, piece, targetPiece))
                     }
+                } else if (target == enPassantTarget) {
+                    // En Passant capture
+                    val capturedPawn = getPiece(pos.row, c) // The pawn being captured is on the same row as attacker
+                    moves.add(Move(pos, target, piece, capturedPawn, isEnPassant = true))
                 }
             }
         }
@@ -385,6 +409,81 @@ class ChessBoard(initialize: Boolean = true) {
         return isSquareAttacked(kingPos, color.opposite)
     }
 
+    fun getCheckingPieces(color: PieceColor): List<Position> {
+        val kingPos = findKing(color) ?: return emptyList()
+        val attackerColor = color.opposite
+        val checkingPieces = mutableListOf<Position>()
+
+        val r = kingPos.row
+        val c = kingPos.col
+
+        // 1. Pawn attacks
+        val pawnDir = if (attackerColor == PieceColor.WHITE) 1 else -1
+        val pawnRow = r + pawnDir
+        if (pawnRow in 0..7) {
+            if (c - 1 >= 0) {
+                val p = board[pawnRow][c - 1]
+                if (p != null && p.color == attackerColor && p.type == PieceType.PAWN) checkingPieces.add(Position(pawnRow, c - 1))
+            }
+            if (c + 1 <= 7) {
+                val p = board[pawnRow][c + 1]
+                if (p != null && p.color == attackerColor && p.type == PieceType.PAWN) checkingPieces.add(Position(pawnRow, c + 1))
+            }
+        }
+
+        // 2. Knight attacks
+        val knightOffsets = arrayOf(
+            Pair(-2, -1), Pair(-2, 1), Pair(-1, -2), Pair(-1, 2),
+            Pair(1, -2), Pair(1, 2), Pair(2, -1), Pair(2, 1)
+        )
+        for ((dr, dc) in knightOffsets) {
+            val nr = r + dr
+            val nc = c + dc
+            if (nr in 0..7 && nc in 0..7) {
+                val p = board[nr][nc]
+                if (p != null && p.color == attackerColor && p.type == PieceType.KNIGHT) checkingPieces.add(Position(nr, nc))
+            }
+        }
+
+        // 3. Sliding diagonal (Bishop / Queen)
+        val diagDirs = arrayOf(Pair(-1, -1), Pair(-1, 1), Pair(1, -1), Pair(1, 1))
+        for ((dr, dc) in diagDirs) {
+            var nr = r + dr
+            var nc = c + dc
+            while (nr in 0..7 && nc in 0..7) {
+                val p = board[nr][nc]
+                if (p != null) {
+                    if (p.color == attackerColor && (p.type == PieceType.BISHOP || p.type == PieceType.QUEEN)) {
+                        checkingPieces.add(Position(nr, nc))
+                    }
+                    break
+                }
+                nr += dr
+                nc += dc
+            }
+        }
+
+        // 4. Sliding straight (Rook / Queen)
+        val straightDirs = arrayOf(Pair(-1, 0), Pair(1, 0), Pair(0, -1), Pair(0, 1))
+        for ((dr, dc) in straightDirs) {
+            var nr = r + dr
+            var nc = c + dc
+            while (nr in 0..7 && nc in 0..7) {
+                val p = board[nr][nc]
+                if (p != null) {
+                    if (p.color == attackerColor && (p.type == PieceType.ROOK || p.type == PieceType.QUEEN)) {
+                        checkingPieces.add(Position(nr, nc))
+                    }
+                    break
+                }
+                nr += dr
+                nc += dc
+            }
+        }
+
+        return checkingPieces
+    }
+
     fun getLegalMoves(color: PieceColor): List<Move> {
         val allLegal = mutableListOf<Move>()
         for (r in 0..7) {
@@ -418,5 +517,73 @@ class ChessBoard(initialize: Boolean = true) {
             }
         }
         return legal
+    }
+
+    /**
+     * Generates a Forsyth-Edwards Notation (FEN) string for the current board state.
+     * Required for communication with external engines like Stockfish.
+     */
+    fun toFen(currentTurnColor: PieceColor): String {
+        val fen = StringBuilder()
+        
+        // 1. Piece placement
+        for (r in 0..7) {
+            var emptySquares = 0
+            for (c in 0..7) {
+                val piece = board[r][c]
+                if (piece == null) {
+                    emptySquares++
+                } else {
+                    if (emptySquares > 0) {
+                        fen.append(emptySquares)
+                        emptySquares = 0
+                    }
+                    val char = when (piece.type) {
+                        PieceType.PAWN -> 'p'
+                        PieceType.KNIGHT -> 'n'
+                        PieceType.BISHOP -> 'b'
+                        PieceType.ROOK -> 'r'
+                        PieceType.QUEEN -> 'q'
+                        PieceType.KING -> 'k'
+                    }
+                    fen.append(if (piece.color == PieceColor.WHITE) char.uppercaseChar() else char)
+                }
+            }
+            if (emptySquares > 0) {
+                fen.append(emptySquares)
+            }
+            if (r < 7) {
+                fen.append('/')
+            }
+        }
+        
+        // 2. Active color
+        fen.append(if (currentTurnColor == PieceColor.WHITE) " w " else " b ")
+        
+        // 3. Castling availability
+        var castling = ""
+        if (!whiteKingMoved) {
+            if (!whiteRookKingsideMoved) castling += "K"
+            if (!whiteRookQueensideMoved) castling += "Q"
+        }
+        if (!blackKingMoved) {
+            if (!blackRookKingsideMoved) castling += "k"
+            if (!blackRookQueensideMoved) castling += "q"
+        }
+        fen.append(if (castling.isEmpty()) "-" else castling)
+        
+        // 4. En passant target square
+        fen.append(" ")
+        if (enPassantTarget == null) {
+            fen.append("-")
+        } else {
+            fen.append(enPassantTarget!!.algebraic)
+        }
+        fen.append(" ")
+        
+        // 5. Halfmove clock and 6. Fullmove number (simplified)
+        fen.append("0 1")
+        
+        return fen.toString()
     }
 }

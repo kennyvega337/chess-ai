@@ -75,10 +75,20 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.ui.theme.MyApplicationTheme
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.ui.draw.rotate
+import androidx.compose.material3.ExperimentalMaterial3Api
+import kotlin.math.roundToInt
+
 @Composable
 fun GameSetupScreen(
     initialSideOption: SideOption = SideOption.WHITE,
-    initialDifficulty: DifficultyLevel = DifficultyLevel.MEDIUM,
+    initialDifficulty: DifficultyLevel = DifficultyLevel.LEVEL_2,
     initialGameMode: GameMode = GameMode.VS_AI,
     gameStatus: GameStatus = GameStatus.NOT_STARTED,
     onStartGame: (SideOption, DifficultyLevel, GameMode) -> Unit,
@@ -117,29 +127,19 @@ fun GameSetupScreen(
                 // LEFT SIDE COLUMN
                 Column(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.1f)
                         .fillMaxHeight()
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
+                    verticalArrangement = Arrangement.Top
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        SetupHeader()
+                    SetupHeader()
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                        if (gameStatus == GameStatus.IN_PROGRESS && onReturnToCurrentGame != null) {
-                            ResumeGameButton(onReturnToCurrentGame)
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
+                    MatchPreviewCard(selectedSide, selectedDifficulty, selectedGameMode)
 
-                        MatchPreviewCard(selectedSide, selectedDifficulty, selectedGameMode)
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     StartGameButton(
                         gameMode = selectedGameMode,
@@ -156,15 +156,17 @@ fun GameSetupScreen(
                 // RIGHT SIDE COLUMN
                 Column(
                     modifier = Modifier
-                        .weight(1.2f)
+                        .weight(1.1f)
                         .fillMaxHeight()
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     GameModeSelectionCard(
                         selectedGameMode = selectedGameMode,
                         onSelectGameMode = { selectedGameMode = it },
-                        onOpenHistory = onOpenHistory
+                        onOpenHistory = onOpenHistory,
+                        gameStatus = gameStatus,
+                        onReturnToCurrentGame = onReturnToCurrentGame
                     )
 
                     when (selectedGameMode) {
@@ -211,15 +213,12 @@ fun GameSetupScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (gameStatus == GameStatus.IN_PROGRESS && onReturnToCurrentGame != null) {
-                        ResumeGameButton(onReturnToCurrentGame)
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
                     GameModeSelectionCard(
                         selectedGameMode = selectedGameMode,
                         onSelectGameMode = { selectedGameMode = it },
-                        onOpenHistory = onOpenHistory
+                        onOpenHistory = onOpenHistory,
+                        gameStatus = gameStatus,
+                        onReturnToCurrentGame = onReturnToCurrentGame
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -278,54 +277,59 @@ fun GameSetupScreen(
 
 @Composable
 private fun SetupHeader() {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(MedievalGold.copy(alpha = 0.3f), Color.Transparent)
+        if (!isLandscape) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(MedievalGold.copy(alpha = 0.3f), Color.Transparent)
+                        )
                     )
+                    .border(2.dp, MedievalGold, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Shield,
+                    contentDescription = null,
+                    tint = MedievalGold,
+                    modifier = Modifier.size(30.dp)
                 )
-                .border(2.dp, MedievalGold, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Shield,
-                contentDescription = null,
-                tint = MedievalGold,
-                modifier = Modifier.size(30.dp)
-            )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
         }
-
-        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
             text = "⚔️ CỜ VUA TRUNG CỔ ⚔️",
-            fontSize = 13.sp,
+            fontSize = if (isLandscape) 11.sp else 13.sp,
             fontWeight = FontWeight.Bold,
             color = MedievalGoldLight,
             letterSpacing = 2.sp,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(2.dp))
+        if (!isLandscape) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "THIẾT LẬP TRẬN ĐẤU",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MedievalGold,
+                textAlign = TextAlign.Center
+            )
+        }
 
-        Text(
-            text = "THIẾT LẬP TRẬN ĐẤU",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = MedievalGold,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 2.dp else 4.dp))
 
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.5f)
-                .height(2.dp)
+                .fillMaxWidth(if (isLandscape) 0.8f else 0.5f)
+                .height(if (isLandscape) 1.dp else 2.dp)
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(Color.Transparent, MedievalGold, Color.Transparent)
@@ -335,34 +339,7 @@ private fun SetupHeader() {
     }
 }
 
-@Composable
-private fun ResumeGameButton(onReturnToCurrentGame: () -> Unit) {
-    OutlinedButton(
-        onClick = onReturnToCurrentGame,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(46.dp)
-            .testTag("resume_game_button"),
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF22C55E)),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0x2222C55E))
-    ) {
-        Icon(
-            imageVector = Icons.Default.PlayArrow,
-            contentDescription = null,
-            tint = Color(0xFF22C55E),
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = "▶ TIẾP TỤC TRẬN ĐẤU ĐANG CHƠI",
-            color = Color(0xFF22C55E),
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.5.sp
-        )
-    }
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DifficultySectionCard(
     selectedDifficulty: DifficultyLevel,
@@ -398,55 +375,62 @@ private fun DifficultySectionCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                DifficultyLevel.values().forEach { level ->
-                    val isSelected = selectedDifficulty == level
-                    val activeColor = when (level) {
-                        DifficultyLevel.EASY -> Color(0xFF22C55E)
-                        DifficultyLevel.MEDIUM -> MedievalGold
-                        DifficultyLevel.HARD -> Color(0xFFEF4444)
-                    }
-
-                    Surface(
+            val interactionSource = remember { MutableInteractionSource() }
+            Slider(
+                value = selectedDifficulty.level.toFloat(),
+                onValueChange = { onSelectDifficulty(DifficultyLevel.fromInt(it.roundToInt())) },
+                valueRange = 1f..7f,
+                steps = 5,
+                interactionSource = interactionSource,
+                colors = SliderDefaults.colors(
+                    thumbColor = MedievalGold,
+                    activeTrackColor = MedievalGold,
+                    inactiveTrackColor = Color(0xFF22140A),
+                    activeTickColor = MedievalGold,
+                    inactiveTickColor = MedievalGold.copy(alpha = 0.4f)
+                ),
+                track = { sliderState ->
+                    SliderDefaults.Track(
+                        colors = SliderDefaults.colors(
+                            activeTrackColor = MedievalGold,
+                            inactiveTrackColor = Color(0xFF22140A),
+                            activeTickColor = MedievalGold,
+                            inactiveTickColor = MedievalGold.copy(alpha = 0.4f)
+                        ),
+                        sliderState = sliderState,
+                        thumbTrackGapSize = 0.dp,
+                        modifier = Modifier.height(4.dp)
+                    )
+                },
+                thumb = {
+                    Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable { onSelectDifficulty(level) }
-                            .border(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) activeColor else Color(0x44D4AF37),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .testTag("setup_difficulty_${level.name.lowercase()}"),
-                        color = if (isSelected) activeColor.copy(alpha = 0.25f) else Color(0xFF22140A)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = level.displayNameVi,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isSelected) activeColor else MedievalParchment
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = when (level) {
-                                    DifficultyLevel.EASY -> "Tập chơi"
-                                    DifficultyLevel.MEDIUM -> "Cân bằng"
-                                    DifficultyLevel.HARD -> "⚡ Tính 5+ nước"
-                                },
-                                fontSize = 10.sp,
-                                fontWeight = if (level == DifficultyLevel.HARD) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected && level == DifficultyLevel.HARD) Color(0xFFFCA5A5) else MedievalParchmentDark,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
+                            .size(14.dp)
+                            .rotate(45f)
+                            .background(MedievalGold)
+                            .border(1.dp, MedievalGoldLight)
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                DifficultyLevel.entries.forEach { level ->
+                    Text(
+                        text = level.displayNameVi,
+                        fontSize = 9.sp,
+                        fontWeight = if (selectedDifficulty == level) FontWeight.ExtraBold else FontWeight.Normal,
+                        color = if (selectedDifficulty == level) MedievalGoldLight else MedievalParchmentDark,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.width(40.dp)
+                    )
                 }
             }
         }
@@ -486,94 +470,50 @@ private fun SideSelectionCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            SideOption.values().forEach { option ->
-                val isSelected = selectedSide == option
-                val activeBorderColor = if (isSelected) MedievalGold else Color(0x44D4AF37)
-                val activeBgColor = if (isSelected) MedievalGold.copy(alpha = 0.2f) else Color(0xFF22140A)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SideOption.values().forEach { option ->
+                    val isSelected = selectedSide == option
+                    val activeBorderColor = if (isSelected) MedievalGold else Color(0x44D4AF37)
+                    val activeBgColor = if (isSelected) MedievalGold.copy(alpha = 0.2f) else Color(0xFF22140A)
 
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onSelectSide(option) }
-                        .border(
-                            width = if (isSelected) 2.dp else 1.dp,
-                            color = activeBorderColor,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .testTag("setup_side_${option.name.lowercase()}"),
-                    color = activeBgColor
-                ) {
-                    Row(
+                    Surface(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onSelectSide(option) }
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = activeBorderColor,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .testTag("setup_side_${option.name.lowercase()}"),
+                        color = activeBgColor
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
+                        Column(
+                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 2.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        when (option) {
-                                            SideOption.WHITE -> Color(0xFFF7F4EB)
-                                            SideOption.BLACK -> Color(0xFF1E130B)
-                                            SideOption.RANDOM -> Color(0xFF4A3525)
-                                        }
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (option == SideOption.WHITE) Color(0xFF1E130B) else MedievalGold,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = option.iconSymbol,
-                                    fontSize = 18.sp,
-                                    color = when (option) {
-                                        SideOption.WHITE -> Color(0xFF1E130B)
-                                        SideOption.BLACK -> MedievalGoldLight
-                                        SideOption.RANDOM -> MedievalGold
-                                    }
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(10.dp))
-
-                            Column {
-                                Text(
-                                    text = option.displayNameVi,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) MedievalGoldLight else MedievalParchment,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = option.subtitleVi,
-                                    fontSize = 10.5.sp,
-                                    color = MedievalParchmentDark,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = MedievalGold,
-                                modifier = Modifier.size(18.dp)
+                            Text(
+                                text = option.iconSymbol,
+                                fontSize = 18.sp,
+                                color = if (isSelected) MedievalGoldLight else MedievalParchment
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = when(option) {
+                                    SideOption.WHITE -> "Bạch Vương"
+                                    SideOption.BLACK -> "Hắc Vương"
+                                    SideOption.RANDOM -> "Ngẫu nhiên"
+                                },
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) MedievalGoldLight else MedievalParchment,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -587,7 +527,9 @@ private fun SideSelectionCard(
 private fun GameModeSelectionCard(
     selectedGameMode: GameMode,
     onSelectGameMode: (GameMode) -> Unit,
-    onOpenHistory: (() -> Unit)? = null
+    onOpenHistory: (() -> Unit)? = null,
+    gameStatus: GameStatus = GameStatus.NOT_STARTED,
+    onReturnToCurrentGame: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -622,17 +564,39 @@ private fun GameModeSelectionCard(
                     )
                 }
 
-                if (onOpenHistory != null && selectedGameMode != GameMode.TUTORIAL) {
-                    IconButton(
-                        onClick = onOpenHistory,
-                        modifier = Modifier.size(32.dp).testTag("history_icon_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Xem lịch sử đấu",
-                            tint = MedievalGoldLight,
-                            modifier = Modifier.size(22.dp)
-                        )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onOpenHistory != null && selectedGameMode != GameMode.TUTORIAL) {
+                        IconButton(
+                            onClick = onOpenHistory,
+                            modifier = Modifier.size(32.dp).testTag("history_icon_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = "Xem lịch sử đấu",
+                                tint = MedievalGoldLight,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    if (gameStatus == GameStatus.IN_PROGRESS && onReturnToCurrentGame != null && selectedGameMode != GameMode.TUTORIAL) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = onReturnToCurrentGame,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0xFF22C55E).copy(alpha = 0.2f), CircleShape)
+                                .border(2.dp, Color(0xFF22C55E), CircleShape)
+                                .shadow(8.dp, CircleShape)
+                                .testTag("return_to_game_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Tiếp tục trận đấu hiện tại",
+                                tint = Color(0xFF22C55E),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -673,17 +637,6 @@ private fun GameModeSelectionCard(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = if (isSelected) MedievalGoldLight else MedievalParchment,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = when (mode) {
-                                    GameMode.VS_AI -> "Chơi với Máy"
-                                    GameMode.TWO_PLAYERS -> "Cùng 1 máy"
-                                    GameMode.TUTORIAL -> "Học 6 quân cờ"
-                                },
-                                fontSize = 9.5.sp,
-                                color = MedievalParchmentDark,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -946,14 +899,18 @@ private fun MatchPreviewCard(
                     text = when (selectedGameMode) {
                         GameMode.TWO_PLAYERS -> "Quân Đen (♚)"
                         GameMode.TUTORIAL -> "Tập Luyện Lực Lượng"
-                        else -> "Cấp ${selectedDifficulty.displayNameVi}"
+                        else -> selectedDifficulty.displayNameVi
                     },
                     fontSize = 12.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = if (selectedGameMode == GameMode.TWO_PLAYERS || selectedGameMode == GameMode.TUTORIAL) MedievalParchment else when (selectedDifficulty) {
-                        DifficultyLevel.EASY -> Color(0xFF22C55E)
-                        DifficultyLevel.MEDIUM -> MedievalGold
-                        DifficultyLevel.HARD -> Color(0xFFEF4444)
+                        DifficultyLevel.LEVEL_1 -> Color(0xFF22C55E) // Xanh lá tươi
+                        DifficultyLevel.LEVEL_2 -> MedievalGold     // Vàng kim
+                        DifficultyLevel.LEVEL_3 -> Color(0xFFFCA5A5) // Đỏ hồng rất nhạt
+                        DifficultyLevel.LEVEL_4 -> Color(0xFFF87171) // Đỏ hồng tươi
+                        DifficultyLevel.LEVEL_5 -> Color(0xFFEF4444) // Đỏ tươi tiêu chuẩn
+                        DifficultyLevel.LEVEL_6 -> Color(0xFFFF2424) // Đỏ rực rỡ
+                        DifficultyLevel.LEVEL_7 -> Color(0xFFFF0000) // Đỏ rực cực độ (tươi nhất)
                     },
                     textAlign = TextAlign.Center
                 )
@@ -990,5 +947,27 @@ private fun StartGameButton(
                 letterSpacing = 1.sp
             )
         }
+    }
+}
+
+@Preview(showBackground = true, name = "Setup Portrait")
+@Composable
+fun GameSetupScreenPreview() {
+    MyApplicationTheme {
+        GameSetupScreen(
+            onStartGame = { _, _, _ -> },
+            onOpenHistory = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Setup Landscape", widthDp = 800, heightDp = 400)
+@Composable
+fun GameSetupScreenLandscapePreview() {
+    MyApplicationTheme {
+        GameSetupScreen(
+            onStartGame = { _, _, _ -> },
+            onOpenHistory = {}
+        )
     }
 }
