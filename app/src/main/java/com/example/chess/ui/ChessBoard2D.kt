@@ -1,5 +1,11 @@
 package com.example.chess.ui
 
+import android.content.res.Configuration
+import android.util.Log
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,21 +14,52 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.chess.engine.ChessBoard
 import com.example.chess.model.ChessTheme
+import com.example.chess.model.GameMode
+import com.example.chess.model.GameStatus
 import com.example.chess.model.Move
+import com.example.chess.model.Piece
 import com.example.chess.model.PieceColor
 import com.example.chess.model.PieceType
 import com.example.chess.model.Position
+import com.example.ui.theme.MyApplicationTheme
+
+private fun getPieceResource(piece: Piece): Int {
+    return when (piece.color) {
+        PieceColor.WHITE -> when (piece.type) {
+            PieceType.PAWN -> R.drawable.white_pawn
+            PieceType.KNIGHT -> R.drawable.white_knight
+            PieceType.BISHOP -> R.drawable.white_bishop
+            PieceType.ROOK -> R.drawable.white_rook
+            PieceType.QUEEN -> R.drawable.white_queen
+            PieceType.KING -> R.drawable.white_king
+        }
+        PieceColor.BLACK -> when (piece.type) {
+            PieceType.PAWN -> R.drawable.black_pawn
+            PieceType.KNIGHT -> R.drawable.black_knight
+            PieceType.BISHOP -> R.drawable.black_bishop
+            PieceType.ROOK -> R.drawable.black_rook
+            PieceType.QUEEN -> R.drawable.black_queen
+            PieceType.KING -> R.drawable.black_king
+        }
+    }
+}
 
 @Composable
 fun ChessBoard2D(
@@ -30,13 +67,17 @@ fun ChessBoard2D(
     userColor: PieceColor,
     selectedPosition: Position?,
     legalMoves: List<Move>,
-    playerLastMove: Move?,
     aiLastMove: Move?,
+    playerLastMove: Move?,
     hintMove: Move?,
     kingInCheckPos: Position?,
     checkingPieces: List<Position> = emptyList(),
-    theme: ChessTheme,
+    gameStatus: GameStatus = GameStatus.IN_PROGRESS,
+    winner: PieceColor? = null,
+    gameMode: GameMode = GameMode.VS_AI,
+    currentTurn: PieceColor,
     onSquareClick: (Position) -> Unit,
+    theme: ChessTheme,
     modifier: Modifier = Modifier
 ) {
     val lightSquareColor = Color(theme.lightSquareColor)
@@ -44,35 +85,52 @@ fun ChessBoard2D(
 
     val rows = if (userColor == PieceColor.WHITE) (0..7).toList() else (7 downTo 0).toList()
 
+    val animProgress = remember { Animatable(1f) }
+    val currentMove = aiLastMove ?: playerLastMove
+
+    LaunchedEffect(currentMove) {
+        if (currentMove != null) {
+            animProgress.snapTo(0f)
+            animProgress.animateTo(1f, animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing))
+        }
+    }
+
+    val progress = animProgress.value
+
     val configuration = LocalConfiguration.current
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
-        val maxAvailable = minOf(maxWidth, maxHeight)
+        val maxAvailable = minOf(this.maxWidth, this.maxHeight)
         
-        val availableSize = if (isLargeScreen) {
-            // Tính toán chênh lệch kích thước để nhận diện trạng thái màn hình gập/tablet
-            val diffPx = Math.abs(maxHeight.value - maxWidth.value)
-            if (diffPx < 300) {
-                maxAvailable * 0.8f  // Màn hình gần vuông (Gập mở/Tablet dọc): 80%
-            } else {
-                maxAvailable * 0.9f  // Màn hình thuôn dài: 90%
-            }
+        val availableSize = if (isLandscape) {
+            maxAvailable // Ở chế độ xoay ngang, tận dụng tối đa chiều cao
         } else {
-            maxAvailable // Điện thoại thường: 100%
+            maxAvailable // Màn hình dọc: Luôn lấy 100%
         }
         
-        // Thu nhỏ border chỉ vừa đủ cho số và chữ (15dp thay vì 20dp)
-        val boardBorderSize = 15.dp
-        val boardSize = availableSize - (boardBorderSize * 2) - 5.dp
+        // Thu nhỏ border chỉ vừa đủ cho số và chữ (12dp thay vì 15dp để tăng diện tích bàn cờ)
+        val boardBorderSize = 12.dp
+        val boardSize = availableSize - (boardBorderSize * 2)
         val squareSize = boardSize / 8f
 
         // 1. LỚP NỀN VÀ BIÊN NGOÀI (Nằm dưới cùng)
+        val borderColor = if (winner != null) {
+            when (winner) {
+                PieceColor.WHITE -> Color(0xFF1E3A8A) // Trắng thắng (Xanh dương đậm)
+                PieceColor.BLACK -> Color.Red         // Đen thắng (Đỏ)
+                else -> Color(0xFFD4AF37)
+            }
+        } else {
+            Color(0xFFD4AF37) // Mặc định Vàng Gold trong khi chơi
+        }
+
         Box(
             modifier = Modifier
-                .size(boardSize + (boardBorderSize * 2))
-                .background(Color(0xFF2C190E), RoundedCornerShape(4.dp))
-                .border(2.5.dp, Color(0xFFD4AF37), RoundedCornerShape(4.dp)),
+                .size(availableSize) // Sử dụng chính xác availableSize
+                .background(Color(0xFF2C190E), RoundedCornerShape(2.dp))
+                .border(2.dp, borderColor, RoundedCornerShape(2.dp)),
             contentAlignment = Alignment.Center
         ) {
             // Vẽ tọa độ Chữ (a-h) - Căn giữa trong phần lề
@@ -81,14 +139,12 @@ fun ChessBoard2D(
                 Text(
                     text = letter,
                     color = Color(0xEEFFFFFF),
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    style = TextStyle(
-                        platformStyle = PlatformTextStyle(includeFontPadding = false)
-                    ),
+                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)),
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .offset(x = boardBorderSize + (squareSize * i) + (squareSize / 2) - 4.dp, y = (-5).dp)
+                        .offset(x = boardBorderSize + (squareSize * i) + (squareSize / 2) - 4.dp, y = (-2).dp)
                 )
             }
 
@@ -98,14 +154,14 @@ fun ChessBoard2D(
                 Text(
                     text = number,
                     color = Color(0xEEFFFFFF),
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.ExtraBold,
                     style = TextStyle(
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .offset(x = 5.dp, y = boardBorderSize + (squareSize * i) + (squareSize / 2) - 6.dp)
+                        .offset(x = 4.dp, y = boardBorderSize + (squareSize * i) + (squareSize / 2) - 6.dp)
                 )
             }
 
@@ -143,7 +199,6 @@ fun ChessBoard2D(
                                 
                                 val isSelected = selectedPosition == pos
                                 val isLegalTarget = legalMoves.any { it.to == pos }
-                                val isPlayerLastMove = playerLastMove?.from == pos || playerLastMove?.to == pos
                                 val isAiLastMove = aiLastMove?.from == pos || aiLastMove?.to == pos
                                 val isCheckSquare = kingInCheckPos == pos
                                 val isHint = hintMove?.to == pos
@@ -187,7 +242,6 @@ fun ChessBoard2D(
                                     }
                                     if (isSelected) Box(Modifier.fillMaxSize().background(Color(0x8816A34A)))
                                     if (isAiLastMove) Box(Modifier.fillMaxSize().background(Color(0x66F59E0B)))
-                                    if (isPlayerLastMove) Box(Modifier.fillMaxSize().background(Color(0x6622C55E)))
                                     if (isLegalTarget) {
                                         if (isCastling) {
                                             // Special Blue highlight for Castling target
@@ -216,21 +270,99 @@ fun ChessBoard2D(
         // 3. QUÂN CỜ (Vẽ ngoài Box bàn cờ để đảm bảo KHÔNG bị Border đè lên khi scale lớn)
         Box(modifier = Modifier.size(boardSize)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                for (r in rows) {
+                for (vr in 0..7) {
+                    val r = rows[vr]
                     Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         for (vc in 0..7) {
                             val c = if (userColor == PieceColor.WHITE) vc else 7 - vc
-                            val piece = board.getPiece(Position(r, c))
+                            val pos = Position(r, c)
+                            val piece = board.getPiece(pos)
                             Box(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (piece != null) {
-                                    Text(
-                                        text = piece.symbol,
-                                        fontSize = (squareSize.value * 0.75f).sp,
-                                        color = if (piece.color == PieceColor.WHITE) Color.White else Color.Black,
-                                        fontWeight = FontWeight.Bold
+                                    val isAtDestination = currentMove != null && pos == currentMove.to && progress < 1f
+                                    val isAtSource = currentMove != null && pos == currentMove.from && progress < 1f
+                                    
+                                    if (!isAtDestination && !isAtSource) {
+                                        Image(
+                                            painter = painterResource(id = getPieceResource(piece)),
+                                            contentDescription = piece.type.name,
+                                            modifier = Modifier.size(squareSize * 0.85f)
+                                        )
+                                    } else if (isAtDestination) {
+                                        // Captured piece \"kick out\" animation towards nearest edge
+                                        val capturedPiece = currentMove.capturedPiece
+                                        if (capturedPiece != null) {
+                                            val animScale = 1f - (0.3f * progress) // From 1.0 to 0.7
+                                            val animAlpha = 1f - progress
+                                            
+                                            // Visual distances to edges (in squares)
+                                            val vDistLeft = vc
+                                            val vDistRight = 7 - vc
+                                            val vDistTop = vr
+                                            val vDistBottom = 7 - vr
+                                            
+                                            val minDist = minOf(vDistLeft, vDistRight, vDistTop, vDistBottom)
+                                            // Calculate distance to clear the board (+2 squares ensures it's fully out)
+                                            val kickDistance = squareSize.value * (minDist + 2f)
+                                            
+                                            val (targetX, targetY) = when (minDist) {
+                                                vDistLeft -> (-kickDistance * progress).dp to 0.dp
+                                                vDistRight -> (kickDistance * progress).dp to 0.dp
+                                                vDistTop -> 0.dp to (-kickDistance * progress).dp
+                                                else -> 0.dp to (kickDistance * progress).dp
+                                            }
+
+                                            // Parabolic height (simulated by negative Y offset)
+                                            val arcHeight = (squareSize.value * 0.8f).dp
+                                            val jumpY = (-arcHeight * kotlin.math.sin(progress * kotlin.math.PI).toFloat())
+
+                                            val kickOffsetX = targetX
+                                            val kickOffsetY = targetY + jumpY
+                                            
+                                            Image(
+                                                painter = painterResource(id = getPieceResource(capturedPiece)),
+                                                contentDescription = capturedPiece.type.name,
+                                                modifier = Modifier
+                                                    .size(squareSize * 0.85f)
+                                                    .offset(x = kickOffsetX, y = kickOffsetY)
+                                                    .graphicsLayer {
+                                                        scaleX = animScale
+                                                        scaleY = animScale
+                                                        alpha = animAlpha
+                                                    }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Overlay the moving piece from source to destination
+                                if (currentMove != null && pos == currentMove.from && progress < 1f) {
+                                    val movingPiece = currentMove.piece
+                                    val animScale = 1f + 0.1f * kotlin.math.sin(progress * kotlin.math.PI).toFloat()
+                                    
+                                    // Adjust distance calculation for board orientation (Black perspective)
+                                    val rawColDist = currentMove.to.col - currentMove.from.col
+                                    val rawRowDist = currentMove.to.row - currentMove.from.row
+                                    
+                                    val colDist = if (userColor == PieceColor.WHITE) rawColDist else -rawColDist
+                                    val rowDist = if (userColor == PieceColor.WHITE) rawRowDist else -rawRowDist
+                                    
+                                    val offsetX = (colDist * squareSize.value * progress).dp
+                                    val offsetY = (rowDist * squareSize.value * progress).dp
+
+                                    Image(
+                                        painter = painterResource(id = getPieceResource(movingPiece)),
+                                        contentDescription = movingPiece.type.name,
+                                        modifier = Modifier
+                                            .size(squareSize * 0.85f)
+                                            .offset(x = offsetX, y = offsetY)
+                                            .graphicsLayer {
+                                                scaleX = animScale
+                                                scaleY = animScale
+                                            }
                                     )
                                 }
                             }
@@ -239,5 +371,26 @@ fun ChessBoard2D(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ChessBoard2DPreview() {
+    MyApplicationTheme {
+        ChessBoard2D(
+            board = ChessBoard(initialize = true),
+            userColor = PieceColor.WHITE,
+            selectedPosition = null,
+            legalMoves = emptyList(),
+            aiLastMove = null,
+            playerLastMove = null,
+            hintMove = null,
+            kingInCheckPos = null,
+            currentTurn = PieceColor.WHITE,
+            onSquareClick = {},
+            theme = ChessTheme.CLASSIC,
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }

@@ -60,7 +60,9 @@ data class ChessUiState(
     val hintMove: Move? = null,
     val tutorialPiece: PieceType? = null,
     val boardViewMode: com.example.chess.model.BoardViewMode = com.example.chess.model.BoardViewMode.VIEW_2D,
-    val checkingPieces: List<Position> = emptyList()
+    val checkingPieces: List<Position> = emptyList(),
+    val halfMoveClock: Int = 0,
+    val boardSignatures: Map<String, Int> = emptyMap(),
 )
 
 class ChessViewModel(application: Application) : AndroidViewModel(application) {
@@ -123,7 +125,7 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             state.gameMode != GameMode.TUTORIAL
         ) {
             // For 2 players, if quitting it's a draw.
-            // For AI, if quitting it's a "bỏ cuộc" (quit) for the user.
+            // For AI, if quitting it's a \"bỏ cuộc\" (quit) for the user.
             recordMatchHistory(isQuitOrAppClosed = true)
         }
     }
@@ -180,7 +182,9 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             lastMove = null,
             hintMove = null,
             selectedTheme = savedTheme,
-            boardViewMode = savedViewMode
+            boardViewMode = savedViewMode,
+            halfMoveClock = 0,
+            boardSignatures = mapOf(newBoard.getBoardSignature() to 1)
         )
 
         // If VS_AI mode and user is Black, AI plays White first!
@@ -377,83 +381,120 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        val board = currentState.board.copy()
-        board.applyMove(move)
+        viewModelScope.launch {
+            val boardAfter = currentState.board.copy()
+            boardAfter.applyMove(move)
 
-        val updatedHistory = currentState.moveHistory + move
-        val (capWhite, capBlack) = updateCapturedPieces(currentState, move)
+            val updatedHistory = currentState.moveHistory + move
+            val (capWhite, capBlack) = updateCapturedPieces(currentState, move)
 
-        val currentTurnColor = move.piece.color
-        val opponent = currentTurnColor.opposite
-        val opponentLegalMoves = board.getLegalMoves(opponent)
-        val opponentInCheck = board.isKingInCheck(opponent)
-        val checkingPos = if (opponentInCheck) board.getCheckingPieces(opponent) else emptyList()
+            val currentTurnColor = move.piece.color
+            val opponent = currentTurnColor.opposite
+            val opponentLegalMoves = boardAfter.getLegalMoves(opponent)
+            val opponentInCheck = boardAfter.isKingInCheck(opponent)
+            val checkingPos = if (opponentInCheck) boardAfter.getCheckingPieces(opponent) else emptyList()
 
-        var newStatus = GameStatus.IN_PROGRESS
-        var winner: PieceColor? = null
+            var newStatus = GameStatus.IN_PROGRESS
+            var winner: PieceColor? = null
 
-        if (opponentLegalMoves.isEmpty()) {
-            if (opponentInCheck) {
-                newStatus = GameStatus.CHECKMATE
-                winner = currentTurnColor
-            } else {
-                newStatus = GameStatus.STALEMATE
+            if (opponentLegalMoves.isEmpty()) {
+                if (opponentInCheck) {
+                    newStatus = GameStatus.CHECKMATE
+                    winner = currentTurnColor
+                } else {
+                    newStatus = GameStatus.STALEMATE
+                }
             }
-        }
 
-        // Play piece move sound
-        val isCapture = move.capturedPiece != null
-        SoundManager.playMoveSound(
-            pieceType = move.piece.type,
-            isCapture = isCapture,
-            isCheck = opponentInCheck
-        )
+            // Evaluate draw conditions
+            val signature = boardAfter.getBoardSignature()
+            val updatedSignatures = currentState.boardSignatures.toMutableMap()
+            updatedSignatures[signature] = (updatedSignatures[signature] ?: 0) + 1
 
-        if (newStatus == GameStatus.CHECKMATE && winner != null) {
-            SoundManager.playVictorySound()
-        }
-
-        _uiState.value = currentState.copy(
-            board = board,
-            selectedPosition = null,
-            legalMovesForSelected = emptyList(),
-            moveHistory = updatedHistory,
-            capturedWhitePieces = capWhite,
-            capturedBlackPieces = capBlack,
-            currentTurn = opponent,
-            gameStatus = newStatus,
-            winner = winner,
-            isCheck = opponentInCheck,
-            showCheckPopup = (opponentInCheck && newStatus == GameStatus.IN_PROGRESS),
-            showGameOverModal = (newStatus != GameStatus.IN_PROGRESS),
-            checkingPieces = checkingPos,
-            lastMove = move,
-            playerLastMove = if (currentState.gameMode == GameMode.TWO_PLAYERS) {
-                if (move.piece.color == PieceColor.WHITE) move else null
+            val newHalfMoveClock = if (move.piece.type == PieceType.PAWN || move.capturedPiece != null) {
+                0
             } else {
-                move
-            },
-            aiLastMove = if (currentState.gameMode == GameMode.TWO_PLAYERS) {
-                if (move.piece.color == PieceColor.BLACK) move else null
-            } else {
-                null // Clear AI highlight when player moves in VS_AI
-            },
-            hintMove = null
-        )
+                currentState.halfMoveClock + 1
+            }
 
-        if (newStatus != GameStatus.IN_PROGRESS) {
-            recordMatchHistory(
-                isQuitOrAppClosed = false,
-                forcedStatus = newStatus,
-                forcedWinner = winner
+            var finalStatus = newStatus
+            if (finalStatus == GameStatus.IN_PROGRESS) {
+                when {
+                    boardAfter.hasInsufficientMaterial() -> finalStatus = GameStatus.DRAW
+                    newHalfMoveClock >= 100 -> finalStatus = GameStatus.DRAW
+                    (updatedSignatures[signature] ?: 0) >= 3 -> finalStatus = GameStatus.DRAW
+                }
+            }
+
+            // Play end game sound if applicable
+            if (finalStatus != GameStatus.IN_PROGRESS) {
+                SoundManager.playVictorySound()
+            } else {
+                // Play regular move sound
+                val isCapture = move.capturedPiece != null
+                SoundManager.playMoveSound(
+                    pieceType = move.piece.type,
+                    isCapture = isCapture,
+                    isCheck = opponentInCheck
+                )
+            }
+
+            // Phase 1: Trigger Animation WITHOUT updating board state yet
+            _uiState.value = currentState.copy(
+                selectedPosition = null,
+                legalMovesForSelected = emptyList(),
+                lastMove = move,
+                playerLastMove = if (currentState.gameMode == GameMode.TWO_PLAYERS) {
+                    if (move.piece.color == PieceColor.WHITE) move else null
+                } else {
+                    move
+                },
+                aiLastMove = if (currentState.gameMode == GameMode.TWO_PLAYERS) {
+                    if (move.piece.color == PieceColor.BLACK) move else null
+                } else {
+                    null
+                },
+                hintMove = null
             )
-        } else if (updatedHistory.size == 1) {
-            // Reset flag for a new match with moves
-            hasSavedHistoryForMatch = false
-        }
 
-        if (newStatus == GameStatus.IN_PROGRESS && currentState.gameMode == GameMode.VS_AI) {
-            triggerAiMove(opponent)
+            // Wait for animation (0.5s - small margin)
+            delay(480)
+
+            // Phase 2: Update final board state
+            _uiState.value = _uiState.value.copy(
+                board = boardAfter,
+                moveHistory = updatedHistory,
+                capturedWhitePieces = capWhite,
+                capturedBlackPieces = capBlack,
+                currentTurn = opponent,
+                gameStatus = finalStatus,
+                winner = winner,
+                isCheck = opponentInCheck,
+                showCheckPopup = (opponentInCheck && finalStatus == GameStatus.IN_PROGRESS),
+                checkingPieces = checkingPos,
+                halfMoveClock = newHalfMoveClock,
+                boardSignatures = updatedSignatures
+            )
+
+            if (finalStatus != GameStatus.IN_PROGRESS) {
+                recordMatchHistory(
+                    isQuitOrAppClosed = false,
+                    forcedStatus = finalStatus,
+                    forcedWinner = winner
+                )
+                
+                // Delay 5 seconds before showing game over popup
+                launch {
+                    delay(5000)
+                    _uiState.value = _uiState.value.copy(showGameOverModal = true)
+                }
+            } else if (updatedHistory.size == 1) {
+                hasSavedHistoryForMatch = false
+            }
+
+            if (finalStatus == GameStatus.IN_PROGRESS && currentState.gameMode == GameMode.VS_AI) {
+                triggerAiMove(opponent)
+            }
         }
     }
 
@@ -491,42 +532,78 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                // Play AI move sound
-                val isCapture = aiMove.capturedPiece != null
-                SoundManager.playMoveSound(
-                    pieceType = aiMove.piece.type,
-                    isCapture = isCapture,
-                    isCheck = userInCheck
-                )
+                // Evaluate draw conditions
+                val signature = board.getBoardSignature()
+                val updatedSignatures = currentState.boardSignatures.toMutableMap()
+                updatedSignatures[signature] = (updatedSignatures[signature] ?: 0) + 1
 
-                if (newStatus == GameStatus.CHECKMATE && winner == currentState.userColor) {
-                    SoundManager.playVictorySound()
+                val newHalfMoveClock = if (aiMove.piece.type == PieceType.PAWN || aiMove.capturedPiece != null) {
+                    0
+                } else {
+                    currentState.halfMoveClock + 1
                 }
 
+                var finalStatus = newStatus
+                if (finalStatus == GameStatus.IN_PROGRESS) {
+                    when {
+                        board.hasInsufficientMaterial() -> finalStatus = GameStatus.DRAW
+                        newHalfMoveClock >= 100 -> finalStatus = GameStatus.DRAW
+                        (updatedSignatures[signature] ?: 0) >= 3 -> finalStatus = GameStatus.DRAW
+                    }
+                }
+
+                // Play end game sound if applicable
+                if (finalStatus != GameStatus.IN_PROGRESS) {
+                    SoundManager.playVictorySound()
+                } else {
+                    // Play AI move sound
+                    val isCapture = aiMove.capturedPiece != null
+                    SoundManager.playMoveSound(
+                        pieceType = aiMove.piece.type,
+                        isCapture = isCapture,
+                        isCheck = userInCheck
+                    )
+                }
+
+                // Phase 1: Trigger AI Animation without updating board state yet
                 _uiState.value = currentState.copy(
+                    lastMove = aiMove,
+                    aiLastMove = aiMove,
+                    playerLastMove = null,
+                    isAiThinking = false
+                )
+
+                // Wait for animation (0.5s - small margin)
+                delay(480)
+
+                // Phase 2: Update final board state
+                _uiState.value = _uiState.value.copy(
                     board = board,
                     moveHistory = updatedHistory,
                     capturedWhitePieces = capWhite,
                     capturedBlackPieces = capBlack,
                     currentTurn = userColor,
-                    gameStatus = newStatus,
+                    gameStatus = finalStatus,
                     winner = winner,
                     isCheck = userInCheck,
-                    showCheckPopup = (userInCheck && newStatus == GameStatus.IN_PROGRESS),
-                    showGameOverModal = (newStatus != GameStatus.IN_PROGRESS),
+                    showCheckPopup = (userInCheck && finalStatus == GameStatus.IN_PROGRESS),
                     checkingPieces = checkingPos,
-                    lastMove = aiMove,
-                    playerLastMove = null, // Clear player highlight when AI moves
-                    aiLastMove = aiMove,
-                    isAiThinking = false
+                    halfMoveClock = newHalfMoveClock,
+                    boardSignatures = updatedSignatures
                 )
 
-                if (newStatus != GameStatus.IN_PROGRESS) {
+                if (finalStatus != GameStatus.IN_PROGRESS) {
                     recordMatchHistory(
                         isQuitOrAppClosed = false,
-                        forcedStatus = newStatus,
+                        forcedStatus = finalStatus,
                         forcedWinner = winner
                     )
+
+                    // Delay 5 seconds before showing game over popup
+                    launch {
+                        delay(5000)
+                        _uiState.value = _uiState.value.copy(showGameOverModal = true)
+                    }
                 } else if (updatedHistory.size == 1) {
                     hasSavedHistoryForMatch = false
                 }
@@ -565,9 +642,14 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
 
         // Replay board from scratch
         val newBoard = ChessBoard()
-        var capWhite = mutableListOf<PieceType>()
-        var capBlack = mutableListOf<PieceType>()
+        val capWhite = mutableListOf<PieceType>()
+        val capBlack = mutableListOf<PieceType>()
         var lastM: Move? = null
+        
+        var newHalfMoveClock = 0
+        val newBoardSignatures = mutableMapOf<String, Int>()
+        // Initial board signature
+        newBoardSignatures[newBoard.getBoardSignature()] = 1
 
         for (m in newHistory) {
             m.capturedPiece?.let { c ->
@@ -575,6 +657,17 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             }
             newBoard.applyMove(m)
             lastM = m
+            
+            // Recalculate half-move clock
+            if (m.piece.type == PieceType.PAWN || m.capturedPiece != null) {
+                newHalfMoveClock = 0
+            } else {
+                newHalfMoveClock++
+            }
+            
+            // Track signatures
+            val sig = newBoard.getBoardSignature()
+            newBoardSignatures[sig] = (newBoardSignatures[sig] ?: 0) + 1
         }
 
         val newCurrentTurn = if (newHistory.isEmpty()) {
@@ -606,7 +699,9 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             playerLastMove = pLast,
             aiLastMove = aLast,
             isAiThinking = false,
-            hintMove = null
+            hintMove = null,
+            halfMoveClock = newHalfMoveClock,
+            boardSignatures = newBoardSignatures
         )
     }
 

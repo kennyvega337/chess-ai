@@ -51,6 +51,7 @@ enum class GameStatus {
     IN_PROGRESS,
     CHECKMATE,
     STALEMATE,
+    DRAW,
     RESIGNED
 }
 

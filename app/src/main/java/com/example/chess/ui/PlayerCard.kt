@@ -126,20 +126,8 @@ fun PlayerCard(
 
                 Column {
                     if (isLandscape) {
-                        val titleText = when {
-                            gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.WHITE -> "Người chơi 1"
-                            gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.BLACK -> "Người chơi 2"
-                            isUser -> "Bàn Cờ Bạn"
-                            else -> "Máy (${difficulty?.displayNameVi ?: "Trung Bình"})"
-                        }
                         Text(
-                            text = titleText,
-                            color = MedievalParchment,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
-                        Text(
-                            text = if (playerColor == PieceColor.WHITE) "Trắng" else "Đen",
+                            text = if (playerColor == PieceColor.WHITE) "Quân Trắng" else "Quân Đen",
                             color = MedievalGold,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
@@ -209,8 +197,10 @@ fun PlayerCard(
                 }
             }
 
-            // Captured pieces list
-            CapturedPiecesRow(capturedPieces = capturedPieces, pieceColor = playerColor.opposite)
+            // Captured pieces list - Only show in Portrait
+            if (!isLandscape) {
+                CapturedPiecesRow(capturedPieces = capturedPieces, pieceColor = playerColor.opposite)
+            }
         }
     }
 }

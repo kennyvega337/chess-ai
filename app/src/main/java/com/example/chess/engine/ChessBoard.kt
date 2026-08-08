@@ -150,12 +150,22 @@ class ChessBoard(initialize: Boolean = true) {
             else blackKingMoved = true
         } else if (piece.type == PieceType.ROOK) {
             if (piece.color == PieceColor.WHITE) {
-                if (move.from.col == 7) whiteRookKingsideMoved = true
-                if (move.from.col == 0) whiteRookQueensideMoved = true
+                if (move.from.row == 7 && move.from.col == 7) whiteRookKingsideMoved = true
+                if (move.from.row == 7 && move.from.col == 0) whiteRookQueensideMoved = true
             } else {
-                if (move.from.col == 7) blackRookKingsideMoved = true
-                if (move.from.col == 0) blackRookQueensideMoved = true
+                if (move.from.row == 0 && move.from.col == 7) blackRookKingsideMoved = true
+                if (move.from.row == 0 && move.from.col == 0) blackRookQueensideMoved = true
             }
+        }
+
+        // IMPORTANT: If a Rook is captured, it should also be marked as "moved"
+        // so that castling is no longer possible for that side.
+        val captured = move.capturedPiece
+        if (captured != null && captured.type == PieceType.ROOK) {
+            if (move.to.row == 7 && move.to.col == 7) whiteRookKingsideMoved = true
+            if (move.to.row == 7 && move.to.col == 0) whiteRookQueensideMoved = true
+            if (move.to.row == 0 && move.to.col == 7) blackRookKingsideMoved = true
+            if (move.to.row == 0 && move.to.col == 0) blackRookQueensideMoved = true
         }
     }
 
@@ -292,13 +302,17 @@ class ChessBoard(initialize: Boolean = true) {
 
         if (!kingMoved && !isSquareAttacked(Position(row, 4), piece.color.opposite)) {
             // Kingside castling
-            if (!rookKingsideMoved && getPiece(row, 5) == null && getPiece(row, 6) == null) {
+            val kingsideRook = getPiece(row, 7)
+            if (!rookKingsideMoved && kingsideRook?.type == PieceType.ROOK && kingsideRook.color == piece.color &&
+                getPiece(row, 5) == null && getPiece(row, 6) == null) {
                 if (!isSquareAttacked(Position(row, 5), piece.color.opposite) && !isSquareAttacked(Position(row, 6), piece.color.opposite)) {
                     moves.add(Move(pos, Position(row, 6), piece, isCastling = true))
                 }
             }
             // Queenside castling
-            if (!rookQueensideMoved && getPiece(row, 1) == null && getPiece(row, 2) == null && getPiece(row, 3) == null) {
+            val queensideRook = getPiece(row, 0)
+            if (!rookQueensideMoved && queensideRook?.type == PieceType.ROOK && queensideRook.color == piece.color &&
+                getPiece(row, 1) == null && getPiece(row, 2) == null && getPiece(row, 3) == null) {
                 if (!isSquareAttacked(Position(row, 3), piece.color.opposite) && !isSquareAttacked(Position(row, 2), piece.color.opposite)) {
                     moves.add(Move(pos, Position(row, 2), piece, isCastling = true))
                 }
@@ -585,5 +599,54 @@ class ChessBoard(initialize: Boolean = true) {
         fen.append("0 1")
         
         return fen.toString()
+    }
+
+    /**
+     * Checks for basic insufficient material scenarios:
+     * - King vs King
+     * - King + Knight vs King
+     * - King + Bishop vs King
+     * - (Simplified) does not check for same-color bishops.
+     */
+    fun hasInsufficientMaterial(): Boolean {
+        val allPieces = mutableListOf<Piece>()
+        for (r in 0..7) {
+            for (c in 0..7) {
+                board[r][c]?.let { allPieces.add(it) }
+            }
+        }
+
+        if (allPieces.size <= 2) return true // King vs King
+
+        if (allPieces.size == 3) {
+            val nonKing = allPieces.find { it.type != PieceType.KING }
+            if (nonKing?.type == PieceType.KNIGHT || nonKing?.type == PieceType.BISHOP) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    /**
+     * Returns a unique signature for the current piece arrangement and castling rights.
+     * Used for threefold repetition detection.
+     */
+    fun getBoardSignature(): String {
+        val sb = StringBuilder()
+        for (r in 0..7) {
+            for (c in 0..7) {
+                val p = board[r][c]
+                sb.append(p?.type?.name ?: "E")
+                sb.append(p?.color?.name ?: "N")
+            }
+        }
+        sb.append(whiteKingMoved)
+        sb.append(blackKingMoved)
+        sb.append(whiteRookKingsideMoved)
+        sb.append(whiteRookQueensideMoved)
+        sb.append(blackRookKingsideMoved)
+        sb.append(blackRookQueensideMoved)
+        return sb.toString()
     }
 }

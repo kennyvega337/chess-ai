@@ -71,26 +71,20 @@ import com.example.ui.theme.MedievalSteel
 @Composable
 fun HideSystemBarsInDialog() {
     val view = LocalView.current
-    DisposableEffect(view) {
+    SideEffect {
         fun applyHide(win: android.view.Window) {
             WindowCompat.setDecorFitsSystemWindows(win, false)
             win.navigationBarColor = android.graphics.Color.TRANSPARENT
-
-            win.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-            win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
             
-            @Suppress("DEPRECATION")
-            win.decorView.systemUiVisibility = (
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            // Critical for preventing jumps: ensure window is full screen before drawing
+            win.setLayout(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT
             )
 
             WindowCompat.getInsetsController(win, win.decorView).apply {
                 isAppearanceLightStatusBars = false
                 isAppearanceLightNavigationBars = false
-                show(WindowInsetsCompat.Type.statusBars())
                 hide(WindowInsetsCompat.Type.navigationBars())
                 systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
@@ -107,27 +101,7 @@ fun HideSystemBarsInDialog() {
         }
 
         dialogWindow?.let { win ->
-            win.setFlags(
-                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-            )
             applyHide(win)
-            win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-
-            win.decorView.post { applyHide(win) }
-            win.decorView.setOnSystemUiVisibilityChangeListener {
-                applyHide(win)
-            }
-        }
-
-        (view.context as? Activity)?.window?.let { mainWin ->
-            applyHide(mainWin)
-        }
-
-        onDispose {
-            (view.context as? Activity)?.window?.let { mainWin ->
-                applyHide(mainWin)
-            }
         }
     }
 }
@@ -148,7 +122,10 @@ fun SideSelectionDialog(
 
     Dialog(
         onDismissRequest = { onDismiss?.invoke() },
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false, 
+            decorFitsSystemWindows = false
+        )
     ) {
         HideSystemBarsInDialog()
         Box(
@@ -370,7 +347,7 @@ fun GameOverDialog(
     onDismiss: () -> Unit
 ) {
     val isWin = winner == userColor
-    val isDraw = gameStatus == GameStatus.STALEMATE
+    val isDraw = gameStatus == GameStatus.STALEMATE || gameStatus == GameStatus.DRAW
     val isResigned = gameStatus == GameStatus.RESIGNED
 
     val bannerTitle = if (gameMode == GameMode.TWO_PLAYERS) {
@@ -432,7 +409,10 @@ fun GameOverDialog(
     HideSystemBarsInDialog()
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false, 
+            decorFitsSystemWindows = false
+        )
     ) {
         HideSystemBarsInDialog()
         Box(
@@ -921,9 +901,13 @@ fun CapturedPiecesDialog(
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
     val cardWidthAlpha = if (isLargeScreen) 0.7f else if (isLandscape) 0.75f else 0.9f
 
+    HideSystemBarsInDialog()
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false, 
+            decorFitsSystemWindows = false
+        )
     ) {
         HideSystemBarsInDialog()
         Box(
