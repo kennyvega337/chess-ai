@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,12 +41,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
+import com.example.chess.model.GameStatus
 import com.example.chess.model.PieceColor
 import com.example.chess.model.PieceType
-import com.example.ui.theme.MedievalGold
-import com.example.ui.theme.MedievalGoldLight
-import com.example.ui.theme.MedievalParchment
-import com.example.ui.theme.MedievalParchmentDark
+import com.example.ui.theme.*
 
 import androidx.compose.ui.platform.LocalConfiguration
 import android.content.res.Configuration
@@ -59,6 +58,9 @@ fun PlayerCard(
     capturedPieces: List<PieceType>,
     difficulty: DifficultyLevel? = null,
     gameMode: GameMode = GameMode.VS_AI,
+    gameStatus: GameStatus = GameStatus.IN_PROGRESS,
+    winner: PieceColor? = null,
+    title: String? = null,
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -95,7 +97,7 @@ fun PlayerCard(
                 color = if (isCurrentTurn) MedievalGold else Color(0x33D4AF37),
                 shape = RoundedCornerShape(12.dp)
             ),
-        color = if (isCurrentTurn) Color(0xFF382315) else Color(0xFF22150C)
+        color = if (isCurrentTurn) ColorWoodMid else ColorWoodLight
     ) {
         Row(
             modifier = Modifier
@@ -110,7 +112,7 @@ fun PlayerCard(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(if (isHumanPlayer) Color(0xFF1E3A8A) else Color(0xFF881337))
+                        .background(if (isHumanPlayer) ColorRoyalBlue else ColorCrimsonDeep)
                         .border(1.dp, MedievalGold, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -125,32 +127,45 @@ fun PlayerCard(
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Column {
+                    val isGameOver = gameStatus != GameStatus.IN_PROGRESS && gameStatus != GameStatus.NOT_STARTED
+                    val statusText = when {
+                        isGameOver -> {
+                            when {
+                                winner == playerColor -> "Chiến thắng"
+                                winner != null -> "Thua cuộc"
+                                gameStatus == GameStatus.DRAW || gameStatus == GameStatus.STALEMATE -> "Hòa cờ"
+                                else -> "Kết thúc"
+                            }
+                        }
+                        isAiThinking && isCurrentTurn -> if (isUser) "Đang tìm gợi ý..." else "Đang tính nước đi..."
+                        isCurrentTurn -> if (isLandscape) "Đến lượt đi" else "⚡ Đến lượt đi"
+                        else -> if (isLandscape) "Đang chờ..." else "Chờ đến lượt..."
+                    }
+
+                    val statusColor = when {
+                        isGameOver && winner == playerColor -> ColorEmeraldLight // Green for win
+                        isGameOver && winner != null -> ColorCrimsonSoft // Red for loss
+                        isGameOver -> Color.Gray
+                        isCurrentTurn -> ColorEmeraldLight
+                        else -> Color.Gray
+                    }
+
                     if (isLandscape) {
                         Text(
-                            text = if (playerColor == PieceColor.WHITE) "Quân Trắng" else "Quân Đen",
+                            text = title ?: (if (playerColor == PieceColor.WHITE) "Quân Trắng" else "Quân Đen"),
                             color = MedievalGold,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
                         )
-                        if (isCurrentTurn) {
-                            Text(
-                                text = "Đến lượt đi",
-                                color = Color(0xFF22C55E),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        } else {
-                            Text(
-                                text = "Đang chờ...",
-                                color = Color.Gray,
-                                fontSize = 11.sp
-                            )
-                        }
+                        Text(
+                            text = statusText,
+                            color = statusColor,
+                            fontSize = 11.sp,
+                            fontWeight = if (isCurrentTurn || isGameOver) FontWeight.Bold else FontWeight.Normal
+                        )
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val titleText = when {
-                                gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.WHITE -> "Người chơi 1"
-                                gameMode == GameMode.TWO_PLAYERS && playerColor == PieceColor.BLACK -> "Người chơi 2"
+                            val titleText = title ?: when {
                                 isUser -> "Bàn Cờ Bạn"
                                 else -> "Máy (${difficulty?.displayNameVi ?: "Trung Bình"})"
                             }
@@ -170,29 +185,14 @@ fun PlayerCard(
                             )
                         }
 
-                        // Turn status / Thinking indicator
-                        if (isAiThinking && isCurrentTurn) {
-                            val thinkingText = if (isUser) "Đang tìm gợi ý..." else "Đang tính nước đi..."
-                            Text(
-                                text = thinkingText,
-                                color = MedievalGold,
-                                fontSize = 11.sp,
-                                modifier = Modifier.alpha(alphaAnim)
-                            )
-                        } else if (isCurrentTurn) {
-                            Text(
-                                text = "⚡ Đến lượt đi",
-                                color = Color(0xFF22C55E),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        } else {
-                            Text(
-                                text = "Chờ đến lượt...",
-                                color = Color.Gray,
-                                fontSize = 11.sp
-                            )
-                        }
+                        // Status / Thinking indicator
+                        Text(
+                            text = statusText,
+                            color = statusColor,
+                            fontSize = 11.sp,
+                            fontWeight = if (isCurrentTurn || isGameOver) FontWeight.Bold else FontWeight.Normal,
+                            modifier = if (isAiThinking && isCurrentTurn && !isGameOver) Modifier.alpha(alphaAnim) else Modifier
+                        )
                     }
                 }
             }
@@ -201,6 +201,33 @@ fun PlayerCard(
             if (!isLandscape) {
                 CapturedPiecesRow(capturedPieces = capturedPieces, pieceColor = playerColor.opposite)
             }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PlayerCardWinnerPreview() {
+    MyApplicationTheme {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Winner (User):")
+            PlayerCard(
+                isUser = true,
+                playerColor = PieceColor.WHITE,
+                isCurrentTurn = true,
+                capturedPieces = emptyList(),
+                gameStatus = GameStatus.CHECKMATE,
+                winner = PieceColor.WHITE
+            )
+            Text("Loser (AI):")
+            PlayerCard(
+                isUser = false,
+                playerColor = PieceColor.BLACK,
+                isCurrentTurn = false,
+                capturedPieces = emptyList(),
+                gameStatus = GameStatus.CHECKMATE,
+                winner = PieceColor.WHITE
+            )
         }
     }
 }
@@ -220,7 +247,7 @@ fun CapturedPiecesRow(
             Text(
                 text = symbol,
                 fontSize = 18.sp,
-                color = if (pieceColor == PieceColor.WHITE) Color.White else Color(0xFFB0A8A0)
+                color = if (pieceColor == PieceColor.WHITE) Color.White else ColorGreyWarm
             )
         }
     }

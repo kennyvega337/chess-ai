@@ -60,12 +60,7 @@ import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
 import com.example.chess.model.PieceType
 import com.example.chess.model.SideOption
-import com.example.ui.theme.MedievalDarkWood
-import com.example.ui.theme.MedievalGold
-import com.example.ui.theme.MedievalGoldLight
-import com.example.ui.theme.MedievalMidWood
-import com.example.ui.theme.MedievalParchment
-import com.example.ui.theme.MedievalParchmentDark
+import com.example.ui.theme.*
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -109,9 +104,9 @@ fun GameSetupScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF1D0E06),
+                        ColorDarkDeep,
                         MedievalDarkWood,
-                        Color(0xFF140A05)
+                        ColorDarkBlack
                     )
                 )
             )
@@ -182,6 +177,11 @@ fun GameSetupScreen(
                             )
                         }
                         GameMode.TWO_PLAYERS -> {
+                            SideSelectionCard(
+                                selectedSide = selectedSide,
+                                onSelectSide = { selectedSide = it },
+                                title = "1. CHỌN PHE CHO NGƯỜI CHƠI 1"
+                            )
                             TwoPlayersInfoCard()
                         }
                         GameMode.TUTORIAL -> {
@@ -240,6 +240,14 @@ fun GameSetupScreen(
                             Spacer(modifier = Modifier.height(14.dp))
                         }
                         GameMode.TWO_PLAYERS -> {
+                            SideSelectionCard(
+                                selectedSide = selectedSide,
+                                onSelectSide = { selectedSide = it },
+                                title = "1. CHỌN PHE CHO NGƯỜI CHƠI 1"
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
                             TwoPlayersInfoCard()
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -385,7 +393,7 @@ private fun DifficultySectionCard(
                 colors = SliderDefaults.colors(
                     thumbColor = MedievalGold,
                     activeTrackColor = MedievalGold,
-                    inactiveTrackColor = Color(0xFF22140A),
+                    inactiveTrackColor = ColorDarkBrown,
                     activeTickColor = MedievalGold,
                     inactiveTickColor = MedievalGold.copy(alpha = 0.4f)
                 ),
@@ -393,7 +401,7 @@ private fun DifficultySectionCard(
                     SliderDefaults.Track(
                         colors = SliderDefaults.colors(
                             activeTrackColor = MedievalGold,
-                            inactiveTrackColor = Color(0xFF22140A),
+                            inactiveTrackColor = ColorDarkBrown,
                             activeTickColor = MedievalGold,
                             inactiveTickColor = MedievalGold.copy(alpha = 0.4f)
                         ),
@@ -440,7 +448,8 @@ private fun DifficultySectionCard(
 @Composable
 private fun SideSelectionCard(
     selectedSide: SideOption,
-    onSelectSide: (SideOption) -> Unit
+    onSelectSide: (SideOption) -> Unit,
+    title: String = "2. CHỌN PHE QUÂN CỦA BẠN"
 ) {
     Card(
         modifier = Modifier
@@ -463,7 +472,7 @@ private fun SideSelectionCard(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "2. CHỌN PHE QUÂN CỦA BẠN",
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGold
@@ -861,7 +870,13 @@ private fun MatchPreviewCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = when (selectedGameMode) {
-                        GameMode.TWO_PLAYERS -> "Quân Trắng (♔)"
+                        GameMode.TWO_PLAYERS -> {
+                            when (selectedSide) {
+                                SideOption.WHITE -> "Quân Trắng (♔)"
+                                SideOption.BLACK -> "Quân Đen (♚)"
+                                SideOption.RANDOM -> "Ngẫu nhiên"
+                            }
+                        }
                         GameMode.TUTORIAL -> "Hướng Dẫn Quân Cờ"
                         else -> selectedSide.displayNameVi
                     },
@@ -897,7 +912,13 @@ private fun MatchPreviewCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = when (selectedGameMode) {
-                        GameMode.TWO_PLAYERS -> "Quân Đen (♚)"
+                        GameMode.TWO_PLAYERS -> {
+                            when (selectedSide) {
+                                SideOption.WHITE -> "Quân Đen (♚)"
+                                SideOption.BLACK -> "Quân Trắng (♔)"
+                                SideOption.RANDOM -> "Ngẫu nhiên"
+                            }
+                        }
                         GameMode.TUTORIAL -> "Tập Luyện Lực Lượng"
                         else -> selectedDifficulty.displayNameVi
                     },
@@ -946,6 +967,26 @@ private fun StartGameButton(
                 color = MedievalGoldLight,
                 letterSpacing = 1.sp
             )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MatchPreviewCardTwoPlayersPreview() {
+    MyApplicationTheme {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text("P1: Trắng -> P2: Đen")
+            MatchPreviewCard(SideOption.WHITE, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS)
+            
+            Text("P1: Đen -> P2: Trắng")
+            MatchPreviewCard(SideOption.BLACK, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS)
+            
+            Text("Ngẫu nhiên")
+            MatchPreviewCard(SideOption.RANDOM, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS)
         }
     }
 }

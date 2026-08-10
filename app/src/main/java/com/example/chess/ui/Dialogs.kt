@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SentimentDissatisfied
 import androidx.compose.material.icons.filled.Shield
@@ -61,12 +62,7 @@ import com.example.ui.theme.MedievalCrimson
 import com.example.ui.theme.MedievalCrimsonBright
 import com.example.ui.theme.MedievalDarkWood
 import com.example.ui.theme.MedievalEmerald
-import com.example.ui.theme.MedievalGold
-import com.example.ui.theme.MedievalGoldLight
-import com.example.ui.theme.MedievalMidWood
-import com.example.ui.theme.MedievalParchment
-import com.example.ui.theme.MedievalParchmentDark
-import com.example.ui.theme.MedievalSteel
+import com.example.ui.theme.*
 
 @Composable
 fun HideSystemBarsInDialog() {
@@ -153,7 +149,7 @@ fun SideSelectionDialog(
                         modifier = Modifier
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF2C190E), Color(0xFF1B0F08))
+                                    colors = listOf(ColorWoodDark, ColorWoodDeep)
                                 )
                             )
                             .padding(if (isLandscape) 16.dp else 20.dp)
@@ -202,7 +198,7 @@ fun SideSelectionDialog(
                             colors = SliderDefaults.colors(
                                 thumbColor = MedievalGold,
                                 activeTrackColor = MedievalGold,
-                                inactiveTrackColor = Color(0xFF22140A),
+                                inactiveTrackColor = ColorDarkBrown,
                             ),
                             modifier = Modifier.fillMaxWidth().height(if (isLandscape) 32.dp else 40.dp)
                         )
@@ -234,7 +230,7 @@ fun SideSelectionDialog(
                                         .clip(RoundedCornerShape(10.dp))
                                         .clickable { onSideAndDifficultySelected(color, selectedDifficulty) }
                                         .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
-                                    color = Color(0xFF23150B)
+                                    color = ColorWoodVariant
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(vertical = if (isLandscape) 6.dp else 10.dp),
@@ -266,7 +262,7 @@ fun SideSelectionDialog(
                         modifier = Modifier
                             .offset(x = 10.dp, y = (-10).dp)
                             .size(34.dp)
-                            .background(Color(0xFF382315), CircleShape)
+                            .background(ColorWoodMid, CircleShape)
                             .border(2.dp, MedievalGold, CircleShape)
                             .shadow(8.dp, CircleShape)
                     ) {
@@ -296,7 +292,7 @@ fun SideOptionCard(
             .clickable { onClick() }
             .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
             .testTag(testTag),
-        color = Color(0xFF2F1D12)
+        color = ColorWoodSoft
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -344,6 +340,7 @@ fun GameOverDialog(
     userColor: PieceColor,
     gameMode: GameMode = GameMode.VS_AI,
     onPlayAgain: () -> Unit,
+    onRestart: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val isWin = winner == userColor
@@ -362,9 +359,11 @@ fun GameOverDialog(
     }
 
     val mainStatusText = if (gameMode == GameMode.TWO_PLAYERS) {
+        val p1ColorName = if (userColor == PieceColor.WHITE) "TRẮNG" else "ĐEN"
+        val p2ColorName = if (userColor == PieceColor.WHITE) "ĐEN" else "TRẮNG"
         when (winner) {
-            PieceColor.WHITE -> "NGƯỜI CHƠI 1 (TRẮNG) THẮNG!"
-            PieceColor.BLACK -> "NGƯỜI CHƠI 2 (ĐEN) THẮNG!"
+            userColor -> "NGƯỜI CHƠI 1 ($p1ColorName) THẮNG!"
+            userColor.opposite -> "NGƯỜI CHƠI 2 ($p2ColorName) THẮNG!"
             else -> "TRẬN ĐẤU BẤT PHÂN THẮNG BẠI!"
         }
     } else {
@@ -377,9 +376,11 @@ fun GameOverDialog(
     }
 
     val bodyText = if (gameMode == GameMode.TWO_PLAYERS) {
+        val p1ColorVi = if (userColor == PieceColor.WHITE) "Quân Trắng" else "Quân Đen"
+        val p2ColorVi = if (userColor == PieceColor.WHITE) "Quân Đen" else "Quân Trắng"
         when (winner) {
-            PieceColor.WHITE -> "Chúc mừng Người chơi 1 (Quân Trắng) đã bằng chiến thuật kiệt xuất giành thắng lợi toàn diện!"
-            PieceColor.BLACK -> "Chúc mừng Người chơi 2 (Quân Đen) đã bằng chiến thuật kiệt xuất giành thắng lợi toàn diện!"
+            userColor -> "Chúc mừng Người chơi 1 ($p1ColorVi) đã bằng chiến thuật kiệt xuất giành thắng lợi toàn diện!"
+            userColor.opposite -> "Chúc mừng Người chơi 2 ($p2ColorVi) đã bằng chiến thuật kiệt xuất giành thắng lợi toàn diện!"
             else -> "Cả hai người chơi đã chiến đấu ngoan cường và hòa ván cờ này."
         }
     } else {
@@ -488,7 +489,7 @@ fun GameOverDialog(
                             text = mainStatusText,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF2C190E),
+                            color = ColorWoodDark,
                             textAlign = TextAlign.Center
                         )
 
@@ -497,7 +498,7 @@ fun GameOverDialog(
                         Text(
                             text = bodyText,
                             fontSize = 13.sp,
-                            color = Color(0xFF4A3423),
+                            color = ColorBrownMuted,
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp
                         )
@@ -523,6 +524,32 @@ fun GameOverDialog(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 letterSpacing = 1.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedButton(
+                            onClick = onRestart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .testTag("restart_game_button"),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Transparent,
+                                contentColor = ColorBrownMuted
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, ColorBrownMuted.copy(alpha = 0.5f))
+                        ) {
+                            Icon(imageVector = Icons.Default.Replay, contentDescription = null, tint = ColorBrownMuted)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "CHƠI LẠI",
+                                color = ColorBrownMuted,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                letterSpacing = 0.5.sp
                             )
                         }
                     }
@@ -591,7 +618,7 @@ fun CheckPopupDialog(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF3B0B0B),
+                                ColorCrimsonRich,
                                 Color(0xFF1E0505)
                             )
                         )
@@ -996,31 +1023,42 @@ fun CapturedPiecesDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                                    Text(if (isTwoPlayers) "N.CHƠI 1 (TRẮNG)" else "NGƯỜI CHƠI", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = MedievalGoldLight, maxLines = 1)
-                                    Text("${p1Score} điểm", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF22C55E), maxLines = 1)
+                                    val p1ColorName = if (userColor == PieceColor.WHITE) "TRẮNG" else "ĐEN"
+                                    Text(if (isTwoPlayers) "N.CHƠI 1 ($p1ColorName)" else "NGƯỜI CHƠI", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = MedievalGoldLight, maxLines = 1)
+                                    Text("${p1Score} điểm", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = ColorEmeraldLight, maxLines = 1)
                                 }
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = when { netDiff > 0 -> Color(0xFF15803D).copy(alpha = 0.3f); netDiff < 0 -> Color(0xFF991B1B).copy(alpha = 0.3f); else -> Color(0xFFD97706).copy(alpha = 0.3f) },
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, when { netDiff > 0 -> Color(0xFF22C55E); netDiff < 0 -> Color(0xFFEF4444); else -> MedievalGold })
+                                    color = when { netDiff > 0 -> ColorEmeraldDark.copy(alpha = 0.3f); netDiff < 0 -> ColorCrimsonMuted.copy(alpha = 0.3f); else -> ColorGoldMuted.copy(alpha = 0.3f) },
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, when { netDiff > 0 -> ColorEmeraldLight; netDiff < 0 -> ColorCrimsonSoft; else -> MedievalGold })
                                 ) {
                                     Text(
                                         text = when { netDiff > 0 -> if (isTwoPlayers) "+${netDiff} (Trắng ưu thế)" else "+${netDiff} (Ưu thế)"; netDiff < 0 -> if (isTwoPlayers) "+${-netDiff} (Đen ưu thế)" else "${netDiff} (Thất thế)"; else -> "Cân bằng (0)" },
-                                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = when { netDiff > 0 -> Color(0xFF4ADE80); netDiff < 0 -> Color(0xFFFCA5A5); else -> MedievalGoldLight },
+                                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = when { netDiff > 0 -> ColorEmeraldPale; netDiff < 0 -> ColorCrimsonPale; else -> MedievalGoldLight },
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                                    Text(if (isTwoPlayers) "N.CHƠI 2 (ĐEN)" else "MÁY (AI)", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = MedievalGoldLight, maxLines = 1)
-                                    Text("${p2Score} điểm", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFEF4444), maxLines = 1)
+                                    val p2ColorName = if (userColor == PieceColor.WHITE) "ĐEN" else "TRẮNG"
+                                    Text(if (isTwoPlayers) "N.CHƠI 2 ($p2ColorName)" else "MÁY (AI)", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = MedievalGoldLight, maxLines = 1)
+                                    Text("${p2Score} điểm", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = ColorCrimsonSoft, maxLines = 1)
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
-                        CapturedPieceSection(if (isTwoPlayers) "🗡️ Quân Người chơi 1 (Trắng) đã ăn:" else "🗡️ Quân người chơi đã ăn (của Máy):", capturedByP1, if (isTwoPlayers) PieceColor.BLACK else opponentColor, pieceOrder, Color(0xFF15803D).copy(alpha = 0.2f), Color(0xFF22C55E))
+                        val p1Title = if (isTwoPlayers) {
+                            val colorName = if (userColor == PieceColor.WHITE) "Trắng" else "Đen"
+                            "🗡️ Quân Người chơi 1 ($colorName) đã ăn:"
+                        } else "🗡️ Quân người chơi đã ăn (của Máy):"
+                        CapturedPieceSection(p1Title, capturedByP1, if (isTwoPlayers) userColor.opposite else opponentColor, pieceOrder, ColorEmeraldDark.copy(alpha = 0.2f), ColorEmeraldLight)
+                        
                         Spacer(modifier = Modifier.height(12.dp))
-                        CapturedPieceSection(if (isTwoPlayers) "🛡️ Quân Người chơi 2 (Đen) đã ăn:" else "🛡️ Quân máy đã ăn (của Người chơi):", capturedByP2, if (isTwoPlayers) PieceColor.WHITE else userColor, pieceOrder, Color(0xFF991B1B).copy(alpha = 0.2f), Color(0xFFEF4444))
+                        val p2Title = if (isTwoPlayers) {
+                            val colorName = if (userColor == PieceColor.WHITE) "Đen" else "Trắng"
+                            "🛡️ Quân Người chơi 2 ($colorName) đã ăn:"
+                        } else "🛡️ Quân máy đã ăn (của Người chơi):"
+                        CapturedPieceSection(p2Title, capturedByP2, if (isTwoPlayers) userColor else userColor, pieceOrder, ColorCrimsonMuted.copy(alpha = 0.2f), ColorCrimsonSoft)
                         Spacer(modifier = Modifier.height(14.dp))
                         Text("Quy đổi điểm: Tốt = 1đ | Mã = 3đ | Tượng = 3đ | Xe = 5đ | Hậu = 9đ", fontSize = 10.sp, color = MedievalParchmentDark, textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.height(16.dp))
@@ -1085,6 +1123,21 @@ fun SideSelectionDialogLandscapePreview() {
 
 @Preview(showBackground = true)
 @Composable
+fun GameOverDialogTwoPlayersPreview() {
+    MyApplicationTheme {
+        GameOverDialog(
+            gameStatus = GameStatus.CHECKMATE,
+            winner = PieceColor.BLACK,
+            userColor = PieceColor.BLACK, // Player 1 is Black and won
+            gameMode = GameMode.TWO_PLAYERS,
+            onPlayAgain = {},
+            onRestart = {}
+        ) {}
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
 fun GameOverDialogWinPreview() {
     MyApplicationTheme {
         GameOverDialog(
@@ -1092,7 +1145,8 @@ fun GameOverDialogWinPreview() {
             winner = PieceColor.WHITE,
             userColor = PieceColor.WHITE,
             gameMode = GameMode.VS_AI,
-            onPlayAgain = {}
+            onPlayAgain = {},
+            onRestart = {}
         ) {}
     }
 }
@@ -1106,7 +1160,8 @@ fun GameOverDialogLossPreview() {
             winner = PieceColor.BLACK,
             userColor = PieceColor.WHITE,
             gameMode = GameMode.VS_AI,
-            onPlayAgain = {}
+            onPlayAgain = {},
+            onRestart = {}
         ) {}
     }
 }
@@ -1120,7 +1175,8 @@ fun GameOverDialogDrawPreview() {
             winner = null,
             userColor = PieceColor.WHITE,
             gameMode = GameMode.VS_AI,
-            onPlayAgain = {}
+            onPlayAgain = {},
+            onRestart = {}
         ) {}
     }
 }

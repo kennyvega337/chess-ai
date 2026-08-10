@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -72,16 +71,12 @@ import com.example.chess.model.ChessTheme
 import com.example.chess.model.BoardViewMode
 import com.example.chess.model.Position
 import com.example.chess.model.SideOption
-import com.example.ui.theme.MedievalDarkWood
-import com.example.ui.theme.MedievalGold
-import com.example.ui.theme.MedievalGoldLight
-import com.example.ui.theme.MedievalParchment
-import com.example.ui.theme.MedievalParchmentDark
-import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.*
 
 import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
@@ -220,6 +215,8 @@ fun ChessScreenContent(
     }
 }
 
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChessBoardScreenContent(
@@ -245,95 +242,92 @@ fun ChessBoardScreenContent(
     onOpenSetupActivity: () -> Unit,
     onShowMessage: (String) -> Unit
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val actualWidth = maxWidth
-        val actualHeight = maxHeight
-        val actualAspectRatio = if (actualHeight > 0.dp) actualWidth / actualHeight else 1f
-        val useLandscapeLayout = actualAspectRatio > 1.35f
+    val configuration = LocalConfiguration.current
+    val useLandscapeLayout = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = Color(state.selectedTheme.darkSquareColor).copy(alpha = 0.4f),
-            contentWindowInsets = WindowInsets.safeDrawing,
-            topBar = {
-                if (!useLandscapeLayout) {
-                    CenterAlignedTopAppBar(
-                        title = {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "⚔️ CỜ VUA TRUNG CỔ ⚔️",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MedievalGold,
-                                    letterSpacing = 0.5.sp,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = when (state.gameMode) {
-                                        GameMode.TWO_PLAYERS -> "Chế Độ 2 Người Chơi"
-                                        GameMode.TUTORIAL -> "Hướng Dẫn Quân Cờ"
-                                        else -> "Thách Đấu Máy (${state.difficulty.displayNameVi})"
-                                    },
-                                    fontSize = 11.sp,
-                                    color = MedievalParchmentDark,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        },
-                        actions = {
-                            if (state.gameMode != GameMode.TUTORIAL) {
-                                IconButton(
-                                    onClick = { onOpenCapturedPiecesModal() },
-                                    modifier = Modifier.testTag("score_captured_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.EmojiEvents,
-                                        contentDescription = "Bảng Chiến Tích & Điểm Số",
-                                        tint = MedievalGold
-                                    )
-                                }
-                            }
-                            if (state.gameMode != GameMode.TWO_PLAYERS && state.gameMode != GameMode.TUTORIAL) {
-                                IconButton(
-                                    onClick = {
-                                        if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking && state.currentTurn == state.userColor) {
-                                            onShowHint()
-                                        } else {
-                                            onShowMessage("Chưa đến lượt bạn hoặc trò chơi chưa bắt đầu")
-                                        }
-                                    },
-                                    modifier = Modifier.testTag("hint_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lightbulb,
-                                        contentDescription = "Gợi ý nước đi",
-                                        tint = MedievalGold
-                                    )
-                                }
-                            }
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color(state.selectedTheme.darkSquareColor).copy(alpha = 0.4f),
+        contentWindowInsets = WindowInsets.safeDrawing,
+        topBar = {
+            if (!useLandscapeLayout) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "⚔️ CỜ VUA TRUNG CỔ ⚔️",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MedievalGold,
+                                letterSpacing = 0.5.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = when (state.gameMode) {
+                                    GameMode.TWO_PLAYERS -> "Chế Độ 2 Người Chơi"
+                                    GameMode.TUTORIAL -> "Hướng Dẫn Quân Cờ"
+                                    else -> "Thách Đấu Máy (${state.difficulty.displayNameVi})"
+                                },
+                                fontSize = 11.sp,
+                                color = MedievalParchmentDark,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
+                    actions = {
+                        if (state.gameMode != GameMode.TUTORIAL) {
                             IconButton(
-                                onClick = { onOpenThemeModal() },
-                                modifier = Modifier.testTag("theme_button")
+                                onClick = { onOpenCapturedPiecesModal() },
+                                modifier = Modifier.testTag("score_captured_button")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Palette,
-                                    contentDescription = "Đổi chủ đề bàn cờ",
+                                    imageVector = Icons.Default.EmojiEvents,
+                                    contentDescription = "Bảng Chiến Tích & Điểm Số",
                                     tint = MedievalGold
                                 )
                             }
-                        },
-                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = Color(0xFF22140A)
-                        )
+                        }
+                        if (state.gameMode != GameMode.TWO_PLAYERS && state.gameMode != GameMode.TUTORIAL) {
+                            IconButton(
+                                onClick = {
+                                    if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking && state.currentTurn == state.userColor) {
+                                        onShowHint()
+                                    } else {
+                                        onShowMessage("Chưa đến lượt bạn hoặc trò chơi chưa bắt đầu")
+                                    }
+                                },
+                                modifier = Modifier.testTag("hint_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lightbulb,
+                                    contentDescription = "Gợi ý nước đi",
+                                    tint = MedievalGold
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { onOpenThemeModal() },
+                            modifier = Modifier.testTag("theme_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = "Đổi chủ đề bàn cờ",
+                                tint = MedievalGold
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = ColorDarkBrown
                     )
-                }
+                )
             }
-        ) { innerPadding ->
-            if (useLandscapeLayout) {
+        }
+    ) { innerPadding ->
+        if (useLandscapeLayout) {
             // === LANDSCAPE LAYOUT (3 COLUMNS) ===
             Row(
                 modifier = Modifier
@@ -368,7 +362,7 @@ fun ChessBoardScreenContent(
                         ActionIconButton(
                             icon = Icons.Default.Refresh,
                             contentDesc = "Chơi lại",
-                            enabled = !state.isAiThinking,
+                            enabled = !state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal),
                             isLandscape = true,
                             onClick = { onRestartGame() }
                         )
@@ -420,6 +414,9 @@ fun ChessBoardScreenContent(
                             isAiThinking = state.isAiThinking,
                             capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedBlackPieces else state.capturedWhitePieces,
                             gameMode = state.gameMode,
+                            gameStatus = state.gameStatus,
+                            winner = state.winner,
+                            title = if (state.gameMode == GameMode.TWO_PLAYERS) "NGƯỜI CHƠI 1" else null,
                             onClick = { onOpenCapturedPiecesModal() }
                         )
                     }
@@ -473,6 +470,7 @@ fun ChessBoardScreenContent(
                         ActionIconButton(
                             icon = Icons.Default.Settings,
                             contentDesc = "Thiết lập",
+                            enabled = (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking,
                             isLandscape = true,
                             onClick = { onOpenSetupActivity() }
                         )
@@ -528,6 +526,9 @@ fun ChessBoardScreenContent(
                             capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedWhitePieces else state.capturedBlackPieces,
                             difficulty = state.difficulty,
                             gameMode = state.gameMode,
+                            gameStatus = state.gameStatus,
+                            winner = state.winner,
+                            title = if (state.gameMode == GameMode.TWO_PLAYERS) "NGƯỜI CHƠI 2" else null,
                             onClick = { onOpenCapturedPiecesModal() }
                         )
                     }
@@ -561,6 +562,7 @@ fun ChessBoardScreenContent(
                             onSelectPiece = { pieceType -> onStartTutorialPiece(pieceType) }
                         )
                     } else {
+                        Log.d("Chess_Winner", ""+ state.winner)
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             PlayerCard(
                                 isUser = false,
@@ -570,6 +572,9 @@ fun ChessBoardScreenContent(
                                 capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedWhitePieces else state.capturedBlackPieces,
                                 difficulty = state.difficulty,
                                 gameMode = state.gameMode,
+                                gameStatus = state.gameStatus,
+                                winner = state.winner,
+                                title = if (state.gameMode == GameMode.TWO_PLAYERS) "NGƯỜI CHƠI 2" else null,
                                 onClick = { onOpenCapturedPiecesModal() }
                             )
 
@@ -607,38 +612,32 @@ fun ChessBoardScreenContent(
                 }
 
                 // PHẦN 2: MIDDLE (Bàn cờ trung tâm)
-                BoxWithConstraints(
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(horizontal = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    val boardSize = minOf(this.maxWidth, this.maxHeight) * 0.98f
-                    
-                    Box(
-                        modifier = Modifier
-                            .size(boardSize)
-                            .aspectRatio(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        ChessBoardView(
-                            board = state.board,
-                            userColor = state.userColor,
-                            selectedPosition = state.selectedPosition,
-                            legalMoves = state.legalMovesForSelected,
-                            playerLastMove = state.playerLastMove,
-                            aiLastMove = state.aiLastMove,
-                            hintMove = state.hintMove,
-                            isCheck = state.isCheck,
-                            currentTurn = state.currentTurn,
-                            checkingPieces = state.checkingPieces,
-                            onSquareClick = { pos -> onSquareClick(pos) },
-                            theme = state.selectedTheme,
-                            viewMode = state.boardViewMode,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                    ChessBoardView(
+                        board = state.board,
+                        userColor = state.userColor,
+                        selectedPosition = state.selectedPosition,
+                        legalMoves = state.legalMovesForSelected,
+                        playerLastMove = state.playerLastMove,
+                        aiLastMove = state.aiLastMove,
+                        hintMove = state.hintMove,
+                        isCheck = state.isCheck,
+                        currentTurn = state.currentTurn,
+                        checkingPieces = state.checkingPieces,
+                        gameStatus = state.gameStatus,
+                        winner = state.winner,
+                        gameMode = state.gameMode,
+                        onSquareClick = { pos -> onSquareClick(pos) },
+                        theme = state.selectedTheme,
+                        viewMode = state.boardViewMode,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
 
                 // PHẦN 3: BOTTOM (Cảnh báo chiếu, Điểm người chơi, Thẻ của bạn & Các nút chức năng)
@@ -687,6 +686,9 @@ fun ChessBoardScreenContent(
                                 isAiThinking = state.isAiThinking,
                                 capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedBlackPieces else state.capturedWhitePieces,
                                 gameMode = state.gameMode,
+                                gameStatus = state.gameStatus,
+                                winner = state.winner,
+                                title = if (state.gameMode == GameMode.TWO_PLAYERS) "NGƯỜI CHƠI 1" else null,
                                 onClick = { onOpenCapturedPiecesModal() }
                             )
                         }
@@ -739,14 +741,17 @@ fun ChessBoardScreenContent(
                             // 2. NÚT CHƠI LẠI (RESET)
                             Button(
                                 onClick = { onRestartGame() },
-                                enabled = !state.isAiThinking,
+                                enabled = !state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal),
                                 modifier = Modifier
                                     .weight(1.1f)
                                     .height(46.dp)
                                     .testTag("restart_button"),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A)), // Xanh dương đậm
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF1E3A8A),
+                                    disabledContainerColor = Color(0xFF1E3A8A).copy(alpha = 0.5f)
+                                ), // Xanh dương đậm
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF93C5FD)),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (!state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal)) Color(0xFF93C5FD) else Color(0xFF93C5FD).copy(alpha = 0.4f)),
                                 contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Refresh, contentDescription = "Chơi lại", tint = Color.White, modifier = Modifier.size(20.dp))
@@ -775,16 +780,20 @@ fun ChessBoardScreenContent(
                             // 4. NÚT THIẾT LẬP
                             Button(
                                 onClick = { onOpenSetupActivity() },
+                                enabled = (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(46.dp)
                                     .testTag("settings_button"),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF382315)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF382315),
+                                    disabledContainerColor = Color(0xFF382315).copy(alpha = 0.5f)
+                                ),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) MedievalGold else MedievalGold.copy(alpha = 0.4f)),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Settings, contentDescription = "Thiết lập", tint = MedievalGold, modifier = Modifier.size(22.dp))
+                                Icon(imageVector = Icons.Default.Settings, contentDescription = "Thiết lập", tint = if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) MedievalGold else MedievalGold.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
                             }
                         }
                     }
@@ -794,6 +803,7 @@ fun ChessBoardScreenContent(
     }
 
     // Modals and Dialogs
+    androidx.compose.runtime.key(configuration.orientation) {
         val isGameOver = state.gameStatus == GameStatus.CHECKMATE || state.gameStatus == GameStatus.RESIGNED
         val isCelebrationWinner = if (state.gameMode == GameMode.TWO_PLAYERS) {
             state.winner != null
@@ -850,6 +860,7 @@ fun ChessBoardScreenContent(
                 userColor = state.userColor,
                 gameMode = state.gameMode,
                 onPlayAgain = { onOpenSetupActivity() },
+                onRestart = { onRestartGame() },
                 onDismiss = { onCloseGameOverModal() }
             )
         }
@@ -1008,7 +1019,7 @@ private fun openSetupActivity(context: Context, state: ChessUiState) {
     context.startActivity(intent)
 }
 
-@Preview(showBackground = true, widthDp = 830, heightDp = 1200)
+@Preview(showBackground = true, widthDp = 674, heightDp = 830)
 @Composable
 fun ChessScreenPreview() {
     MyApplicationTheme {

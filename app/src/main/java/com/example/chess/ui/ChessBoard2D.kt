@@ -38,7 +38,7 @@ import com.example.chess.model.Piece
 import com.example.chess.model.PieceColor
 import com.example.chess.model.PieceType
 import com.example.chess.model.Position
-import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.*
 
 private fun getPieceResource(piece: Piece): Int {
     return when (piece.color) {
@@ -101,7 +101,10 @@ fun ChessBoard2D(
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+    BoxWithConstraints(
+        modifier = modifier.padding(2.dp),
+        contentAlignment = Alignment.Center
+    ) {
         val maxAvailable = minOf(this.maxWidth, this.maxHeight)
         
         val availableSize = if (isLandscape) {
@@ -116,20 +119,21 @@ fun ChessBoard2D(
         val squareSize = boardSize / 8f
 
         // 1. LỚP NỀN VÀ BIÊN NGOÀI (Nằm dưới cùng)
+
         val borderColor = if (winner != null) {
-            when (winner) {
-                PieceColor.WHITE -> Color(0xFF1E3A8A) // Trắng thắng (Xanh dương đậm)
-                PieceColor.BLACK -> Color.Red         // Đen thắng (Đỏ)
-                else -> Color(0xFFD4AF37)
+            if (winner == userColor) {
+                ColorRoyalBlue // Người chơi 1 thắng (Xanh dương đậm)
+            } else {
+                Color.Red         // Đối thủ thắng (Đỏ)
             }
         } else {
-            Color(0xFFD4AF37) // Mặc định Vàng Gold trong khi chơi
+            MedievalGold // Mặc định Vàng Gold trong khi chơi
         }
 
         Box(
             modifier = Modifier
                 .size(availableSize) // Sử dụng chính xác availableSize
-                .background(Color(0xFF2C190E), RoundedCornerShape(2.dp))
+                .background(ColorWoodDark, RoundedCornerShape(2.dp))
                 .border(2.dp, borderColor, RoundedCornerShape(2.dp)),
             contentAlignment = Alignment.Center
         ) {
@@ -226,18 +230,18 @@ fun ChessBoard2D(
                                     } else false
 
                                     if (isParticipatingRook) {
-                                        Box(Modifier.fillMaxSize().background(Color(0x440EA5E9)))
-                                        Box(Modifier.fillMaxSize().border(2.dp, Color(0xFF0EA5E9).copy(alpha = 0.6f)))
+                                        Box(Modifier.fillMaxSize().background(ColorSkyBlue.copy(alpha = 0.27f)))
+                                        Box(Modifier.fillMaxSize().border(2.dp, ColorSkyBlue.copy(alpha = 0.6f)))
                                     }
 
                                     if (isCheckSquare) {
-                                        Box(Modifier.fillMaxSize().background(Color(0xFFB91C1C)))
-                                        val borderColor = if (currentPiece?.color == userColor) Color(0xFF22C55E) else Color(0xFFF59E0B)
+                                        Box(Modifier.fillMaxSize().background(ColorRedCheck))
+                                        val borderColor = if (currentPiece?.color == userColor) ColorEmeraldLight else ColorGoldAmber
                                         Box(Modifier.fillMaxSize().border(4.dp, borderColor))
                                     }
                                     if (isCheckingPiece) {
-                                        Box(Modifier.fillMaxSize().background(Color(0xFFEF4444).copy(alpha = 0.8f)))
-                                        val borderColor = if (currentPiece?.color == userColor) Color(0xFF22C55E) else Color(0xFFF59E0B)
+                                        Box(Modifier.fillMaxSize().background(ColorCrimsonSoft.copy(alpha = 0.8f)))
+                                        val borderColor = if (currentPiece?.color == userColor) ColorEmeraldLight else ColorGoldAmber
                                         Box(Modifier.fillMaxSize().border(4.dp, borderColor))
                                     }
                                     if (isSelected) Box(Modifier.fillMaxSize().background(Color(0x8816A34A)))
@@ -248,7 +252,7 @@ fun ChessBoard2D(
                                             Box(
                                                 modifier = Modifier
                                                     .size(squareSize * 0.45f)
-                                                    .background(Color(0xFF0EA5E9), CircleShape)
+                                                    .background(ColorSkyBlue, CircleShape)
                                                     .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape)
                                             )
                                             Text("🛡️", fontSize = 10.sp)

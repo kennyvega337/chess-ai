@@ -63,6 +63,7 @@ data class ChessUiState(
     val checkingPieces: List<Position> = emptyList(),
     val halfMoveClock: Int = 0,
     val boardSignatures: Map<String, Int> = emptyMap(),
+    val isGameEndControlsEnabled: Boolean = false,
 )
 
 class ChessViewModel(application: Application) : AndroidViewModel(application) {
@@ -153,14 +154,10 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             themeManager.saveSideOption(sideOption)
         }
 
-        val actualUserColor = if (gameMode == GameMode.TWO_PLAYERS) {
-            PieceColor.WHITE
-        } else {
-            when (sideOption) {
-                SideOption.WHITE -> PieceColor.WHITE
-                SideOption.BLACK -> PieceColor.BLACK
-                SideOption.RANDOM -> if (kotlin.random.Random.nextBoolean()) PieceColor.WHITE else PieceColor.BLACK
-            }
+        val actualUserColor = when (sideOption) {
+            SideOption.WHITE -> PieceColor.WHITE
+            SideOption.BLACK -> PieceColor.BLACK
+            SideOption.RANDOM -> if (kotlin.random.Random.nextBoolean()) PieceColor.WHITE else PieceColor.BLACK
         }
 
         val newBoard = ChessBoard()
@@ -483,10 +480,13 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                     forcedWinner = winner
                 )
                 
-                // Delay 5 seconds before showing game over popup
+                // Delay 5 seconds before showing game over popup and enabling controls
                 launch {
                     delay(5000)
-                    _uiState.value = _uiState.value.copy(showGameOverModal = true)
+                    _uiState.value = _uiState.value.copy(
+                        showGameOverModal = true,
+                        isGameEndControlsEnabled = true
+                    )
                 }
             } else if (updatedHistory.size == 1) {
                 hasSavedHistoryForMatch = false
@@ -599,10 +599,13 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                         forcedWinner = winner
                     )
 
-                    // Delay 5 seconds before showing game over popup
+                    // Delay 5 seconds before showing game over popup and enabling controls
                     launch {
                         delay(5000)
-                        _uiState.value = _uiState.value.copy(showGameOverModal = true)
+                        _uiState.value = _uiState.value.copy(
+                            showGameOverModal = true,
+                            isGameEndControlsEnabled = true
+                        )
                     }
                 } else if (updatedHistory.size == 1) {
                     hasSavedHistoryForMatch = false
@@ -762,7 +765,8 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             selectedPosition = null,
             legalMovesForSelected = emptyList(),
             showResignConfirmationModal = false,
-            showGameOverModal = true
+            showGameOverModal = true,
+            isGameEndControlsEnabled = true
         )
         recordMatchHistory(
             isQuitOrAppClosed = false,

@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import com.example.ui.theme.*
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -39,15 +40,15 @@ private data class ConfettiParticle(
 )
 
 private val FireworkColors = listOf(
-    Color(0xFFFFD700), // Medieval Gold
-    Color(0xFFEF4444), // Crimson Red
-    Color(0xFF10B981), // Emerald Green
-    Color(0xFF3B82F6), // Royal Blue
-    Color(0xFF8B5CF6), // Royal Purple
-    Color(0xFFF59E0B), // Amber Gold
-    Color(0xFFEC4899), // Bright Pink
-    Color(0xFF06B6D4), // Cyan
-    Color(0xFFFFFFFF)  // Pure White
+    ColorGoldBright,
+    ColorCrimsonSoft,
+    ColorEmeraldDeep,
+    ColorRoyalBlueAlt,
+    ColorRoyalPurple,
+    ColorGoldAmber,
+    ColorPinkBright,
+    ColorRoyalCyan,
+    Color.White
 )
 
 @Composable

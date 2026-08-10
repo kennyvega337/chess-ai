@@ -42,11 +42,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.chess.data.GameHistoryItem
 import com.example.chess.data.GameHistoryManager
 import com.example.chess.model.GameMode
-import com.example.ui.theme.MedievalCrimson
-import com.example.ui.theme.MedievalGold
-import com.example.ui.theme.MedievalGoldLight
-import com.example.ui.theme.MedievalParchment
-import com.example.ui.theme.MedievalDarkWood
+import com.example.ui.theme.*
 
 @Composable
 fun GameHistoryDialog(
@@ -81,7 +77,7 @@ fun GameHistoryDialog(
                         .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
                         .testTag("game_history_dialog"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1D0E06))
+                    colors = CardDefaults.cardColors(containerColor = ColorDarkDeep)
                 ) {
                     Column(
                         modifier = Modifier
@@ -178,7 +174,7 @@ fun GameHistoryDialog(
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(containerColor = MedievalGold)
                             ) {
-                                Text("Đóng", color = Color(0xFF1D0E06), fontWeight = FontWeight.Bold)
+                                Text("Đóng", color = ColorDarkDeep, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -190,7 +186,7 @@ fun GameHistoryDialog(
                     modifier = Modifier
                         .offset(x = 10.dp, y = (-10).dp)
                         .size(34.dp)
-                        .background(Color(0xFF382315), CircleShape)
+                        .background(ColorWoodMid, CircleShape)
                         .border(2.dp, MedievalGold, CircleShape)
                         .shadow(8.dp, CircleShape)
                 ) {
@@ -214,10 +210,10 @@ private fun HistoryCardItem(item: GameHistoryItem) {
     val isQuit = item.text.contains("bỏ cuộc")
 
     val badgeBg = when {
-        isWin -> Color(0xFF14532D)
-        isLoss -> Color(0xFF7F1D1D)
-        isQuit -> Color(0xFF78350F)
-        else -> Color(0xFF1E3A8A)
+        isWin -> ColorEmeraldDark
+        isLoss -> ColorCrimsonMuted
+        isQuit -> ColorGoldBrown
+        else -> ColorRoyalBlue
     }
 
     val badgeText = when {
@@ -229,7 +225,7 @@ private fun HistoryCardItem(item: GameHistoryItem) {
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFF28180E),
+        color = ColorWoodWarm,
         shape = RoundedCornerShape(10.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33D4AF37))
     ) {
@@ -250,7 +246,7 @@ private fun HistoryCardItem(item: GameHistoryItem) {
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Surface(
-                        color = Color(0xFF3D2314),
+                        color = ColorWoodRich,
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(

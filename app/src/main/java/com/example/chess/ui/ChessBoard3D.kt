@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import com.example.R
 import com.example.chess.engine.ChessBoard
 import com.example.chess.model.*
+import com.example.ui.theme.*
 
 @Composable
 fun ChessBoard3D(
@@ -62,10 +63,14 @@ fun ChessBoard3D(
     val rows = if (userColor == PieceColor.WHITE) (0..7).toList() else (7 downTo 0).toList()
 
     // Xác định màu viền dựa trên người thắng cuộc
-    val borderColor = when (winner) {
-        PieceColor.WHITE -> Color(0xFF1E3A8A) // Trắng thắng (Xanh dương đậm)
-        PieceColor.BLACK -> Color.Red         // Đen thắng (Đỏ)
-        null -> Color(0xFFD4AF37)             // Đang chơi (Mặc định Vàng Gold)
+    val borderColor = if (winner != null) {
+        if (winner == userColor) {
+            ColorRoyalBlue // Người chơi 1 thắng (Xanh dương đậm)
+        } else {
+            Color.Red         // Đối thủ thắng (Đỏ)
+        }
+    } else {
+        MedievalGold     // Đang chơi (Mặc định Vàng Gold)
     }
 
     Log.d("ChessBoard3D", "Current Winner: $winner, BorderColor: $borderColor")
@@ -88,7 +93,7 @@ fun ChessBoard3D(
 
     Surface(
         color = Color.Transparent,
-        modifier = modifier
+        modifier = modifier.padding(2.dp)
     ) {
         BoxWithConstraints(contentAlignment = Alignment.Center) {
             val maxAvailable = minOf(this.maxWidth, this.maxHeight)
@@ -113,7 +118,7 @@ fun ChessBoard3D(
                 Box(
                     modifier = Modifier
                         .size(availableSize)
-                        .background(Color(0xFF2C190E), RoundedCornerShape(2.dp))
+                        .background(ColorWoodDark, RoundedCornerShape(2.dp))
                         .border(2.dp, borderColor, RoundedCornerShape(2.dp))
                         .zIndex(0f)
                 )
@@ -214,36 +219,36 @@ fun ChessBoard3D(
                                         } else false
 
                                         if (isParticipatingRook) {
-                                            Box(Modifier.fillMaxSize().background(Color(0x440EA5E9)))
-                                            Box(Modifier.fillMaxSize().border(2.dp, Color(0xFF0EA5E9).copy(alpha = 0.6f)))
+                                            Box(Modifier.fillMaxSize().background(ColorSkyBlue.copy(alpha = 0.27f)))
+                                            Box(Modifier.fillMaxSize().border(2.dp, ColorSkyBlue.copy(alpha = 0.6f)))
                                         }
 
                                         if (isCheckSquare) {
-                                            Box(Modifier.fillMaxSize().background(Color(0xFFB91C1C)))
-                                            val bColor = if (currentPiece?.color == userColor) Color(0xFF22C55E) else Color(0xFFF59E0B)
+                                            Box(Modifier.fillMaxSize().background(ColorRedCheck))
+                                            val bColor = if (currentPiece?.color == userColor) ColorEmeraldLight else ColorGoldAmber
                                             Box(Modifier.fillMaxSize().border(4.dp, bColor))
                                         }
                                         if (isCheckingPiece) {
-                                            Box(Modifier.fillMaxSize().background(Color(0xFFEF4444).copy(alpha = 0.8f)))
-                                            val bColor = if (currentPiece?.color == userColor) Color(0xFF22C55E) else Color(0xFFF59E0B)
+                                            Box(Modifier.fillMaxSize().background(ColorCrimsonSoft.copy(alpha = 0.8f)))
+                                            val bColor = if (currentPiece?.color == userColor) ColorEmeraldLight else ColorGoldAmber
                                             Box(Modifier.fillMaxSize().border(4.dp, bColor))
                                         }
-                                        if (isSelected) Box(Modifier.fillMaxSize().background(Color(0x8816A34A)))
-                                        if (isAiLastMove) Box(Modifier.fillMaxSize().background(Color(0x66F59E0B)))
-                                        if (isPlayerLastMove) Box(Modifier.fillMaxSize().background(Color(0x6622C55E)))
+                                        if (isSelected) Box(Modifier.fillMaxSize().background(ColorEmeraldDark.copy(alpha = 0.54f)))
+                                        if (isAiLastMove) Box(Modifier.fillMaxSize().background(ColorGoldAmber.copy(alpha = 0.4f)))
+                                        if (isPlayerLastMove) Box(Modifier.fillMaxSize().background(ColorEmeraldLight.copy(alpha = 0.4f)))
                                         if (isLegalTarget) {
                                             if (isCastling) {
                                                 Box(
                                                     modifier = Modifier
                                                         .size(squareSize * 0.45f)
-                                                        .background(Color(0xFF0EA5E9), CircleShape)
+                                                        .background(ColorSkyBlue, CircleShape)
                                                         .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape)
                                                 )
                                                 Text("🛡️", fontSize = 10.sp)
                                             } else if (isCapture) {
                                                 Box(modifier = Modifier.fillMaxSize().border(3.dp, Color.Red))
                                             } else {
-                                                Box(modifier = Modifier.size(squareSize * 0.35f).background(Color(0xAA22C55E), CircleShape))
+                                                Box(modifier = Modifier.size(squareSize * 0.35f).background(ColorEmeraldLight.copy(alpha = 0.67f), CircleShape))
                                             }
                                         }
                                         if (isHint) Box(Modifier.fillMaxSize().border(3.dp, Color.Yellow.copy(alpha = 0.7f)))
@@ -287,6 +292,7 @@ fun ChessBoard3D(
                                                     contentDescription = null,
                                                     modifier = Modifier
                                                         .fillMaxSize(1f)
+                                                        .padding(bottom = 6.dp)
                                                         .graphicsLayer {
                                                             scaleX = pieceScale
                                                             scaleY = pieceScale
@@ -454,35 +460,35 @@ private fun get3DPieceScale(type: PieceType, color: PieceColor, perspective: Pie
                 PieceType.QUEEN -> 1.5f
                 PieceType.ROOK -> 1.4f
                 PieceType.BISHOP -> 1.5f
-                PieceType.KNIGHT -> 1.5f
-                PieceType.PAWN -> 1.5f
+                PieceType.KNIGHT -> 1.4f
+                PieceType.PAWN -> 1.1f
             }
             PieceColor.BLACK -> when (type) {
                 PieceType.KING -> 1.5f
                 PieceType.QUEEN -> 1.5f
-                PieceType.ROOK -> 1.2f
+                PieceType.ROOK -> 1.4f
                 PieceType.BISHOP -> 1.5f
                 PieceType.KNIGHT -> 1.4f
-                PieceType.PAWN -> 1.2f
+                PieceType.PAWN -> 1.1f
             }
         }
     } else {
         when (color) {
             PieceColor.WHITE -> when (type) {
-                PieceType.KING -> 1.5f
-                PieceType.QUEEN -> 1.5f
-                PieceType.ROOK -> 1.3f
-                PieceType.BISHOP -> 1.5f
-                PieceType.KNIGHT -> 1.5f
-                PieceType.PAWN -> 1.4f
+                PieceType.KING -> 1.4f
+                PieceType.QUEEN -> 1.4f
+                PieceType.ROOK -> 1.2f
+                PieceType.BISHOP -> 1.2f
+                PieceType.KNIGHT -> 1.2f
+                PieceType.PAWN -> 1.1f
             }
             PieceColor.BLACK -> when (type) {
-                PieceType.KING -> 1.5f
-                PieceType.QUEEN -> 1.5f
-                PieceType.ROOK -> 1.5f
-                PieceType.BISHOP -> 1.5f
-                PieceType.KNIGHT -> 1.5f
-                PieceType.PAWN -> 1.5f
+                PieceType.KING -> 1.4f
+                PieceType.QUEEN -> 1.4f
+                PieceType.ROOK -> 1.2f
+                PieceType.BISHOP -> 1.2f
+                PieceType.KNIGHT -> 1.2f
+                PieceType.PAWN -> 1.1f
             }
         }
     }

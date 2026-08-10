@@ -27,9 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.chess.model.BoardViewMode
 import com.example.chess.model.ChessTheme
-import com.example.ui.theme.MedievalGold
-import com.example.ui.theme.MedievalGoldLight
-import com.example.ui.theme.MedievalParchment
+import com.example.ui.theme.*
 
 @Composable
 fun ChessThemeDialog(
@@ -69,7 +67,7 @@ fun ChessThemeDialog(
                         .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
                         .testTag("chess_theme_dialog"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1D0E06))
+                    colors = CardDefaults.cardColors(containerColor = ColorDarkDeep)
                 ) {
                     Column(
                         modifier = Modifier
@@ -168,7 +166,7 @@ fun ChessThemeDialog(
                         ) {
                             Text(
                                 text = "ÁP DỤNG THAY ĐỔI", 
-                                color = Color(0xFF1D0E06), 
+                                color = ColorDarkDeep, 
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = if (isLandscape) 13.sp else 14.sp
                             )
@@ -182,7 +180,7 @@ fun ChessThemeDialog(
                     modifier = Modifier
                         .offset(x = 10.dp, y = (-10).dp)
                         .size(34.dp)
-                        .background(Color(0xFF382315), CircleShape)
+                        .background(ColorWoodMid, CircleShape)
                         .border(2.dp, MedievalGold, CircleShape)
                         .shadow(8.dp, CircleShape)
                 ) {
@@ -210,7 +208,7 @@ private fun ViewModeButton(
         onClick = onClick,
         modifier = modifier.height(height),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) MedievalGold else Color(0xFF382315)
+            containerColor = if (isSelected) MedievalGold else ColorWoodMid
         ),
         shape = RoundedCornerShape(8.dp),
         border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, MedievalGold.copy(alpha = 0.3f)) else null,
@@ -218,7 +216,7 @@ private fun ViewModeButton(
     ) {
         Text(
             text = text,
-            color = if (isSelected) Color(0xFF1D0E06) else MedievalGoldLight,
+            color = if (isSelected) ColorDarkDeep else MedievalGoldLight,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -235,7 +233,7 @@ private fun ThemeItem(
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) Color(0x33D4AF37) else Color(0xFF28180E))
+            .background(if (isSelected) Color(0x33D4AF37) else ColorWoodWarm)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = if (isSelected) MedievalGold else Color(0x33D4AF37),
