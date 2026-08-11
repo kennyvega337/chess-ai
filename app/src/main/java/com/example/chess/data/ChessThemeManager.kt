@@ -56,4 +56,57 @@ class ChessThemeManager(context: Context) {
         val name = prefs.getString("selected_side_option", com.example.chess.model.SideOption.WHITE.name)
         return try { com.example.chess.model.SideOption.valueOf(name!!) } catch (e: Exception) { com.example.chess.model.SideOption.WHITE }
     }
+
+    fun saveTimerOption(option: com.example.chess.model.GameTimerOption) {
+        prefs.edit().putString("selected_timer_option", option.name).apply()
+    }
+
+    fun getSelectedTimerOption(): com.example.chess.model.GameTimerOption {
+        val name = prefs.getString("selected_timer_option", com.example.chess.model.GameTimerOption.NONE.name)
+        return try { com.example.chess.model.GameTimerOption.valueOf(name!!) } catch (e: Exception) { com.example.chess.model.GameTimerOption.NONE }
+    }
+
+    fun saveCustomMinutes(minutes: Int) {
+        prefs.edit().putInt("selected_custom_minutes", minutes).apply()
+    }
+
+    fun getSelectedCustomMinutes(): Int {
+        return prefs.getInt("selected_custom_minutes", 10)
+    }
+
+    fun saveSoundEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("sound_enabled", enabled).apply()
+    }
+
+    fun isSoundEnabled(): Boolean {
+        return prefs.getBoolean("sound_enabled", true)
+    }
+
+    fun saveMoveHintsEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("move_hints_enabled", enabled).apply()
+    }
+
+    fun isMoveHintsEnabled(): Boolean {
+        return prefs.getBoolean("move_hints_enabled", true)
+    }
+
+    fun saveGamePersistenceEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("game_persistence_enabled", enabled).apply()
+    }
+
+    fun isGamePersistenceEnabled(): Boolean {
+        return prefs.getBoolean("game_persistence_enabled", false)
+    }
+
+    fun saveCurrentGameState(json: String) {
+        prefs.edit().putString("persisted_game_state", json).apply()
+    }
+
+    fun getPersistedGameState(): String? {
+        return prefs.getString("persisted_game_state", null)
+    }
+
+    fun clearPersistedGameState() {
+        prefs.edit().remove("persisted_game_state").apply()
+    }
 }

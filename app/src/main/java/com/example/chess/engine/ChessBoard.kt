@@ -101,6 +101,12 @@ class ChessBoard(initialize: Boolean = true) {
         }
     }
 
+    fun setPiece(row: Int, col: Int, piece: Piece?) {
+        if (row in 0..7 && col in 0..7) {
+            board[row][col] = piece
+        }
+    }
+
     fun applyMove(move: Move) {
         val piece = move.piece
         
@@ -599,6 +605,37 @@ class ChessBoard(initialize: Boolean = true) {
         fen.append("0 1")
         
         return fen.toString()
+    }
+
+    /**
+     * Checks if a specific color side has sufficient material to win the game.
+     * Insufficient material scenarios (as per standard chess rules simplified):
+     * - Only King
+     * - King + Knight
+     * - King + Bishop
+     */
+    fun hasInsufficientMatingMaterial(color: PieceColor): Boolean {
+        val pieces = mutableListOf<Piece>()
+        for (r in 0..7) {
+            for (c in 0..7) {
+                board[r][c]?.let { 
+                    if (it.color == color) pieces.add(it)
+                }
+            }
+        }
+
+        // Side has only King
+        if (pieces.size <= 1) return true
+
+        // Side has exactly two pieces: King + (Knight or Bishop)
+        if (pieces.size == 2) {
+            val nonKing = pieces.find { it.type != PieceType.KING }
+            if (nonKing?.type == PieceType.KNIGHT || nonKing?.type == PieceType.BISHOP) {
+                return true
+            }
+        }
+
+        return false
     }
 
     /**

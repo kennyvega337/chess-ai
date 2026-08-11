@@ -15,7 +15,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -78,10 +81,31 @@ fun ChessBoard2D(
     currentTurn: PieceColor,
     onSquareClick: (Position) -> Unit,
     theme: ChessTheme,
+    isMoveHintsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val lightSquareColor = Color(theme.lightSquareColor)
     val darkSquareColor = Color(theme.darkSquareColor)
+
+    var currentBorderColor by remember { mutableStateOf(MedievalGold) }
+
+    LaunchedEffect(winner) {
+        if (winner != null) {
+            val resultColor = if (winner == userColor) ColorRoyalBlue else Color.Red
+            val flashColor = MedievalGold
+            
+            // Flashing for 5 seconds (10 cycles of 500ms)
+            repeat(10) {
+                currentBorderColor = resultColor
+                kotlinx.coroutines.delay(250)
+                currentBorderColor = flashColor
+                kotlinx.coroutines.delay(250)
+            }
+            currentBorderColor = resultColor
+        } else {
+            currentBorderColor = MedievalGold
+        }
+    }
 
     val rows = if (userColor == PieceColor.WHITE) (0..7).toList() else (7 downTo 0).toList()
 
@@ -120,21 +144,11 @@ fun ChessBoard2D(
 
         // 1. LỚP NỀN VÀ BIÊN NGOÀI (Nằm dưới cùng)
 
-        val borderColor = if (winner != null) {
-            if (winner == userColor) {
-                ColorRoyalBlue // Người chơi 1 thắng (Xanh dương đậm)
-            } else {
-                Color.Red         // Đối thủ thắng (Đỏ)
-            }
-        } else {
-            MedievalGold // Mặc định Vàng Gold trong khi chơi
-        }
-
         Box(
             modifier = Modifier
                 .size(availableSize) // Sử dụng chính xác availableSize
                 .background(ColorWoodDark, RoundedCornerShape(2.dp))
-                .border(2.dp, borderColor, RoundedCornerShape(2.dp)),
+                .border(2.dp, currentBorderColor, RoundedCornerShape(2.dp)),
             contentAlignment = Alignment.Center
         ) {
             // Vẽ tọa độ Chữ (a-h) - Căn giữa trong phần lề
@@ -205,7 +219,7 @@ fun ChessBoard2D(
                                 val isLegalTarget = legalMoves.any { it.to == pos }
                                 val isAiLastMove = aiLastMove?.from == pos || aiLastMove?.to == pos
                                 val isCheckSquare = kingInCheckPos == pos
-                                val isHint = hintMove?.to == pos
+                                val isHint = hintMove?.from == pos || hintMove?.to == pos
                                 val isCheckingPiece = checkingPieces.contains(pos)
 
                                 Box(
@@ -246,7 +260,7 @@ fun ChessBoard2D(
                                     }
                                     if (isSelected) Box(Modifier.fillMaxSize().background(Color(0x8816A34A)))
                                     if (isAiLastMove) Box(Modifier.fillMaxSize().background(Color(0x66F59E0B)))
-                                    if (isLegalTarget) {
+                                    if (isMoveHintsEnabled && isLegalTarget) {
                                         if (isCastling) {
                                             // Special Blue highlight for Castling target
                                             Box(
@@ -293,10 +307,16 @@ fun ChessBoard2D(
                                         Image(
                                             painter = painterResource(id = getPieceResource(piece)),
                                             contentDescription = piece.type.name,
-                                            modifier = Modifier.size(squareSize * 0.85f)
+                                            modifier = Modifier
+                                                .size(squareSize * 0.85f)
+                                                .graphicsLayer {
+                                                    if (gameMode == GameMode.TWO_PLAYERS && piece.color != userColor) {
+                                                        rotationZ = 180f
+                                                    }
+                                                }
                                         )
                                     } else if (isAtDestination) {
-                                        // Captured piece \"kick out\" animation towards nearest edge
+                                        // Captured piece "kick out" animation towards nearest edge
                                         val capturedPiece = currentMove.capturedPiece
                                         if (capturedPiece != null) {
                                             val animScale = 1f - (0.3f * progress) // From 1.0 to 0.7
@@ -336,6 +356,9 @@ fun ChessBoard2D(
                                                         scaleX = animScale
                                                         scaleY = animScale
                                                         alpha = animAlpha
+                                                        if (gameMode == GameMode.TWO_PLAYERS && capturedPiece.color != userColor) {
+                                                            rotationZ = 180f
+                                                        }
                                                     }
                                             )
                                         }
@@ -366,6 +389,9 @@ fun ChessBoard2D(
                                             .graphicsLayer {
                                                 scaleX = animScale
                                                 scaleY = animScale
+                                                if (gameMode == GameMode.TWO_PLAYERS && movingPiece.color != userColor) {
+                                                    rotationZ = 180f
+                                                }
                                             }
                                     )
                                 }

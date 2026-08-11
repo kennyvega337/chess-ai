@@ -39,9 +39,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
+import com.example.chess.model.GameTimerOption
 import com.example.chess.model.PieceColor
 import com.example.chess.model.PieceType
 import com.example.ui.theme.*
@@ -61,6 +63,8 @@ fun PlayerCard(
     gameStatus: GameStatus = GameStatus.IN_PROGRESS,
     winner: PieceColor? = null,
     title: String? = null,
+    timeMillis: Long = 0,
+    timerOption: GameTimerOption = GameTimerOption.NONE,
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -138,8 +142,24 @@ fun PlayerCard(
                             }
                         }
                         isAiThinking && isCurrentTurn -> if (isUser) "Đang tìm gợi ý..." else "Đang tính nước đi..."
-                        isCurrentTurn -> if (isLandscape) "Đến lượt đi" else "⚡ Đến lượt đi"
-                        else -> if (isLandscape) "Đang chờ..." else "Chờ đến lượt..."
+                        isCurrentTurn -> {
+                            if (timerOption != GameTimerOption.NONE) {
+                                val minutes = (timeMillis / 1000) / 60
+                                val seconds = (timeMillis / 1000) % 60
+                                "⚡ Đang đi: ${String.format(Locale.US, "%02d:%02d", minutes, seconds)}"
+                            } else {
+                                if (isLandscape) "Đến lượt đi" else "⚡ Đến lượt đi"
+                            }
+                        }
+                        else -> {
+                            if (timerOption != GameTimerOption.NONE) {
+                                val minutes = (timeMillis / 1000) / 60
+                                val seconds = (timeMillis / 1000) % 60
+                                "Đang chờ: ${String.format(Locale.US, "%02d:%02d", minutes, seconds)}"
+                            } else {
+                                if (isLandscape) "Đang chờ..." else "Chờ đến lượt..."
+                            }
+                        }
                     }
 
                     val statusColor = when {

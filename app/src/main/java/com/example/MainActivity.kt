@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
+import com.example.chess.model.GameTimerOption
 import com.example.chess.model.PieceType
 import com.example.chess.model.SideOption
 import com.example.chess.ui.ChessScreen
@@ -49,21 +50,30 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
+        
+        if (intent.getBooleanExtra("LOAD_PERSISTED", false)) {
+            viewModel.loadPersistedGame()
+            return
+        }
+
         val gameModeStr = intent.getStringExtra(EXTRA_GAME_MODE)
         val sideOptionStr = intent.getStringExtra(EXTRA_SIDE_OPTION)
         val difficultyStr = intent.getStringExtra(EXTRA_DIFFICULTY)
         val tutorialPieceStr = intent.getStringExtra(EXTRA_TUTORIAL_PIECE)
+        val timerOptionStr = intent.getStringExtra(EXTRA_TIMER_OPTION)
+        val customMinutes = if (intent.hasExtra(EXTRA_CUSTOM_MINUTES)) intent.getIntExtra(EXTRA_CUSTOM_MINUTES, 10) else null
 
         if (gameModeStr != null) {
             val gameMode = try { GameMode.valueOf(gameModeStr) } catch (e: Exception) { GameMode.VS_AI }
             val sideOption = try { SideOption.valueOf(sideOptionStr ?: "WHITE") } catch (e: Exception) { SideOption.WHITE }
             val difficulty = try { DifficultyLevel.valueOf(difficultyStr ?: "LEVEL_2") } catch (e: Exception) { DifficultyLevel.LEVEL_2 }
+            val timerOption = try { GameTimerOption.valueOf(timerOptionStr ?: "NONE") } catch (e: Exception) { GameTimerOption.NONE }
 
             if (gameMode == GameMode.TUTORIAL && tutorialPieceStr != null) {
                 val pieceType = try { PieceType.valueOf(tutorialPieceStr) } catch (e: Exception) { PieceType.ROOK }
                 viewModel.startTutorialMode(pieceType)
             } else {
-                viewModel.startNewGame(sideOption, difficulty, gameMode)
+                viewModel.startNewGame(sideOption, difficulty, gameMode, timerOption, customMinutes)
             }
         }
     }
@@ -118,6 +128,8 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_DIFFICULTY = "extra_difficulty"
         const val EXTRA_GAME_MODE = "extra_game_mode"
         const val EXTRA_TUTORIAL_PIECE = "extra_tutorial_piece"
+        const val EXTRA_TIMER_OPTION = "extra_timer_option"
+        const val EXTRA_CUSTOM_MINUTES = "extra_custom_minutes"
         const val EXTRA_IS_GAME_IN_PROGRESS = "extra_is_game_in_progress"
     }
 }

@@ -77,6 +77,14 @@ enum class SideOption(val displayNameVi: String, val subtitleVi: String, val ico
     BLACK("Hắc Vương (Đen)", "Đi sau - Phòng thủ phản công", "♚")
 }
 
+enum class GameTimerOption(val displayNameVi: String, val minutes: Int?) {
+    NONE("None", null),
+    M10("10p", 10),
+    M15("15p", 15),
+    M30("30p", 30),
+    CUSTOM("Custom", -1)
+}
+
 enum class DifficultyLevel(val level: Int, val displayNameVi: String) {
     LEVEL_1(1, "Dễ"),
     LEVEL_2(2, "T.Bình"),
@@ -108,8 +116,11 @@ data class ChessTheme(
         val ROYAL = ChessTheme("Royal", 0xFFE8D19F, 0xFF1F1F1F, "Hoàng Gia")
         val MARBLE = ChessTheme("Marble", 0xFFF0F0F0, 0xFF708090, "Cẩm Thạch")
         val MIDNIGHT = ChessTheme("Midnight", 0xFF2C3E50, 0xFF000000, "Bóng Đêm")
+        val FIRE = ChessTheme("Fire", 0xFFFFEAEA, 0xFFAA0000, "Đỏ cháy")
+        val SKY = ChessTheme("Sky", 0xFFE0F7FA, 0xFF0288D1, "Xanh trời")
+        val MYSTIC = ChessTheme("Mystic", 0xFFF3E5F5, 0xFF4A148C, "Tím huyền bí")
 
-        val themes = listOf(CLASSIC, WOOD, BLUE, DARK, SAND, ROYAL, MARBLE, MIDNIGHT)
+        val themes = listOf(CLASSIC, WOOD, BLUE, DARK, SAND, ROYAL, MARBLE, MIDNIGHT, FIRE, SKY, MYSTIC)
 
         fun fromName(name: String): ChessTheme {
             return themes.find { it.name == name } ?: CLASSIC

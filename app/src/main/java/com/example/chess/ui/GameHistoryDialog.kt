@@ -51,6 +51,8 @@ fun GameHistoryDialog(
     val context = LocalContext.current
     val historyManager = remember { GameHistoryManager(context) }
     var historyList by remember { mutableStateOf(historyManager.getHistoryList()) }
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -61,13 +63,17 @@ fun GameHistoryDialog(
     ) {
         HideSystemBarsInDialog()
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.88f) // Reduced slightly to ensure overflow stays on screen
-                    .fillMaxHeight(0.8f)
+                    .fillMaxWidth(if (isLandscape) 0.7f else 0.88f) // Reduced slightly to ensure overflow stays on screen
+                    .fillMaxHeight(0.85f)
                     .wrapContentHeight(),
                 contentAlignment = Alignment.TopEnd
             ) {
@@ -188,7 +194,7 @@ fun GameHistoryDialog(
                         .size(34.dp)
                         .background(ColorWoodMid, CircleShape)
                         .border(2.dp, MedievalGold, CircleShape)
-                        .shadow(8.dp, CircleShape)
+                        .shadow(4.dp, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,

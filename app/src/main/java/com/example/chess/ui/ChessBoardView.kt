@@ -28,6 +28,7 @@ fun ChessBoardView(
     onSquareClick: (Position) -> Unit,
     theme: ChessTheme = ChessTheme.CLASSIC,
     viewMode: BoardViewMode = BoardViewMode.VIEW_2D,
+    isMoveHintsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val kingInCheckPos = if (isCheck) board.findKing(currentTurn) else null
@@ -36,7 +37,10 @@ fun ChessBoardView(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        when (viewMode) {
+        // Enforce 2D view for Two Players mode
+        val effectiveViewMode = if (gameMode == GameMode.TWO_PLAYERS) BoardViewMode.VIEW_2D else viewMode
+
+        when (effectiveViewMode) {
             BoardViewMode.VIEW_2D -> {
                 ChessBoard2D(
                     board = board,
@@ -53,6 +57,7 @@ fun ChessBoardView(
                     gameMode = gameMode,
                     currentTurn = currentTurn,
                     theme = theme,
+                    isMoveHintsEnabled = isMoveHintsEnabled,
                     onSquareClick = onSquareClick,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -73,6 +78,7 @@ fun ChessBoardView(
                     gameMode = gameMode,
                     currentTurn = currentTurn,
                     theme = theme,
+                    isMoveHintsEnabled = isMoveHintsEnabled,
                     onSquareClick = onSquareClick,
                     modifier = Modifier.fillMaxSize()
                 )

@@ -14,7 +14,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
@@ -55,25 +58,33 @@ fun ChessBoard3D(
     currentTurn: PieceColor,
     onSquareClick: (Position) -> Unit,
     theme: ChessTheme = ChessTheme.CLASSIC,
+    isMoveHintsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val lightSquareColor = Color(theme.lightSquareColor)
     val darkSquareColor = Color(theme.darkSquareColor)
 
-    val rows = if (userColor == PieceColor.WHITE) (0..7).toList() else (7 downTo 0).toList()
+    var currentBorderColor by remember { mutableStateOf(MedievalGold) }
 
-    // Xác định màu viền dựa trên người thắng cuộc
-    val borderColor = if (winner != null) {
-        if (winner == userColor) {
-            ColorRoyalBlue // Người chơi 1 thắng (Xanh dương đậm)
+    LaunchedEffect(winner) {
+        if (winner != null) {
+            val resultColor = if (winner == userColor) ColorRoyalBlue else Color.Red
+            val flashColor = MedievalGold
+            
+            // Nhấp nháy trong 5 giây (10 chu kỳ, mỗi chu kỳ 500ms)
+            repeat(10) {
+                currentBorderColor = resultColor
+                kotlinx.coroutines.delay(250)
+                currentBorderColor = flashColor
+                kotlinx.coroutines.delay(250)
+            }
+            currentBorderColor = resultColor
         } else {
-            Color.Red         // Đối thủ thắng (Đỏ)
+            currentBorderColor = MedievalGold
         }
-    } else {
-        MedievalGold     // Đang chơi (Mặc định Vàng Gold)
     }
 
-    Log.d("ChessBoard3D", "Current Winner: $winner, BorderColor: $borderColor")
+    val rows = if (userColor == PieceColor.WHITE) (0..7).toList() else (7 downTo 0).toList()
 
     val animProgress = remember { Animatable(1f) }
     val currentMove = aiLastMove ?: playerLastMove
@@ -119,7 +130,7 @@ fun ChessBoard3D(
                     modifier = Modifier
                         .size(availableSize)
                         .background(ColorWoodDark, RoundedCornerShape(2.dp))
-                        .border(2.dp, borderColor, RoundedCornerShape(2.dp))
+                        .border(2.dp, currentBorderColor, RoundedCornerShape(2.dp))
                         .zIndex(0f)
                 )
 
@@ -192,7 +203,7 @@ fun ChessBoard3D(
                                     
                                     val isSelected = selectedPosition == pos
                                     val isLegalTarget = legalMoves.any { it.to == pos }
-                                    val isHint = hintMove?.to == pos
+                                    val isHint = hintMove?.from == pos || hintMove?.to == pos
                                     val isPlayerLastMove = playerLastMove?.from == pos || playerLastMove?.to == pos
                                     val isAiLastMove = aiLastMove?.from == pos || aiLastMove?.to == pos
                                     val isCheckSquare = kingInCheckPos == pos
@@ -236,7 +247,7 @@ fun ChessBoard3D(
                                         if (isSelected) Box(Modifier.fillMaxSize().background(ColorEmeraldDark.copy(alpha = 0.54f)))
                                         if (isAiLastMove) Box(Modifier.fillMaxSize().background(ColorGoldAmber.copy(alpha = 0.4f)))
                                         if (isPlayerLastMove) Box(Modifier.fillMaxSize().background(ColorEmeraldLight.copy(alpha = 0.4f)))
-                                        if (isLegalTarget) {
+                                        if (isMoveHintsEnabled && isLegalTarget) {
                                             if (isCastling) {
                                                 Box(
                                                     modifier = Modifier

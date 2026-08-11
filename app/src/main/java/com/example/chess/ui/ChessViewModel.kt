@@ -10,16 +10,7 @@ import com.example.chess.engine.ChessAI
 import com.example.chess.engine.ChessBoard
 import com.example.chess.engine.StockfishEngine
 import com.example.chess.data.ChessThemeManager
-import com.example.chess.model.AppScreen
-import com.example.chess.model.ChessTheme
-import com.example.chess.model.DifficultyLevel
-import com.example.chess.model.GameMode
-import com.example.chess.model.GameStatus
-import com.example.chess.model.Move
-import com.example.chess.model.PieceColor
-import com.example.chess.model.PieceType
-import com.example.chess.model.Position
-import com.example.chess.model.SideOption
+import com.example.chess.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +18,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 
 data class ChessUiState(
     val currentScreen: AppScreen = AppScreen.SETUP,
@@ -51,6 +44,7 @@ data class ChessUiState(
     val isAiThinking: Boolean = false,
     val showSideSelectionModal: Boolean = false,
     val showResignConfirmationModal: Boolean = false,
+    val showRestartConfirmationModal: Boolean = false,
     val showCapturedPiecesModal: Boolean = false,
     val showHistoryModal: Boolean = false,
     val showThemeModal: Boolean = false,
@@ -64,6 +58,15 @@ data class ChessUiState(
     val halfMoveClock: Int = 0,
     val boardSignatures: Map<String, Int> = emptyMap(),
     val isGameEndControlsEnabled: Boolean = false,
+    val timerOption: GameTimerOption = GameTimerOption.NONE,
+    val whiteTimeMillis: Long = 0,
+    val blackTimeMillis: Long = 0,
+    val isTimerActive: Boolean = false,
+    val isSoundEnabled: Boolean = true,
+    val isMoveHintsEnabled: Boolean = true,
+    val isSaveGameEnabled: Boolean = false,
+    val showGeneralSettingsModal: Boolean = false,
+    val hasPersistedGame: Boolean = false
 )
 
 class ChessViewModel(application: Application) : AndroidViewModel(application) {
@@ -71,13 +74,19 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     private val historyManager = GameHistoryManager(application)
     private val themeManager = ChessThemeManager(application)
     private var hasSavedHistoryForMatch = false
+    private var timerJob: kotlinx.coroutines.Job? = null
 
     private val _uiState = MutableStateFlow(ChessUiState(
         selectedTheme = themeManager.getSelectedTheme(),
         boardViewMode = themeManager.getSelectedViewMode(),
         gameMode = themeManager.getSelectedGameMode(),
         difficulty = themeManager.getSelectedDifficulty(),
-        selectedSideOption = themeManager.getSelectedSideOption()
+        selectedSideOption = themeManager.getSelectedSideOption(),
+        timerOption = themeManager.getSelectedTimerOption(),
+        isSoundEnabled = themeManager.isSoundEnabled(),
+        isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
+        isSaveGameEnabled = themeManager.isGamePersistenceEnabled(),
+        hasPersistedGame = themeManager.getPersistedGameState() != null
     ))
     val uiState: StateFlow<ChessUiState> = _uiState.asStateFlow()
 
@@ -119,6 +128,7 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun handleAppQuitOrPause() {
+        persistCurrentGame()
         val state = _uiState.value
         if (state.gameStatus == GameStatus.IN_PROGRESS &&
             state.moveHistory.isNotEmpty() &&
@@ -134,9 +144,13 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     fun startNewGame(
         sideOption: SideOption = SideOption.WHITE,
         chosenDifficulty: DifficultyLevel = DifficultyLevel.LEVEL_2,
-        gameMode: GameMode = GameMode.VS_AI
+        gameMode: GameMode = GameMode.VS_AI,
+        timerOption: GameTimerOption = GameTimerOption.NONE,
+        customMinutes: Int? = null
     ) {
         val previousState = _uiState.value
+        stopTimer()
+
         if (previousState.gameStatus == GameStatus.IN_PROGRESS &&
             previousState.moveHistory.isNotEmpty() &&
             !hasSavedHistoryForMatch &&
@@ -146,6 +160,11 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         hasSavedHistoryForMatch = false
+
+        // Clear any old saved game when starting a fresh one
+        if (gameMode != GameMode.TUTORIAL) {
+            themeManager.clearPersistedGameState()
+        }
 
         // Save settings if not tutorial
         if (gameMode != GameMode.TUTORIAL) {
@@ -158,6 +177,12 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             SideOption.WHITE -> PieceColor.WHITE
             SideOption.BLACK -> PieceColor.BLACK
             SideOption.RANDOM -> if (kotlin.random.Random.nextBoolean()) PieceColor.WHITE else PieceColor.BLACK
+        }
+
+        val initialMillis = when (timerOption) {
+            GameTimerOption.NONE -> 0L
+            GameTimerOption.CUSTOM -> (customMinutes ?: 10).toLong() * 60 * 1000
+            else -> (timerOption.minutes ?: 0).toLong() * 60 * 1000
         }
 
         val newBoard = ChessBoard()
@@ -181,12 +206,87 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             selectedTheme = savedTheme,
             boardViewMode = savedViewMode,
             halfMoveClock = 0,
-            boardSignatures = mapOf(newBoard.getBoardSignature() to 1)
+            boardSignatures = mapOf(newBoard.getBoardSignature() to 1),
+            timerOption = timerOption,
+            whiteTimeMillis = initialMillis,
+            blackTimeMillis = initialMillis,
+            isTimerActive = timerOption != GameTimerOption.NONE,
+            isSoundEnabled = themeManager.isSoundEnabled(),
+            isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
+            isSaveGameEnabled = themeManager.isGamePersistenceEnabled()
         )
+
+        if (timerOption != GameTimerOption.NONE) {
+            startTimer()
+        }
 
         // If VS_AI mode and user is Black, AI plays White first!
         if (gameMode == GameMode.VS_AI && actualUserColor == PieceColor.BLACK) {
             triggerAiMove(PieceColor.WHITE)
+        }
+    }
+
+    private fun startTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000)
+                val currentState = _uiState.value
+                if (currentState.gameStatus != GameStatus.IN_PROGRESS || !currentState.isTimerActive) break
+
+                if (currentState.currentTurn == PieceColor.WHITE) {
+                    val newTime = (currentState.whiteTimeMillis - 1000).coerceAtLeast(0)
+                    _uiState.value = currentState.copy(whiteTimeMillis = newTime)
+                    if (newTime <= 0) {
+                        handleTimeout(PieceColor.WHITE)
+                        break
+                    }
+                } else {
+                    val newTime = (currentState.blackTimeMillis - 1000).coerceAtLeast(0)
+                    _uiState.value = currentState.copy(blackTimeMillis = newTime)
+                    if (newTime <= 0) {
+                        handleTimeout(PieceColor.BLACK)
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopTimer() {
+        timerJob?.cancel()
+        timerJob = null
+    }
+
+    private fun handleTimeout(loserColor: PieceColor) {
+        val currentState = _uiState.value
+        val winnerColor = loserColor.opposite
+        
+        // If the side with time remaining has insufficient material to mate, it's a draw
+        val isInsufficientMaterial = currentState.board.hasInsufficientMatingMaterial(winnerColor)
+        
+        if (isInsufficientMaterial) {
+            _uiState.value = currentState.copy(
+                gameStatus = GameStatus.DRAW,
+                winner = null,
+                isTimerActive = false,
+                isGameEndControlsEnabled = true,
+                showGameOverModal = true
+            )
+            recordMatchHistory(forcedStatus = GameStatus.DRAW, forcedWinner = null)
+        } else {
+            _uiState.value = currentState.copy(
+                gameStatus = GameStatus.CHECKMATE, // Reusing status for simplicity, or could add TIMEOUT
+                winner = winnerColor,
+                isTimerActive = false,
+                isGameEndControlsEnabled = true,
+                showGameOverModal = true
+            )
+            recordMatchHistory(forcedStatus = GameStatus.CHECKMATE, forcedWinner = winnerColor)
+        }
+
+        if (currentState.isSoundEnabled) {
+            SoundManager.playVictorySound()
         }
     }
 
@@ -213,18 +313,49 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun restartGame() {
+        val state = _uiState.value
+        if (state.isAiThinking) return
+
+        // If game is in progress and has moves, show confirmation dialog
+        if (state.gameStatus == GameStatus.IN_PROGRESS && state.moveHistory.isNotEmpty()) {
+            _uiState.value = state.copy(showRestartConfirmationModal = true)
+            return
+        }
+
+        // Otherwise, restart immediately (applies to finished games too)
+        executeRestart()
+    }
+
+    fun confirmRestart() {
+        _uiState.value = _uiState.value.copy(showRestartConfirmationModal = false)
+        executeRestart()
+    }
+
+    fun cancelRestart() {
+        _uiState.value = _uiState.value.copy(showRestartConfirmationModal = false)
+    }
+
+    private fun executeRestart() {
         val currentState = _uiState.value
-        if (currentState.isAiThinking) return
+        stopTimer()
         
-        // Record current game as finished before restarting if it had moves
+        // Record current game as finished before restarting if it had moves and was in progress
         if (currentState.moveHistory.isNotEmpty() && currentState.gameStatus == GameStatus.IN_PROGRESS) {
             recordMatchHistory(isQuitOrAppClosed = true)
         }
         
+        val initialMillis = when (currentState.timerOption) {
+            GameTimerOption.NONE -> 0L
+            GameTimerOption.CUSTOM -> (currentState.whiteTimeMillis.coerceAtLeast(currentState.blackTimeMillis)).coerceAtLeast(60000)
+            else -> (currentState.timerOption.minutes ?: 0).toLong() * 60 * 1000
+        }
+
         startNewGame(
             gameMode = currentState.gameMode,
             chosenDifficulty = currentState.difficulty,
-            sideOption = currentState.selectedSideOption
+            sideOption = currentState.selectedSideOption,
+            timerOption = currentState.timerOption,
+            customMinutes = (initialMillis / 60000).toInt()
         )
     }
 
@@ -265,6 +396,15 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             if (selected != null) {
                 val matchingMove = currentState.legalMovesForSelected.find { it.to == pos }
                 if (matchingMove != null) {
+                    // Check if promotion choice is needed in Tutorial
+                    if (matchingMove.piece.type == PieceType.PAWN &&
+                        ((matchingMove.piece.color == PieceColor.WHITE && pos.row == 0) ||
+                         (matchingMove.piece.color == PieceColor.BLACK && pos.row == 7))
+                    ) {
+                        _uiState.value = currentState.copy(pendingPromotionMove = matchingMove)
+                        return
+                    }
+
                     executeUserMove(matchingMove)
                     return
                 }
@@ -355,11 +495,13 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             val board = currentState.board.copy()
             board.applyMove(move)
 
-            SoundManager.playMoveSound(
-                pieceType = move.piece.type,
-                isCapture = move.capturedPiece != null,
-                isCheck = false
-            )
+            if (currentState.isSoundEnabled) {
+                SoundManager.playMoveSound(
+                    pieceType = move.piece.type,
+                    isCapture = move.capturedPiece != null,
+                    isCheck = false
+                )
+            }
 
             val newPos = move.to
             val movedPiece = board.getPiece(newPos)
@@ -423,18 +565,21 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-            // Play end game sound if applicable
-            if (finalStatus != GameStatus.IN_PROGRESS) {
+        if (finalStatus != GameStatus.IN_PROGRESS) {
+            if (currentState.isSoundEnabled) {
                 SoundManager.playVictorySound()
-            } else {
-                // Play regular move sound
-                val isCapture = move.capturedPiece != null
+            }
+        } else {
+            // Play regular move sound
+            val isCapture = move.capturedPiece != null
+            if (currentState.isSoundEnabled) {
                 SoundManager.playMoveSound(
                     pieceType = move.piece.type,
                     isCapture = isCapture,
                     isCheck = opponentInCheck
                 )
             }
+        }
 
             // Phase 1: Trigger Animation WITHOUT updating board state yet
             _uiState.value = currentState.copy(
@@ -472,6 +617,12 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                 halfMoveClock = newHalfMoveClock,
                 boardSignatures = updatedSignatures
             )
+            
+            if (finalStatus == GameStatus.IN_PROGRESS) {
+                persistCurrentGame()
+            } else {
+                onGameFinished()
+            }
 
             if (finalStatus != GameStatus.IN_PROGRESS) {
                 recordMatchHistory(
@@ -554,15 +705,19 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
 
                 // Play end game sound if applicable
                 if (finalStatus != GameStatus.IN_PROGRESS) {
-                    SoundManager.playVictorySound()
+                    if (currentState.isSoundEnabled) {
+                        SoundManager.playVictorySound()
+                    }
                 } else {
                     // Play AI move sound
                     val isCapture = aiMove.capturedPiece != null
-                    SoundManager.playMoveSound(
-                        pieceType = aiMove.piece.type,
-                        isCapture = isCapture,
-                        isCheck = userInCheck
-                    )
+                    if (currentState.isSoundEnabled) {
+                        SoundManager.playMoveSound(
+                            pieceType = aiMove.piece.type,
+                            isCapture = isCapture,
+                            isCheck = userInCheck
+                        )
+                    }
                 }
 
                 // Phase 1: Trigger AI Animation without updating board state yet
@@ -591,6 +746,12 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                     halfMoveClock = newHalfMoveClock,
                     boardSignatures = updatedSignatures
                 )
+
+                if (finalStatus == GameStatus.IN_PROGRESS) {
+                    persistCurrentGame()
+                } else {
+                    onGameFinished()
+                }
 
                 if (finalStatus != GameStatus.IN_PROGRESS) {
                     recordMatchHistory(
@@ -808,7 +969,9 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setBoardViewMode(mode: com.example.chess.model.BoardViewMode) {
-        themeManager.saveViewMode(mode)
+        if (_uiState.value.gameMode != com.example.chess.model.GameMode.TWO_PLAYERS) {
+            themeManager.saveViewMode(mode)
+        }
         _uiState.value = _uiState.value.copy(boardViewMode = mode)
     }
 
@@ -818,6 +981,225 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             selectedTheme = theme,
             showThemeModal = false
         )
+    }
+
+    fun openGeneralSettingsModal() {
+        _uiState.value = _uiState.value.copy(showGeneralSettingsModal = true)
+    }
+
+    fun closeGeneralSettingsModal() {
+        _uiState.value = _uiState.value.copy(showGeneralSettingsModal = false)
+    }
+
+    fun setSoundEnabled(enabled: Boolean) {
+        themeManager.saveSoundEnabled(enabled)
+        _uiState.value = _uiState.value.copy(isSoundEnabled = enabled)
+    }
+
+    fun setMoveHintsEnabled(enabled: Boolean) {
+        themeManager.saveMoveHintsEnabled(enabled)
+        _uiState.value = _uiState.value.copy(isMoveHintsEnabled = enabled)
+    }
+
+    fun onGameFinished() {
+        if (_uiState.value.isSaveGameEnabled) {
+            themeManager.clearPersistedGameState()
+            _uiState.value = _uiState.value.copy(hasPersistedGame = false)
+        }
+    }
+
+    fun setSaveGameEnabled(enabled: Boolean) {
+        themeManager.saveGamePersistenceEnabled(enabled)
+        if (!enabled) {
+            themeManager.clearPersistedGameState()
+        }
+        _uiState.value = _uiState.value.copy(
+            isSaveGameEnabled = enabled,
+            hasPersistedGame = if (!enabled) false else _uiState.value.hasPersistedGame
+        )
+    }
+
+    private fun persistCurrentGame() {
+        val state = _uiState.value
+        if (state.isSaveGameEnabled && state.gameStatus == GameStatus.IN_PROGRESS && state.gameMode != GameMode.TUTORIAL) {
+            val json = serializeGameState(state)
+            themeManager.saveCurrentGameState(json)
+            _uiState.value = _uiState.value.copy(hasPersistedGame = true)
+        }
+    }
+
+    fun loadPersistedGame() {
+        val json = themeManager.getPersistedGameState() ?: return
+        val restoredState = deserializeGameState(json) ?: return
+        
+        stopTimer()
+        
+        _uiState.value = restoredState.copy(
+            currentScreen = AppScreen.GAME,
+            showGameOverModal = false,
+            isGameEndControlsEnabled = false,
+            isAiThinking = false,
+            isSaveGameEnabled = themeManager.isGamePersistenceEnabled()
+        )
+        
+        hasSavedHistoryForMatch = false
+        
+        // Trigger AI if it's their turn
+        if (restoredState.gameMode == GameMode.VS_AI && restoredState.currentTurn != restoredState.userColor) {
+            triggerAiMove(restoredState.currentTurn)
+        }
+
+        if (restoredState.timerOption != GameTimerOption.NONE) {
+            startTimer()
+        }
+    }
+
+    private fun serializeGameState(state: ChessUiState): String {
+        val obj = JSONObject()
+        obj.put("gameMode", state.gameMode.name)
+        obj.put("userColor", state.userColor.name)
+        obj.put("currentTurn", state.currentTurn.name)
+        obj.put("difficulty", state.difficulty.name)
+        obj.put("timerOption", state.timerOption.name)
+        obj.put("whiteTime", state.whiteTimeMillis)
+        obj.put("blackTime", state.blackTimeMillis)
+        
+        // Serialize board
+        val boardArray = JSONArray()
+        for (r in 0..7) {
+            for (c in 0..7) {
+                val p = state.board.getPiece(r, c)
+                if (p != null) {
+                    val pObj = JSONObject()
+                    pObj.put("r", r)
+                    pObj.put("c", c)
+                    pObj.put("t", p.type.name)
+                    pObj.put("col", p.color.name)
+                    boardArray.put(pObj)
+                }
+            }
+        }
+        obj.put("board", boardArray)
+        
+        // History
+        val historyArray = JSONArray()
+        state.moveHistory.forEach { m ->
+            val mObj = JSONObject()
+            mObj.put("fr", m.from.row); mObj.put("fc", m.from.col)
+            mObj.put("tr", m.to.row); mObj.put("tc", m.to.col)
+            mObj.put("pt", m.piece.type.name); mObj.put("pc", m.piece.color.name)
+            m.capturedPiece?.let { 
+                mObj.put("ct", it.type.name); mObj.put("cc", it.color.name) 
+            }
+            m.promotion?.let { mObj.put("promo", it.name) }
+            mObj.put("cas", m.isCastling)
+            mObj.put("ep", m.isEnPassant)
+            historyArray.put(mObj)
+        }
+        obj.put("history", historyArray)
+        
+        // Board flags
+        obj.put("wkm", state.board.whiteKingMoved)
+        obj.put("wrk", state.board.whiteRookKingsideMoved)
+        obj.put("wrq", state.board.whiteRookQueensideMoved)
+        obj.put("bkm", state.board.blackKingMoved)
+        obj.put("brk", state.board.blackRookKingsideMoved)
+        obj.put("brq", state.board.blackRookQueensideMoved)
+        
+        // En Passant
+        state.board.enPassantTarget?.let {
+            obj.put("epr", it.row)
+            obj.put("epc", it.col)
+        }
+        
+        // Half move clock
+        obj.put("hmc", state.halfMoveClock)
+        
+        return obj.toString()
+    }
+
+    private fun deserializeGameState(json: String): ChessUiState? {
+        try {
+            val obj = JSONObject(json)
+            val mode = GameMode.valueOf(obj.getString("gameMode"))
+            val userCol = PieceColor.valueOf(obj.getString("userColor"))
+            val turn = PieceColor.valueOf(obj.getString("currentTurn"))
+            val diff = DifficultyLevel.valueOf(obj.getString("difficulty"))
+            val timer = GameTimerOption.valueOf(obj.getString("timerOption"))
+            
+            val board = ChessBoard(initialize = false)
+            val bArray = obj.getJSONArray("board")
+            for (i in 0 until bArray.length()) {
+                val p = bArray.getJSONObject(i)
+                board.setPiece(p.getInt("r"), p.getInt("c"), Piece(PieceType.valueOf(p.getString("t")), PieceColor.valueOf(p.getString("col"))))
+            }
+            board.whiteKingMoved = obj.optBoolean("wkm")
+            board.whiteRookKingsideMoved = obj.optBoolean("wrk")
+            board.whiteRookQueensideMoved = obj.optBoolean("wrq")
+            board.blackKingMoved = obj.optBoolean("bkm")
+            board.blackRookKingsideMoved = obj.optBoolean("brk")
+            board.blackRookQueensideMoved = obj.optBoolean("brq")
+            
+            if (obj.has("epr") && obj.has("epc")) {
+                board.enPassantTarget = Position(obj.getInt("epr"), obj.getInt("epc"))
+            }
+
+            val history = mutableListOf<Move>()
+            val hArray = obj.getJSONArray("history")
+            for (i in 0 until hArray.length()) {
+                val m = hArray.getJSONObject(i)
+                history.add(Move(
+                    from = Position(m.getInt("fr"), m.getInt("fc")),
+                    to = Position(m.getInt("tr"), m.getInt("tc")),
+                    piece = Piece(PieceType.valueOf(m.getString("pt")), PieceColor.valueOf(m.getString("pc"))),
+                    capturedPiece = if (m.has("ct")) Piece(PieceType.valueOf(m.getString("ct")), PieceColor.valueOf(m.getString("cc"))) else null,
+                    promotion = if (m.has("promo")) PieceType.valueOf(m.getString("promo")) else null,
+                    isCastling = m.optBoolean("cas"),
+                    isEnPassant = m.optBoolean("ep")
+                ))
+            }
+
+            val (capW, capB) = calculateCapturedFromHistory(history)
+            
+            // Reconstruct board signatures for threefold repetition
+            val signatures = mutableMapOf<String, Int>()
+            signatures[board.getBoardSignature()] = 1
+
+            return ChessUiState(
+                currentScreen = AppScreen.GAME,
+                gameMode = mode,
+                userColor = userCol,
+                currentTurn = turn,
+                difficulty = diff,
+                timerOption = timer,
+                board = board,
+                moveHistory = history,
+                capturedWhitePieces = capW,
+                capturedBlackPieces = capB,
+                whiteTimeMillis = obj.getLong("whiteTime"),
+                blackTimeMillis = obj.getLong("blackTime"),
+                selectedTheme = themeManager.getSelectedTheme(),
+                boardViewMode = themeManager.getSelectedViewMode(),
+                isSoundEnabled = themeManager.isSoundEnabled(),
+                isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
+                isSaveGameEnabled = true,
+                hasPersistedGame = true,
+                halfMoveClock = obj.optInt("hmc", 0),
+                boardSignatures = signatures,
+                gameStatus = GameStatus.IN_PROGRESS
+            )
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
+    private fun calculateCapturedFromHistory(history: List<Move>): Pair<List<PieceType>, List<PieceType>> {
+        val w = mutableListOf<PieceType>()
+        val b = mutableListOf<PieceType>()
+        history.forEach { m ->
+            m.capturedPiece?.let { if (it.color == PieceColor.WHITE) w.add(it.type) else b.add(it.type) }
+        }
+        return Pair(w, b)
     }
 
     fun startTutorialMode(pieceType: PieceType = PieceType.ROOK) {
@@ -897,7 +1279,11 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             selectedPosition = primaryPos,
             legalMovesForSelected = legalMoves,
             gameStatus = GameStatus.IN_PROGRESS,
-            tutorialPiece = pieceType
+            tutorialPiece = pieceType,
+            selectedTheme = themeManager.getSelectedTheme(),
+            boardViewMode = themeManager.getSelectedViewMode(),
+            isSoundEnabled = themeManager.isSoundEnabled(),
+            isMoveHintsEnabled = themeManager.isMoveHintsEnabled()
         )
     }
 

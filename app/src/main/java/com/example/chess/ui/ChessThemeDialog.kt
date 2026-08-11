@@ -33,12 +33,16 @@ import com.example.ui.theme.*
 fun ChessThemeDialog(
     selectedTheme: ChessTheme,
     viewMode: BoardViewMode,
+    gameMode: com.example.chess.model.GameMode,
     onThemeSelect: (ChessTheme) -> Unit,
     onViewModeChange: (BoardViewMode) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val isTwoPlayers = gameMode == com.example.chess.model.GameMode.TWO_PLAYERS
     var tempTheme by remember { mutableStateOf(selectedTheme) }
-    var tempViewMode by remember { mutableStateOf(viewMode) }
+    var tempViewMode by remember { 
+        mutableStateOf(if (isTwoPlayers) BoardViewMode.VIEW_2D else viewMode) 
+    }
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
@@ -51,12 +55,16 @@ fun ChessThemeDialog(
     ) {
         HideSystemBarsInDialog()
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(if (isLandscape) 0.75f else 0.88f)
+                    .fillMaxWidth(if (isLandscape) 0.65f else 0.88f)
                     .fillMaxHeight(if (isLandscape) 0.9f else 0.8f)
                     .wrapContentHeight(),
                 contentAlignment = Alignment.TopEnd
@@ -118,7 +126,12 @@ fun ChessThemeDialog(
                             ViewModeButton(
                                 text = "CHẾ ĐỘ 3D",
                                 isSelected = tempViewMode == BoardViewMode.VIEW_3D,
-                                onClick = { tempViewMode = BoardViewMode.VIEW_3D },
+                                onClick = { 
+                                    if (!isTwoPlayers) {
+                                        tempViewMode = BoardViewMode.VIEW_3D 
+                                    }
+                                },
+                                enabled = !isTwoPlayers,
                                 modifier = Modifier.weight(1f),
                                 height = if (isLandscape) 36.dp else 44.dp
                             )
@@ -182,7 +195,7 @@ fun ChessThemeDialog(
                         .size(34.dp)
                         .background(ColorWoodMid, CircleShape)
                         .border(2.dp, MedievalGold, CircleShape)
-                        .shadow(8.dp, CircleShape)
+                        .shadow(4.dp, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -202,21 +215,25 @@ private fun ViewModeButton(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     height: androidx.compose.ui.unit.Dp = 44.dp
 ) {
+    val alpha = if (enabled) 1f else 0.4f
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.height(height),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) MedievalGold else ColorWoodMid
+            containerColor = if (isSelected) MedievalGold else ColorWoodMid,
+            disabledContainerColor = ColorWoodMid.copy(alpha = 0.5f)
         ),
         shape = RoundedCornerShape(8.dp),
-        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, MedievalGold.copy(alpha = 0.3f)) else null,
+        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, MedievalGold.copy(alpha = 0.3f * alpha)) else null,
         contentPadding = PaddingValues(0.dp)
     ) {
         Text(
             text = text,
-            color = if (isSelected) ColorDarkDeep else MedievalGoldLight,
+            color = if (isSelected) ColorDarkDeep else MedievalGoldLight.copy(alpha = alpha),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )

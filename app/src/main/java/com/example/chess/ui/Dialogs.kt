@@ -405,7 +405,7 @@ fun GameOverDialog(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
-    val cardWidthAlpha = if (isLargeScreen) 0.65f else if (isLandscape) 0.7f else 0.9f
+    val cardWidthAlpha = if (isLargeScreen) 0.65f else if (isLandscape) 0.6f else 0.9f
 
     HideSystemBarsInDialog()
     Dialog(
@@ -417,7 +417,11 @@ fun GameOverDialog(
     ) {
         HideSystemBarsInDialog()
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             // Container for centered dialog and close button
@@ -563,7 +567,7 @@ fun GameOverDialog(
                         .size(34.dp)
                         .background(Color(0xFF382315), CircleShape)
                         .border(2.dp, MedievalGold, CircleShape)
-                        .shadow(8.dp, CircleShape)
+                        .shadow(4.dp, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -772,6 +776,114 @@ fun PawnPromotionDialog(
 }
 
 @Composable
+fun RestartConfirmationDialog(
+    onConfirmRestart: () -> Unit,
+    onCancel: () -> Unit
+) {
+    HideSystemBarsInDialog()
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        HideSystemBarsInDialog()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(0.88f).wrapContentHeight(),
+                contentAlignment = Alignment.TopEnd
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
+                        .shadow(16.dp, RoundedCornerShape(16.dp))
+                        .testTag("restart_confirmation_dialog"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MedievalDarkWood)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(Color(0xFF1E3A8A).copy(alpha = 0.2f), CircleShape)
+                                .border(2.dp, Color(0xFF93C5FD), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                tint = Color(0xFF93C5FD),
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Text(
+                            text = "CHƠI LẠI TRẬN ĐẤU?",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MedievalGold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "Bạn có chắc chắn muốn làm mới ván cờ này không? Tiến độ hiện tại sẽ bị hủy bỏ.",
+                            fontSize = 14.sp,
+                            color = MedievalParchment,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 20.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = onCancel,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold.copy(alpha = 0.5f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MedievalGold)
+                            ) {
+                                Text("HỦY", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+
+                            Button(
+                                onClick = onConfirmRestart,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A))
+                            ) {
+                                Text("ĐỒNG Ý", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ResignConfirmationDialog(
     onConfirmResign: () -> Unit,
     onCancel: () -> Unit
@@ -783,7 +895,10 @@ fun ResignConfirmationDialog(
     ) {
         HideSystemBarsInDialog()
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -926,7 +1041,7 @@ fun CapturedPiecesDialog(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
-    val cardWidthAlpha = if (isLargeScreen) 0.7f else if (isLandscape) 0.75f else 0.9f
+    val cardWidthAlpha = if (isLargeScreen) 0.7f else if (isLandscape) 0.7f else 0.9f
 
     HideSystemBarsInDialog()
     Dialog(
@@ -938,7 +1053,11 @@ fun CapturedPiecesDialog(
     ) {
         HideSystemBarsInDialog()
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -1075,7 +1194,7 @@ fun CapturedPiecesDialog(
                         .size(34.dp)
                         .background(Color(0xFF382315), CircleShape)
                         .border(2.dp, MedievalGold, CircleShape)
-                        .shadow(8.dp, CircleShape)
+                        .shadow(4.dp, CircleShape)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = MedievalGoldLight, modifier = Modifier.size(18.dp))
                 }

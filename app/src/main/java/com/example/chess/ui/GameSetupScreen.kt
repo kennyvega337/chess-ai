@@ -3,6 +3,8 @@ package com.example.chess.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +29,10 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -58,12 +64,14 @@ import androidx.compose.material.icons.filled.People
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
+import com.example.chess.model.GameTimerOption
 import com.example.chess.model.PieceType
 import com.example.chess.model.SideOption
 import com.example.ui.theme.*
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.platform.LocalConfiguration
 
 import androidx.compose.foundation.layout.PaddingValues
@@ -79,21 +87,34 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.ExperimentalMaterial3Api
 import kotlin.math.roundToInt
+import android.app.Activity
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 @Composable
 fun GameSetupScreen(
     initialSideOption: SideOption = SideOption.WHITE,
     initialDifficulty: DifficultyLevel = DifficultyLevel.LEVEL_2,
     initialGameMode: GameMode = GameMode.VS_AI,
+    initialTimerOption: GameTimerOption = GameTimerOption.NONE,
+    initialCustomMinutes: Int = 10,
     gameStatus: GameStatus = GameStatus.NOT_STARTED,
-    onStartGame: (SideOption, DifficultyLevel, GameMode) -> Unit,
+    onStartGame: (SideOption, DifficultyLevel, GameMode, GameTimerOption, Int?) -> Unit,
     onStartTutorialPiece: ((PieceType) -> Unit)? = null,
     onReturnToCurrentGame: (() -> Unit)? = null,
-    onOpenHistory: (() -> Unit)? = null
+    onOpenHistory: (() -> Unit)? = null,
+    hasPersistedGame: Boolean = false,
+    onLoadPersistedGame: (() -> Unit)? = null
 ) {
     var selectedSide by rememberSaveable { mutableStateOf(initialSideOption) }
     var selectedDifficulty by rememberSaveable { mutableStateOf(initialDifficulty) }
     var selectedGameMode by rememberSaveable { mutableStateOf(initialGameMode) }
+    var selectedTimerOption by rememberSaveable { mutableStateOf(initialTimerOption) }
+    var customMinutes by rememberSaveable { mutableStateOf(initialCustomMinutes) }
+    var showCustomTimerDialog by remember { mutableStateOf(false) }
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -132,7 +153,7 @@ fun GameSetupScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    MatchPreviewCard(selectedSide, selectedDifficulty, selectedGameMode)
+                    MatchPreviewCard(selectedSide, selectedDifficulty, selectedGameMode, selectedTimerOption, customMinutes)
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -142,7 +163,7 @@ fun GameSetupScreen(
                             if (selectedGameMode == GameMode.TUTORIAL) {
                                 onStartTutorialPiece?.invoke(PieceType.ROOK)
                             } else {
-                                onStartGame(selectedSide, selectedDifficulty, selectedGameMode)
+                                onStartGame(selectedSide, selectedDifficulty, selectedGameMode, selectedTimerOption, customMinutes)
                             }
                         }
                     )
@@ -161,7 +182,9 @@ fun GameSetupScreen(
                         onSelectGameMode = { selectedGameMode = it },
                         onOpenHistory = onOpenHistory,
                         gameStatus = gameStatus,
-                        onReturnToCurrentGame = onReturnToCurrentGame
+                        onReturnToCurrentGame = onReturnToCurrentGame,
+                        hasPersistedGame = hasPersistedGame,
+                        onLoadPersistedGame = onLoadPersistedGame
                     )
 
                     when (selectedGameMode) {
@@ -175,12 +198,36 @@ fun GameSetupScreen(
                                 selectedSide = selectedSide,
                                 onSelectSide = { selectedSide = it }
                             )
+
+                            TimerSelectionCard(
+                                selectedTimerOption = selectedTimerOption,
+                                onSelectTimerOption = { option ->
+                                    if (option == GameTimerOption.CUSTOM) {
+                                        showCustomTimerDialog = true
+                                    } else {
+                                        selectedTimerOption = option
+                                    }
+                                },
+                                customMinutes = if (selectedTimerOption == GameTimerOption.CUSTOM) customMinutes else null
+                            )
                         }
                         GameMode.TWO_PLAYERS -> {
                             SideSelectionCard(
                                 selectedSide = selectedSide,
                                 onSelectSide = { selectedSide = it },
                                 title = "1. CHỌN PHE CHO NGƯỜI CHƠI 1"
+                            )
+                            TimerSelectionCard(
+                                selectedTimerOption = selectedTimerOption,
+                                onSelectTimerOption = { option ->
+                                    if (option == GameTimerOption.CUSTOM) {
+                                        showCustomTimerDialog = true
+                                    } else {
+                                        selectedTimerOption = option
+                                    }
+                                },
+                                customMinutes = if (selectedTimerOption == GameTimerOption.CUSTOM) customMinutes else null,
+                                title = "2. THỜI GIAN TRẬN ĐẤU"
                             )
                             TwoPlayersInfoCard()
                         }
@@ -218,7 +265,9 @@ fun GameSetupScreen(
                         onSelectGameMode = { selectedGameMode = it },
                         onOpenHistory = onOpenHistory,
                         gameStatus = gameStatus,
-                        onReturnToCurrentGame = onReturnToCurrentGame
+                        onReturnToCurrentGame = onReturnToCurrentGame,
+                        hasPersistedGame = hasPersistedGame,
+                        onLoadPersistedGame = onLoadPersistedGame
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -238,12 +287,41 @@ fun GameSetupScreen(
                             )
 
                             Spacer(modifier = Modifier.height(14.dp))
+
+                            TimerSelectionCard(
+                                selectedTimerOption = selectedTimerOption,
+                                onSelectTimerOption = { option ->
+                                    if (option == GameTimerOption.CUSTOM) {
+                                        showCustomTimerDialog = true
+                                    } else {
+                                        selectedTimerOption = option
+                                    }
+                                },
+                                customMinutes = if (selectedTimerOption == GameTimerOption.CUSTOM) customMinutes else null
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
                         }
                         GameMode.TWO_PLAYERS -> {
                             SideSelectionCard(
                                 selectedSide = selectedSide,
                                 onSelectSide = { selectedSide = it },
                                 title = "1. CHỌN PHE CHO NGƯỜI CHƠI 1"
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            TimerSelectionCard(
+                                selectedTimerOption = selectedTimerOption,
+                                onSelectTimerOption = { option ->
+                                    if (option == GameTimerOption.CUSTOM) {
+                                        showCustomTimerDialog = true
+                                    } else {
+                                        selectedTimerOption = option
+                                    }
+                                },
+                                customMinutes = if (selectedTimerOption == GameTimerOption.CUSTOM) customMinutes else null,
+                                title = "2. THỜI GIAN TRẬN ĐẤU"
                             )
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -263,7 +341,7 @@ fun GameSetupScreen(
                         }
                     }
 
-                    MatchPreviewCard(selectedSide, selectedDifficulty, selectedGameMode)
+                    MatchPreviewCard(selectedSide, selectedDifficulty, selectedGameMode, selectedTimerOption, customMinutes)
 
                     Spacer(modifier = Modifier.height(20.dp))
                 }
@@ -274,12 +352,27 @@ fun GameSetupScreen(
                         if (selectedGameMode == GameMode.TUTORIAL) {
                             onStartTutorialPiece?.invoke(PieceType.ROOK)
                         } else {
-                            onStartGame(selectedSide, selectedDifficulty, selectedGameMode)
+                            onStartGame(selectedSide, selectedDifficulty, selectedGameMode, selectedTimerOption, customMinutes)
                         }
                     }
                 )
             }
         }
+    }
+
+    if (showCustomTimerDialog) {
+        CustomTimerDialog(
+            initialMinutes = customMinutes,
+            onConfirm = {
+                customMinutes = it
+                selectedTimerOption = GameTimerOption.CUSTOM
+                showCustomTimerDialog = false
+            },
+            onDismiss = {
+                selectedTimerOption = GameTimerOption.NONE
+                showCustomTimerDialog = false
+            }
+        )
     }
 }
 
@@ -538,7 +631,9 @@ private fun GameModeSelectionCard(
     onSelectGameMode: (GameMode) -> Unit,
     onOpenHistory: (() -> Unit)? = null,
     gameStatus: GameStatus = GameStatus.NOT_STARTED,
-    onReturnToCurrentGame: (() -> Unit)? = null
+    onReturnToCurrentGame: (() -> Unit)? = null,
+    hasPersistedGame: Boolean = false,
+    onLoadPersistedGame: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -588,22 +683,43 @@ private fun GameModeSelectionCard(
                         }
                     }
 
+                    // --- NEW RESUME LOGIC ---
+                    // Priority 1: Current In-Memory Game
                     if (gameStatus == GameStatus.IN_PROGRESS && onReturnToCurrentGame != null && selectedGameMode != GameMode.TUTORIAL) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         IconButton(
                             onClick = onReturnToCurrentGame,
                             modifier = Modifier
-                                .size(36.dp)
-                                .background(Color(0xFF22C55E).copy(alpha = 0.2f), CircleShape)
-                                .border(2.dp, Color(0xFF22C55E), CircleShape)
-                                .shadow(8.dp, CircleShape)
+                                .size(23.dp)
+                                .background(Color(0xFF22C55E).copy(alpha = 0.15f), CircleShape)
+                                .border(0.2.dp, Color(0xFF22C55E).copy(alpha = 0.7f), CircleShape)
                                 .testTag("return_to_game_button")
+                                .padding(end = 2.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Tiếp tục trận đấu hiện tại",
                                 tint = Color(0xFF22C55E),
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    } 
+                    // Priority 2: Persisted Game from Storage (only if no active game in memory)
+                    else if (hasPersistedGame && onLoadPersistedGame != null && selectedGameMode != GameMode.TUTORIAL) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = onLoadPersistedGame,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Color(0xFF22C55E).copy(alpha = 0.15f), CircleShape)
+                                .border(1.2.dp, Color(0xFF22C55E).copy(alpha = 0.7f), CircleShape)
+                                .testTag("resume_persisted_game_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Khôi phục ván cờ đã lưu",
+                                tint = Color(0xFF22C55E),
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -837,7 +953,9 @@ private fun TutorialPieceSelectionCard(
 private fun MatchPreviewCard(
     selectedSide: SideOption,
     selectedDifficulty: DifficultyLevel,
-    selectedGameMode: GameMode
+    selectedGameMode: GameMode,
+    selectedTimerOption: GameTimerOption,
+    customMinutes: Int?
 ) {
     Surface(
         modifier = Modifier
@@ -887,13 +1005,31 @@ private fun MatchPreviewCard(
                 )
             }
 
-            Text(
-                text = if (selectedGameMode == GameMode.TUTORIAL) "📖" else "⚔️ VS ⚔️",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = MedievalGold,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(horizontal = 4.dp)
-            )
+            ) {
+                Text(
+                    text = if (selectedGameMode == GameMode.TUTORIAL) "📖" else "⚔️ VS ⚔️",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MedievalGold
+                )
+                
+                if (selectedGameMode != GameMode.TUTORIAL && selectedTimerOption != GameTimerOption.NONE) {
+                    val timerLabel = if (selectedTimerOption == GameTimerOption.CUSTOM) {
+                        "${customMinutes ?: 10}p"
+                    } else {
+                        selectedTimerOption.displayNameVi
+                    }
+                    Text(
+                        text = "($timerLabel)",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MedievalGoldLight
+                    )
+                }
+            }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -980,13 +1116,285 @@ fun MatchPreviewCardTwoPlayersPreview() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("P1: Trắng -> P2: Đen")
-            MatchPreviewCard(SideOption.WHITE, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS)
+            MatchPreviewCard(SideOption.WHITE, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS, GameTimerOption.M10, null)
             
             Text("P1: Đen -> P2: Trắng")
-            MatchPreviewCard(SideOption.BLACK, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS)
+            MatchPreviewCard(SideOption.BLACK, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS, GameTimerOption.CUSTOM, 15)
             
-            Text("Ngẫu nhiên")
-            MatchPreviewCard(SideOption.RANDOM, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS)
+            Text("Ngẫu nhiên - Không giới hạn")
+            MatchPreviewCard(SideOption.RANDOM, DifficultyLevel.LEVEL_2, GameMode.TWO_PLAYERS, GameTimerOption.NONE, null)
+        }
+    }
+}
+
+@Composable
+private fun TimerSelectionCard(
+    selectedTimerOption: GameTimerOption,
+    onSelectTimerOption: (GameTimerOption) -> Unit,
+    customMinutes: Int? = null,
+    title: String = "3. THỜI GIAN TRẬN ĐẤU"
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MedievalMidWood.copy(alpha = 0.8f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.FlashOn,
+                    contentDescription = null,
+                    tint = MedievalGold,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MedievalGold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                GameTimerOption.values().forEach { option ->
+                    val isSelected = selectedTimerOption == option
+                    val label = option.displayNameVi
+
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onSelectTimerOption(option) }
+                            .border(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) MedievalGold else Color(0x44D4AF37),
+                                shape = RoundedCornerShape(8.dp)
+                            ),
+                        color = if (isSelected) MedievalGold.copy(alpha = 0.2f) else Color(0xFF22140A)
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 10.sp,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                                color = if (isSelected) MedievalGoldLight else MedievalParchment
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomTimerDialog(
+    initialMinutes: Int,
+    onConfirm: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var textValue by remember { mutableStateOf(initialMinutes.toString()) }
+    val mins = textValue.toIntOrNull()
+    val isValid = mins != null && mins in 1..180
+
+    // Use a state to trigger the animation
+    var isVisible by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = {
+            isVisible = false
+        },
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        HideSystemBarsInDialog()
+        
+        // Launch dismissal when animation finishes
+        androidx.compose.runtime.LaunchedEffect(isVisible) {
+            if (!isVisible) {
+                // Small delay to allow exit animation if we had one, 
+                // but since Dialog disappears instantly on onDismissRequest, 
+                // we mainly focus on the entrance here.
+                onDismiss()
+            }
+        }
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .width(280.dp)
+                        .wrapContentHeight()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MedievalMidWood.copy(alpha = 0.95f),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.FlashOn,
+                                contentDescription = null,
+                                tint = MedievalGold,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "TÙY CHỈNH THỜI GIAN",
+                                color = MedievalGold,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .border(1.dp, Color(0x44D4AF37), RoundedCornerShape(10.dp)),
+                            color = Color(0xFF22140A)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Nhập số phút (1 - 180):",
+                                    color = MedievalParchment,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                
+                                Spacer(modifier = Modifier.height(10.dp))
+                                
+                                OutlinedTextField(
+                                    value = textValue,
+                                    onValueChange = {
+                                        if (it.isEmpty() || (it.length <= 3 && it.all { char -> char.isDigit() })) {
+                                            textValue = it
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(0.9f),
+                                    singleLine = true,
+                                    isError = !isValid && textValue.isNotEmpty(),
+                                    supportingText = {
+                                        if (!isValid && textValue.isNotEmpty()) {
+                                            Text(
+                                                "1 - 180 phút",
+                                                color = Color.Red,
+                                                fontSize = 10.sp,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = MedievalParchment,
+                                        unfocusedTextColor = MedievalParchment,
+                                        focusedBorderColor = MedievalGold,
+                                        unfocusedBorderColor = MedievalGold.copy(alpha = 0.5f),
+                                        errorBorderColor = Color.Red,
+                                        errorSupportingTextColor = Color.Red,
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent
+                                    ),
+                                    textStyle = androidx.compose.ui.text.TextStyle(
+                                        textAlign = TextAlign.Center,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 16.sp
+                                    )
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(20.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Button Hủy - Giống style Medieval
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { isVisible = false }
+                                    .border(1.dp, Color(0x44D4AF37), RoundedCornerShape(8.dp)),
+                                color = Color(0xFF22140A)
+                            ) {
+                                Text(
+                                    text = "HỦY",
+                                    color = MedievalParchment,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 10.dp)
+                                )
+                            }
+                            
+                            // Button Xác nhận - Giống style Medieval được chọn
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1.2f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable(enabled = isValid) {
+                                        if (isValid) onConfirm(mins!!)
+                                    }
+                                    .border(
+                                        width = if (isValid) 2.dp else 1.dp,
+                                        color = if (isValid) MedievalGold else Color(0x22D4AF37),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ),
+                                color = if (isValid) MedievalGold.copy(alpha = 0.25f) else Color(0xFF22140A).copy(alpha = 0.5f)
+                            ) {
+                                Text(
+                                    text = "XÁC NHẬN",
+                                    color = if (isValid) MedievalGoldLight else MedievalParchment.copy(alpha = 0.5f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 10.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -996,7 +1404,12 @@ fun MatchPreviewCardTwoPlayersPreview() {
 fun GameSetupScreenPreview() {
     MyApplicationTheme {
         GameSetupScreen(
-            onStartGame = { _, _, _ -> },
+            initialSideOption = SideOption.WHITE,
+            initialDifficulty = DifficultyLevel.LEVEL_2,
+            initialGameMode = GameMode.VS_AI,
+            initialTimerOption = GameTimerOption.NONE,
+            initialCustomMinutes = 10,
+            onStartGame = { _, _, _, _, _ -> },
             onOpenHistory = {}
         )
     }
@@ -1007,7 +1420,12 @@ fun GameSetupScreenPreview() {
 fun GameSetupScreenLandscapePreview() {
     MyApplicationTheme {
         GameSetupScreen(
-            onStartGame = { _, _, _ -> },
+            initialSideOption = SideOption.WHITE,
+            initialDifficulty = DifficultyLevel.LEVEL_2,
+            initialGameMode = GameMode.VS_AI,
+            initialTimerOption = GameTimerOption.NONE,
+            initialCustomMinutes = 10,
+            onStartGame = { _, _, _, _, _ -> },
             onOpenHistory = {}
         )
     }
