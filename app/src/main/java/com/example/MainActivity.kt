@@ -57,6 +57,9 @@ class MainActivity : ComponentActivity() {
         }
 
         val gameModeStr = intent.getStringExtra(EXTRA_GAME_MODE)
+        val puzzleFen = intent.getStringExtra("PUZZLE_FEN")
+        val puzzleCategory = intent.getStringExtra("PUZZLE_CATEGORY")
+        val puzzleLevel = intent.getIntExtra("PUZZLE_LEVEL", -1)
         val sideOptionStr = intent.getStringExtra(EXTRA_SIDE_OPTION)
         val difficultyStr = intent.getStringExtra(EXTRA_DIFFICULTY)
         val tutorialPieceStr = intent.getStringExtra(EXTRA_TUTORIAL_PIECE)
@@ -69,7 +72,9 @@ class MainActivity : ComponentActivity() {
             val difficulty = try { DifficultyLevel.valueOf(difficultyStr ?: "LEVEL_2") } catch (e: Exception) { DifficultyLevel.LEVEL_2 }
             val timerOption = try { GameTimerOption.valueOf(timerOptionStr ?: "NONE") } catch (e: Exception) { GameTimerOption.NONE }
 
-            if (gameMode == GameMode.TUTORIAL && tutorialPieceStr != null) {
+            if (gameMode == GameMode.PUZZLE && puzzleFen != null) {
+                viewModel.startPuzzleMode(puzzleFen, puzzleCategory, if (puzzleLevel != -1) puzzleLevel else null)
+            } else if (gameMode == GameMode.TUTORIAL && tutorialPieceStr != null) {
                 val pieceType = try { PieceType.valueOf(tutorialPieceStr) } catch (e: Exception) { PieceType.ROOK }
                 viewModel.startTutorialMode(pieceType)
             } else {

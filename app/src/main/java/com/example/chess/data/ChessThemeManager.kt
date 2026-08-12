@@ -109,4 +109,14 @@ class ChessThemeManager(context: Context) {
     fun clearPersistedGameState() {
         prefs.edit().remove("persisted_game_state").apply()
     }
+
+    fun savePuzzleCompleted(category: String, level: Int) {
+        val completed = prefs.getStringSet("completed_puzzles", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+        completed.add("${category}_$level")
+        prefs.edit().putStringSet("completed_puzzles", completed).apply()
+    }
+
+    fun getCompletedPuzzles(): Set<String> {
+        return prefs.getStringSet("completed_puzzles", emptySet()) ?: emptySet()
+    }
 }

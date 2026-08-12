@@ -20,8 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Security
@@ -341,7 +343,8 @@ fun GameOverDialog(
     gameMode: GameMode = GameMode.VS_AI,
     onPlayAgain: () -> Unit,
     onRestart: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onNextMatch: (() -> Unit)? = null
 ) {
     val isWin = winner == userColor
     val isDraw = gameStatus == GameStatus.STALEMATE || gameStatus == GameStatus.DRAW
@@ -509,6 +512,56 @@ fun GameOverDialog(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
+                        if (onNextMatch != null && isWin) {
+                            Button(
+                                onClick = onNextMatch,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .shadow(8.dp, RoundedCornerShape(12.dp))
+                                    .testTag("next_puzzle_button"),
+                                colors = ButtonDefaults.buttonColors(containerColor = MedievalEmerald),
+                                shape = RoundedCornerShape(12.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold)
+                            ) {
+                                Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "VÁN TIẾP THEO",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        Button(
+                            onClick = onRestart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .shadow(8.dp, RoundedCornerShape(12.dp))
+                                .testTag("restart_game_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A)),
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF93C5FD))
+                        ) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "CHƠI LẠI",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                letterSpacing = 1.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         Button(
                             onClick = onPlayAgain,
                             modifier = Modifier
@@ -520,40 +573,18 @@ fun GameOverDialog(
                             shape = RoundedCornerShape(12.dp),
                             border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold)
                         ) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = MedievalGold)
+                            Icon(
+                                imageVector = if (gameMode == GameMode.PUZZLE) Icons.Default.Extension else Icons.Default.Refresh,
+                                contentDescription = null,
+                                tint = MedievalGold
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "CHƠI VÁN MỚI",
+                                text = if (gameMode == GameMode.PUZZLE) "ĐỔI CHẾ ĐỘ" else "CHƠI VÁN MỚI",
                                 color = MedievalGold,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 letterSpacing = 1.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        OutlinedButton(
-                            onClick = onRestart,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp)
-                                .testTag("restart_game_button"),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Transparent,
-                                contentColor = ColorBrownMuted
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, ColorBrownMuted.copy(alpha = 0.5f))
-                        ) {
-                            Icon(imageVector = Icons.Default.Replay, contentDescription = null, tint = ColorBrownMuted)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "CHƠI LẠI",
-                                color = ColorBrownMuted,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                                letterSpacing = 0.5.sp
                             )
                         }
                     }
@@ -1250,8 +1281,9 @@ fun GameOverDialogTwoPlayersPreview() {
             userColor = PieceColor.BLACK, // Player 1 is Black and won
             gameMode = GameMode.TWO_PLAYERS,
             onPlayAgain = {},
-            onRestart = {}
-        ) {}
+            onRestart = {},
+            onDismiss = {}
+        )
     }
 }
 
@@ -1265,8 +1297,9 @@ fun GameOverDialogWinPreview() {
             userColor = PieceColor.WHITE,
             gameMode = GameMode.VS_AI,
             onPlayAgain = {},
-            onRestart = {}
-        ) {}
+            onRestart = {},
+            onDismiss = {}
+        )
     }
 }
 
@@ -1280,8 +1313,9 @@ fun GameOverDialogLossPreview() {
             userColor = PieceColor.WHITE,
             gameMode = GameMode.VS_AI,
             onPlayAgain = {},
-            onRestart = {}
-        ) {}
+            onRestart = {},
+            onDismiss = {}
+        )
     }
 }
 
@@ -1295,8 +1329,9 @@ fun GameOverDialogDrawPreview() {
             userColor = PieceColor.WHITE,
             gameMode = GameMode.VS_AI,
             onPlayAgain = {},
-            onRestart = {}
-        ) {}
+            onRestart = {},
+            onDismiss = {}
+        )
     }
 }
 

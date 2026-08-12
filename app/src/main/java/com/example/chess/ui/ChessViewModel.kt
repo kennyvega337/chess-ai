@@ -4,12 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.chess.audio.SoundManager
-import com.example.chess.data.GameHistoryItem
-import com.example.chess.data.GameHistoryManager
-import com.example.chess.engine.ChessAI
-import com.example.chess.engine.ChessBoard
-import com.example.chess.engine.StockfishEngine
-import com.example.chess.data.ChessThemeManager
+import com.example.chess.data.*
+import com.example.chess.engine.*
 import com.example.chess.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -66,7 +62,12 @@ data class ChessUiState(
     val isMoveHintsEnabled: Boolean = true,
     val isSaveGameEnabled: Boolean = false,
     val showGeneralSettingsModal: Boolean = false,
-    val hasPersistedGame: Boolean = false
+    val hasPersistedGame: Boolean = false,
+    val initialPuzzleFen: String? = null,
+    val puzzleCategory: String? = null,
+    val puzzleLevel: Int? = null,
+    val isLastPuzzleInCategory: Boolean = false,
+    val completedPuzzles: Set<String> = emptySet()
 )
 
 class ChessViewModel(application: Application) : AndroidViewModel(application) {
@@ -86,7 +87,8 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         isSoundEnabled = themeManager.isSoundEnabled(),
         isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
         isSaveGameEnabled = themeManager.isGamePersistenceEnabled(),
-        hasPersistedGame = themeManager.getPersistedGameState() != null
+        hasPersistedGame = themeManager.getPersistedGameState() != null,
+        completedPuzzles = themeManager.getCompletedPuzzles()
     ))
     val uiState: StateFlow<ChessUiState> = _uiState.asStateFlow()
 
@@ -99,6 +101,21 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         val state = _uiState.value
         val mode = forcedGameMode ?: state.gameMode
+
+        // If puzzle mode, mark as completed if it's a win, but don't add to history list
+        if (mode == GameMode.PUZZLE) {
+            val status = forcedStatus ?: state.gameStatus
+            val win = forcedWinner ?: state.winner
+            if (status == GameStatus.CHECKMATE && win == state.userColor) {
+                state.puzzleCategory?.let { cat ->
+                    state.puzzleLevel?.let { lvl ->
+                        themeManager.savePuzzleCompleted(cat, lvl)
+                        _uiState.value = _uiState.value.copy(completedPuzzles = themeManager.getCompletedPuzzles())
+                    }
+                }
+            }
+            return
+        }
 
         if (mode == GameMode.TUTORIAL) return
         if (hasSavedHistoryForMatch) return
@@ -133,7 +150,8 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         if (state.gameStatus == GameStatus.IN_PROGRESS &&
             state.moveHistory.isNotEmpty() &&
             !hasSavedHistoryForMatch &&
-            state.gameMode != GameMode.TUTORIAL
+            state.gameMode != GameMode.TUTORIAL &&
+            state.gameMode != GameMode.PUZZLE
         ) {
             // For 2 players, if quitting it's a draw.
             // For AI, if quitting it's a \"bỏ cuộc\" (quit) for the user.
@@ -221,9 +239,97 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // If VS_AI mode and user is Black, AI plays White first!
-        if (gameMode == GameMode.VS_AI && actualUserColor == PieceColor.BLACK) {
+            if (gameMode == GameMode.VS_AI && actualUserColor == PieceColor.BLACK) {
             triggerAiMove(PieceColor.WHITE)
         }
+    }
+
+    fun startPuzzleMode(fen: String, category: String? = null, level: Int? = null) {
+        stopTimer()
+        hasSavedHistoryForMatch = false
+        
+        val board = ChessBoard(initialize = false)
+        board.loadFromFen(fen)
+        
+        val currentPuzzle = findPuzzleData(category, level)
+        val list = when (category) {
+            "Nhập môn" -> PuzzlesBeginner.list
+            "Dễ" -> PuzzlesEasy.list
+            "Trung bình" -> PuzzlesMedium.list
+            "Khó" -> PuzzlesHard.list
+            "Cao thủ" -> PuzzlesExpert.list
+            else -> emptyList()
+        }
+        val isLast = level == list.maxByOrNull { it.level }?.level
+
+        val userColor = if (currentPuzzle?.isWhite == true) PieceColor.BLACK else PieceColor.WHITE
+        val initialTurn = if (currentPuzzle?.isWhite == true) PieceColor.WHITE else PieceColor.BLACK
+        
+        _uiState.value = ChessUiState(
+            currentScreen = AppScreen.PUZZLE,
+            gameMode = GameMode.PUZZLE,
+            board = board,
+            userColor = userColor,
+            currentTurn = initialTurn,
+            gameStatus = GameStatus.IN_PROGRESS,
+            selectedTheme = themeManager.getSelectedTheme(),
+            boardViewMode = themeManager.getSelectedViewMode(),
+            isSoundEnabled = themeManager.isSoundEnabled(),
+            isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
+            isSaveGameEnabled = false,
+            hasPersistedGame = themeManager.getPersistedGameState() != null,
+            capturedWhitePieces = emptyList(),
+            capturedBlackPieces = emptyList(),
+            playerLastMove = null,
+            aiLastMove = null,
+            lastMove = null,
+            hintMove = null,
+            initialPuzzleFen = fen,
+            puzzleCategory = category,
+            puzzleLevel = level,
+            isLastPuzzleInCategory = isLast
+        )
+
+        // Find and execute the firstMove
+        if (currentPuzzle != null) {
+            viewModelScope.launch {
+                delay(800) 
+                executePuzzleFirstMove(currentPuzzle.firstMove, userColor)
+            }
+        }
+    }
+
+    private fun findPuzzleData(category: String?, level: Int?): Puzzles? {
+        if (category == null || level == null) return null
+        val list = when (category) {
+            "Nhập môn" -> PuzzlesBeginner.list
+            "Dễ" -> PuzzlesEasy.list
+            "Trung bình" -> PuzzlesMedium.list
+            "Khó" -> PuzzlesHard.list
+            "Cao thủ" -> PuzzlesExpert.list
+            else -> return null
+        }
+        return list.find { it.level == level }
+    }
+
+    private fun executePuzzleFirstMove(moveStr: String, userColor: PieceColor) {
+        val board = _uiState.value.board
+        if (moveStr.length < 4) return
+        
+        val fromPos = Position.fromAlgebraic(moveStr.substring(0, 2)) ?: return
+        val toPos = Position.fromAlgebraic(moveStr.substring(2, 4)) ?: return
+        val piece = board.getPiece(fromPos) ?: return
+        
+        val move = Move(fromPos, toPos, piece, board.getPiece(toPos))
+        board.applyMove(move)
+
+        // After firstMove, it must be User's turn
+        _uiState.value = _uiState.value.copy(
+            board = board,
+            currentTurn = userColor, 
+            aiLastMove = move,
+            lastMove = move
+        )
     }
 
     private fun startTimer() {
@@ -340,8 +446,13 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         stopTimer()
         
         // Record current game as finished before restarting if it had moves and was in progress
-        if (currentState.moveHistory.isNotEmpty() && currentState.gameStatus == GameStatus.IN_PROGRESS) {
+        if (currentState.moveHistory.isNotEmpty() && currentState.gameStatus == GameStatus.IN_PROGRESS && currentState.gameMode != GameMode.PUZZLE) {
             recordMatchHistory(isQuitOrAppClosed = true)
+        }
+
+        if (currentState.gameMode == GameMode.PUZZLE && currentState.initialPuzzleFen != null) {
+            startPuzzleMode(currentState.initialPuzzleFen, currentState.puzzleCategory, currentState.puzzleLevel)
+            return
         }
         
         val initialMillis = when (currentState.timerOption) {
@@ -565,7 +676,13 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-        if (finalStatus != GameStatus.IN_PROGRESS) {
+            // In Puzzle mode, Draw or Stalemate is treated as a loss for the user
+            if (currentState.gameMode == GameMode.PUZZLE && (finalStatus == GameStatus.DRAW || finalStatus == GameStatus.STALEMATE)) {
+                finalStatus = GameStatus.CHECKMATE 
+                winner = currentState.userColor.opposite // User lost
+            }
+
+            if (finalStatus != GameStatus.IN_PROGRESS) {
             if (currentState.isSoundEnabled) {
                 SoundManager.playVictorySound()
             }
@@ -643,7 +760,7 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                 hasSavedHistoryForMatch = false
             }
 
-            if (finalStatus == GameStatus.IN_PROGRESS && currentState.gameMode == GameMode.VS_AI) {
+            if (finalStatus == GameStatus.IN_PROGRESS && (currentState.gameMode == GameMode.VS_AI || currentState.gameMode == GameMode.PUZZLE)) {
                 triggerAiMove(opponent)
             }
         }
@@ -657,8 +774,20 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             val currentState = _uiState.value
             val board = currentState.board.copy()
             val aiMove = withContext(Dispatchers.Default) {
-                val ai = ChessAI(aiColor, getApplication())
-                ai.chooseMove(board, currentState.difficulty)
+                if (currentState.gameMode == GameMode.PUZZLE) {
+                    val stockfish = com.example.chess.engine.StockfishEngine(getApplication())
+                    val fen = currentState.board.toFen(aiColor)
+                    val bestUci = stockfish.getBestMove(fen, depth = 14)
+                    if (bestUci != null) {
+                        stockfish.parseUciMove(currentState.board, bestUci)
+                    } else {
+                        val ai = ChessAI(aiColor, getApplication())
+                        ai.chooseMove(board, currentState.difficulty)
+                    }
+                } else {
+                    val ai = ChessAI(aiColor, getApplication())
+                    ai.chooseMove(board, currentState.difficulty)
+                }
             }
 
             if (aiMove != null) {
@@ -701,6 +830,12 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                         newHalfMoveClock >= 100 -> finalStatus = GameStatus.DRAW
                         (updatedSignatures[signature] ?: 0) >= 3 -> finalStatus = GameStatus.DRAW
                     }
+                }
+
+                // In Puzzle mode, Draw or Stalemate is treated as a loss for the user
+                if (currentState.gameMode == GameMode.PUZZLE && (finalStatus == GameStatus.DRAW || finalStatus == GameStatus.STALEMATE)) {
+                    finalStatus = GameStatus.CHECKMATE 
+                    winner = aiColor // User lost
                 }
 
                 // Play end game sound if applicable
@@ -796,7 +931,7 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         val currentState = _uiState.value
         if (currentState.isAiThinking || currentState.moveHistory.isEmpty()) return
 
-        // Undo 1 move in TWO_PLAYERS mode, 2 moves in VS_AI mode (AI + User)
+        // Undo 1 move in TWO_PLAYERS mode, 2 moves in VS_AI/PUZZLE mode (AI + User)
         val movesToPop = if (currentState.gameMode == GameMode.TWO_PLAYERS) {
             1
         } else {
@@ -804,11 +939,42 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         }
         val newHistory = currentState.moveHistory.dropLast(movesToPop)
 
-        // Replay board from scratch
-        val newBoard = ChessBoard()
+        // Replay board from scratch or FEN
+        val newBoard = ChessBoard(initialize = currentState.gameMode != GameMode.PUZZLE)
+        if (currentState.gameMode == GameMode.PUZZLE && currentState.initialPuzzleFen != null) {
+            newBoard.loadFromFen(currentState.initialPuzzleFen)
+            // REDO firstMove for puzzles so user is back at the starting challenge position
+            val currentPuzzle = findPuzzleData(currentState.puzzleCategory, currentState.puzzleLevel)
+            currentPuzzle?.let {
+                val moveStr = it.firstMove
+                if (moveStr.length >= 4) {
+                    val fromPos = Position.fromAlgebraic(moveStr.substring(0, 2))
+                    val toPos = Position.fromAlgebraic(moveStr.substring(2, 4))
+                    if (fromPos != null && toPos != null) {
+                        newBoard.getPiece(fromPos)?.let { p ->
+                            newBoard.applyMove(Move(fromPos, toPos, p, newBoard.getPiece(toPos)))
+                        }
+                    }
+                }
+            }
+        }
         val capWhite = mutableListOf<PieceType>()
         val capBlack = mutableListOf<PieceType>()
         var lastM: Move? = null
+        
+        // For Puzzles, if history becomes empty, we should still show the firstMove as the last move made
+        if (currentState.gameMode == GameMode.PUZZLE && newHistory.isEmpty()) {
+            val currentPuzzle = findPuzzleData(currentState.puzzleCategory, currentState.puzzleLevel)
+            currentPuzzle?.let {
+                val fromPos = Position.fromAlgebraic(it.firstMove.substring(0, 2))
+                val toPos = Position.fromAlgebraic(it.firstMove.substring(2, 4))
+                if (fromPos != null && toPos != null) {
+                    newBoard.getPiece(toPos)?.let { p ->
+                        lastM = Move(fromPos, toPos, p, null) // Note: simplified capture for UI highlight
+                    }
+                }
+            }
+        }
         
         var newHalfMoveClock = 0
         val newBoardSignatures = mutableMapOf<String, Int>()
@@ -835,7 +1001,11 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val newCurrentTurn = if (newHistory.isEmpty()) {
-            PieceColor.WHITE
+            if (currentState.gameMode == GameMode.PUZZLE) {
+                currentState.userColor
+            } else {
+                PieceColor.WHITE
+            }
         } else {
             newHistory.last().piece.color.opposite
         }
@@ -1283,12 +1453,43 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             selectedTheme = themeManager.getSelectedTheme(),
             boardViewMode = themeManager.getSelectedViewMode(),
             isSoundEnabled = themeManager.isSoundEnabled(),
-            isMoveHintsEnabled = themeManager.isMoveHintsEnabled()
+            isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
+            capturedWhitePieces = emptyList(),
+            capturedBlackPieces = emptyList(),
+            playerLastMove = null,
+            aiLastMove = null,
+            lastMove = null,
+            hintMove = null
         )
     }
 
     fun resetTutorialBoard() {
         val currentPiece = _uiState.value.tutorialPiece ?: PieceType.ROOK
         startTutorialMode(currentPiece)
+    }
+
+    fun startNextPuzzle() {
+        val state = _uiState.value
+        val currentCategory = state.puzzleCategory ?: return
+        val currentLevel = state.puzzleLevel ?: return
+        
+        val list = when (currentCategory) {
+            "Nhập môn" -> PuzzlesBeginner.list
+            "Dễ" -> PuzzlesEasy.list
+            "Trung bình" -> PuzzlesMedium.list
+            "Khó" -> PuzzlesHard.list
+            "Cao thủ" -> PuzzlesExpert.list
+            else -> emptyList()
+        }
+
+        val nextLevel = currentLevel + 1
+        val nextPuzzle = list.find { it.level == nextLevel }
+        
+        if (nextPuzzle != null) {
+            startPuzzleMode(nextPuzzle.fen, currentCategory, nextLevel)
+        } else {
+            // No more puzzles in this category, return to setup
+            navigateToSetup()
+        }
     }
 }

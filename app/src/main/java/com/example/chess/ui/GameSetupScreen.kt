@@ -61,6 +61,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.filled.People
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import com.example.chess.data.*
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
@@ -71,6 +77,8 @@ import com.example.ui.theme.*
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.platform.LocalConfiguration
 
@@ -101,17 +109,15 @@ fun GameSetupScreen(
     initialGameMode: GameMode = GameMode.VS_AI,
     initialTimerOption: GameTimerOption = GameTimerOption.NONE,
     initialCustomMinutes: Int = 10,
-    gameStatus: GameStatus = GameStatus.NOT_STARTED,
     onStartGame: (SideOption, DifficultyLevel, GameMode, GameTimerOption, Int?) -> Unit,
     onStartTutorialPiece: ((PieceType) -> Unit)? = null,
-    onReturnToCurrentGame: (() -> Unit)? = null,
-    onOpenHistory: (() -> Unit)? = null,
-    hasPersistedGame: Boolean = false,
-    onLoadPersistedGame: (() -> Unit)? = null
+    onStartPuzzle: ((String, String, Int) -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
+    completedPuzzles: Set<String> = emptySet()
 ) {
     var selectedSide by rememberSaveable { mutableStateOf(initialSideOption) }
     var selectedDifficulty by rememberSaveable { mutableStateOf(initialDifficulty) }
-    var selectedGameMode by rememberSaveable { mutableStateOf(initialGameMode) }
+    val selectedGameMode = initialGameMode
     var selectedTimerOption by rememberSaveable { mutableStateOf(initialTimerOption) }
     var customMinutes by rememberSaveable { mutableStateOf(initialCustomMinutes) }
     var showCustomTimerDialog by remember { mutableStateOf(false) }
@@ -138,7 +144,8 @@ fun GameSetupScreen(
             // === LANDSCAPE LAYOUT ===
             Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // LEFT SIDE COLUMN
                 Column(
@@ -147,26 +154,51 @@ fun GameSetupScreen(
                         .fillMaxHeight()
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Top
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    SetupHeader()
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        if (onBack != null) {
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier.align(Alignment.CenterStart).size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow, // Using PlayArrow rotated for back
+                                    contentDescription = "Back",
+                                    tint = MedievalGold,
+                                    modifier = Modifier.rotate(180f)
+                                )
+                            }
+                        }
+                        SetupHeader()
+                    }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    MatchPreviewCard(selectedSide, selectedDifficulty, selectedGameMode, selectedTimerOption, customMinutes)
+                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL) {
+                        MatchPreviewCard(
+                            selectedSide,
+                            selectedDifficulty,
+                            selectedGameMode,
+                            selectedTimerOption,
+                            customMinutes
+                        )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    StartGameButton(
-                        gameMode = selectedGameMode,
-                        onClick = {
-                            if (selectedGameMode == GameMode.TUTORIAL) {
-                                onStartTutorialPiece?.invoke(PieceType.ROOK)
-                            } else {
-                                onStartGame(selectedSide, selectedDifficulty, selectedGameMode, selectedTimerOption, customMinutes)
+                        StartGameButton(
+                            gameMode = selectedGameMode,
+                            onClick = {
+                                onStartGame(
+                                    selectedSide,
+                                    selectedDifficulty,
+                                    selectedGameMode,
+                                    selectedTimerOption,
+                                    customMinutes
+                                )
                             }
-                        }
-                    )
+                        )
+                    }
                 }
 
                 // RIGHT SIDE COLUMN
@@ -175,18 +207,9 @@ fun GameSetupScreen(
                         .weight(1.1f)
                         .fillMaxHeight()
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    GameModeSelectionCard(
-                        selectedGameMode = selectedGameMode,
-                        onSelectGameMode = { selectedGameMode = it },
-                        onOpenHistory = onOpenHistory,
-                        gameStatus = gameStatus,
-                        onReturnToCurrentGame = onReturnToCurrentGame,
-                        hasPersistedGame = hasPersistedGame,
-                        onLoadPersistedGame = onLoadPersistedGame
-                    )
-
                     when (selectedGameMode) {
                         GameMode.VS_AI -> {
                             DifficultySectionCard(
@@ -236,6 +259,12 @@ fun GameSetupScreen(
                                 onSelectPiece = { pieceType ->
                                     onStartTutorialPiece?.invoke(pieceType)
                                 }
+                            )
+                        }
+                        GameMode.PUZZLE -> {
+                            PuzzleSelectionCard(
+                                completedPuzzles = completedPuzzles,
+                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) }
                             )
                         }
                     }
@@ -248,29 +277,33 @@ fun GameSetupScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.Center
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    SetupHeader()
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        if (onBack != null) {
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier.align(Alignment.CenterStart).size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Back",
+                                    tint = MedievalGold,
+                                    modifier = Modifier.rotate(180f).size(28.dp)
+                                )
+                            }
+                        }
+                        SetupHeader()
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    GameModeSelectionCard(
-                        selectedGameMode = selectedGameMode,
-                        onSelectGameMode = { selectedGameMode = it },
-                        onOpenHistory = onOpenHistory,
-                        gameStatus = gameStatus,
-                        onReturnToCurrentGame = onReturnToCurrentGame,
-                        hasPersistedGame = hasPersistedGame,
-                        onLoadPersistedGame = onLoadPersistedGame
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
 
                     when (selectedGameMode) {
                         GameMode.VS_AI -> {
@@ -339,23 +372,43 @@ fun GameSetupScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
                         }
-                    }
+                        GameMode.PUZZLE -> {
+                            PuzzleSelectionCard(
+                                completedPuzzles = completedPuzzles,
+                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) }
+                            )
 
-                    MatchPreviewCard(selectedSide, selectedDifficulty, selectedGameMode, selectedTimerOption, customMinutes)
-
-                    Spacer(modifier = Modifier.height(20.dp))
-                }
-
-                StartGameButton(
-                    gameMode = selectedGameMode,
-                    onClick = {
-                        if (selectedGameMode == GameMode.TUTORIAL) {
-                            onStartTutorialPiece?.invoke(PieceType.ROOK)
-                        } else {
-                            onStartGame(selectedSide, selectedDifficulty, selectedGameMode, selectedTimerOption, customMinutes)
+                            Spacer(modifier = Modifier.height(14.dp))
                         }
                     }
-                )
+
+                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL) {
+                        MatchPreviewCard(
+                            selectedSide,
+                            selectedDifficulty,
+                            selectedGameMode,
+                            selectedTimerOption,
+                            customMinutes
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                }
+
+                if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL) {
+                    StartGameButton(
+                        gameMode = selectedGameMode,
+                        onClick = {
+                            onStartGame(
+                                selectedSide,
+                                selectedDifficulty,
+                                selectedGameMode,
+                                selectedTimerOption,
+                                customMinutes
+                            )
+                        }
+                    )
+                }
             }
         }
     }
@@ -377,11 +430,14 @@ fun GameSetupScreen(
 }
 
 @Composable
-private fun SetupHeader() {
+fun SetupHeader() {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         if (!isLandscape) {
             Box(
                 modifier = Modifier
@@ -688,19 +744,23 @@ private fun GameModeSelectionCard(
                     if (gameStatus == GameStatus.IN_PROGRESS && onReturnToCurrentGame != null && selectedGameMode != GameMode.TUTORIAL) {
                         Spacer(modifier = Modifier.width(4.dp))
                         IconButton(
-                            onClick = onReturnToCurrentGame,
+                            onClick = { /* Xử lý sự kiện Play */ },
                             modifier = Modifier
-                                .size(23.dp)
+                                .size(40.dp) // Cân bằng kích thước vùng chứa với icon bên trái
                                 .background(Color(0xFF22C55E).copy(alpha = 0.15f), CircleShape)
-                                .border(0.2.dp, Color(0xFF22C55E).copy(alpha = 0.7f), CircleShape)
+                                // Tăng độ dày border một chút lên 0.5.dp để sắc nét hơn và rõ ràng
+                                .border(0.5.dp, Color(0xFF22C55E).copy(alpha = 0.7f), CircleShape)
                                 .testTag("return_to_game_button")
-                                .padding(end = 2.dp)
                         ) {
+                            // Cần đảm bảo Icon bên trong lấp đầy vùng chứa và hiển thị biểu tượng rõ ràng
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Tiếp tục trận đấu hiện tại",
+                                contentDescription = "Tiếp tục trận đấu",
                                 tint = Color(0xFF22C55E),
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier
+                                    .fillMaxSize() // Chiếm toàn bộ vùng chứa của IconButton
+                                    .padding(8.dp) // Tạo padding để biểu tượng nằm giữa và không chạm viền
+                                    .padding(start = 2.dp)
                             )
                         }
                     } 
@@ -757,6 +817,7 @@ private fun GameModeSelectionCard(
                                 text = when (mode) {
                                     GameMode.VS_AI -> "⚔️ Đấu Máy"
                                     GameMode.TWO_PLAYERS -> "👥 2 Người"
+                                    GameMode.PUZZLE -> "🧩 Giải Đố"
                                     GameMode.TUTORIAL -> "📖 Hướng Dẫn"
                                 },
                                 fontSize = 12.sp,
@@ -979,6 +1040,7 @@ private fun MatchPreviewCard(
                     text = when (selectedGameMode) {
                         GameMode.TWO_PLAYERS -> "NGƯỜI CHƠI 1"
                         GameMode.TUTORIAL -> "CHẾ ĐỘ"
+                        GameMode.PUZZLE -> "THỬ THÁCH"
                         else -> "BẠN CẦM QUÂN"
                     },
                     fontSize = 9.5.sp,
@@ -996,6 +1058,7 @@ private fun MatchPreviewCard(
                             }
                         }
                         GameMode.TUTORIAL -> "Hướng Dẫn Quân Cờ"
+                        GameMode.PUZZLE -> "Chiếu Bí"
                         else -> selectedSide.displayNameVi
                     },
                     fontSize = 12.sp,
@@ -1010,7 +1073,7 @@ private fun MatchPreviewCard(
                 modifier = Modifier.padding(horizontal = 4.dp)
             ) {
                 Text(
-                    text = if (selectedGameMode == GameMode.TUTORIAL) "📖" else "⚔️ VS ⚔️",
+                    text = if (selectedGameMode == GameMode.TUTORIAL || selectedGameMode == GameMode.PUZZLE) "🧩" else "⚔️ VS ⚔️",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = MedievalGold
@@ -1039,6 +1102,7 @@ private fun MatchPreviewCard(
                     text = when (selectedGameMode) {
                         GameMode.TWO_PLAYERS -> "NGƯỜI CHƠI 2"
                         GameMode.TUTORIAL -> "MỤC TIÊU"
+                        GameMode.PUZZLE -> "CẤP ĐỘ"
                         else -> "ĐỐI THỦ MÁY"
                     },
                     fontSize = 9.5.sp,
@@ -1056,11 +1120,12 @@ private fun MatchPreviewCard(
                             }
                         }
                         GameMode.TUTORIAL -> "Tập Luyện Lực Lượng"
+                        GameMode.PUZZLE -> "Cơ Bản"
                         else -> selectedDifficulty.displayNameVi
                     },
                     fontSize = 12.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (selectedGameMode == GameMode.TWO_PLAYERS || selectedGameMode == GameMode.TUTORIAL) MedievalParchment else when (selectedDifficulty) {
+                    color = if (selectedGameMode == GameMode.TWO_PLAYERS || selectedGameMode == GameMode.TUTORIAL || selectedGameMode == GameMode.PUZZLE) MedievalParchment else when (selectedDifficulty) {
                         DifficultyLevel.LEVEL_1 -> Color(0xFF22C55E) // Xanh lá tươi
                         DifficultyLevel.LEVEL_2 -> MedievalGold     // Vàng kim
                         DifficultyLevel.LEVEL_3 -> Color(0xFFFCA5A5) // Đỏ hồng rất nhạt
@@ -1096,8 +1161,13 @@ private fun StartGameButton(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
+            val text = when (gameMode) {
+                GameMode.TUTORIAL -> "📖 BẮT ĐẦU HƯỚNG DẪN 📖"
+                GameMode.PUZZLE -> "🧩 BẮT ĐẦU GIẢI ĐỐ 🧩"
+                else -> "⚔️ BẮT ĐẦU CHƠI ⚔️"
+            }
             Text(
-                text = if (gameMode == GameMode.TUTORIAL) "📖 BẮT ĐẦU HƯỚNG DẪN 📖" else "⚔️ BẮT ĐẦU CHƠI ⚔️",
+                text = text,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = MedievalGoldLight,
@@ -1399,6 +1469,183 @@ private fun CustomTimerDialog(
     }
 }
 
+@Composable
+private fun PuzzleSelectionCard(
+    completedPuzzles: Set<String>,
+    onSelectPuzzle: (String, String, Int) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.5.dp, MedievalGold, RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MedievalMidWood.copy(alpha = 0.9f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = MedievalGold,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "THỬ THÁCH GIẢI ĐỐ",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MedievalGold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val categories = listOf(
+                "Nhập môn" to PuzzlesBeginner.list,
+                "Dễ" to PuzzlesEasy.list,
+                "Trung bình" to PuzzlesMedium.list,
+                "Khó" to PuzzlesHard.list,
+                "Cao thủ" to PuzzlesExpert.list
+            )
+
+            var expandedCategory by remember { mutableStateOf<String?>(null) }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                categories.forEach { (name, puzzles) ->
+                    PuzzleCategoryItem(
+                        name = name,
+                        puzzles = puzzles,
+                        completedPuzzles = completedPuzzles,
+                        isExpanded = expandedCategory == name,
+                        onToggle = { expandedCategory = if (expandedCategory == name) null else name },
+                        onSelectPuzzle = onSelectPuzzle
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PuzzleCategoryItem(
+    name: String,
+    puzzles: List<Puzzles>,
+    completedPuzzles: Set<String>,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    onSelectPuzzle: (String, String, Int) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFF22140A))
+            .border(1.dp, MedievalGold.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggle() }
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = name,
+                color = if (isExpanded) MedievalGoldLight else MedievalParchment,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MedievalGold
+            )
+        }
+
+        AnimatedVisibility(visible = isExpanded) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(5),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 300.dp)
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(puzzles) { puzzle ->
+                    val isCompleted = completedPuzzles.contains("${name}_${puzzle.level}")
+                    Surface(
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { onSelectPuzzle(puzzle.fen, name, puzzle.level) }
+                            .border(
+                                width = if (isCompleted) 2.dp else 1.dp,
+                                color = if (isCompleted) Color.Green else MedievalGold.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(4.dp)
+                            ),
+                        color = Color(0xFF382315)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = puzzle.level.toString(),
+                                color = if (isCompleted) Color.Green else MedievalGoldLight,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PuzzleSelectionPlaceholderCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.5.dp, MedievalGold, RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MedievalMidWood.copy(alpha = 0.9f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = MedievalGold,
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "CHẾ ĐỘ GIẢI ĐỐ",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MedievalGold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Tính năng đang được phát triển. Hãy quay lại sau để thử thách khả năng chiếu bí của bạn!",
+                fontSize = 14.sp,
+                color = MedievalParchment,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
+            )
+        }
+    }
+}
+
 @Preview(showBackground = true, name = "Setup Portrait")
 @Composable
 fun GameSetupScreenPreview() {
@@ -1410,7 +1657,7 @@ fun GameSetupScreenPreview() {
             initialTimerOption = GameTimerOption.NONE,
             initialCustomMinutes = 10,
             onStartGame = { _, _, _, _, _ -> },
-            onOpenHistory = {}
+            onBack = {}
         )
     }
 }
@@ -1426,7 +1673,7 @@ fun GameSetupScreenLandscapePreview() {
             initialTimerOption = GameTimerOption.NONE,
             initialCustomMinutes = 10,
             onStartGame = { _, _, _, _, _ -> },
-            onOpenHistory = {}
+            onBack = {}
         )
     }
 }

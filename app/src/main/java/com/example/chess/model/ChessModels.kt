@@ -34,6 +34,15 @@ data class Position(
 
     val algebraic: String
         get() = "${'a' + col}${8 - row}"
+
+    companion object {
+        fun fromAlgebraic(s: String): Position? {
+            if (s.length < 2) return null
+            val col = s[0] - 'a'
+            val row = 8 - s[1].digitToInt()
+            return if (col in 0..7 && row in 0..7) Position(row, col) else null
+        }
+    }
 }
 
 data class Move(
@@ -57,7 +66,8 @@ enum class GameStatus {
 
 enum class AppScreen {
     SETUP,
-    GAME
+    GAME,
+    PUZZLE
 }
 
 enum class BoardViewMode {
@@ -68,6 +78,7 @@ enum class BoardViewMode {
 enum class GameMode(val displayNameVi: String, val subtitleVi: String) {
     VS_AI("Đấu Với Máy AI", "1 Người chơi đấu với máy"),
     TWO_PLAYERS("2 Người Chơi", "Chơi 2 người trên cùng 1 máy"),
+    PUZZLE("Giải Đố", "Thử thách chiếu bí trong X nước"),
     TUTORIAL("Hướng Dẫn", "Học cách đi cờ 6 quân")
 }
 

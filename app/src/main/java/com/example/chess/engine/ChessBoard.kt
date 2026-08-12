@@ -540,6 +540,65 @@ class ChessBoard(initialize: Boolean = true) {
     }
 
     /**
+     * Set board state from a FEN string.
+     * Note: This is a simplified implementation primarily for piece positions.
+     */
+    fun loadFromFen(fen: String) {
+        // Clear board
+        for (r in 0..7) {
+            for (c in 0..7) {
+                board[r][c] = null
+            }
+        }
+
+        val parts = fen.split(" ")
+        val rows = parts[0].split("/")
+
+        for (r in 0 until 8) {
+            var c = 0
+            for (char in rows[r]) {
+                if (char.isDigit()) {
+                    c += char.digitToInt()
+                } else {
+                    val color = if (char.isUpperCase()) PieceColor.WHITE else PieceColor.BLACK
+                    val type = when (char.lowercaseChar()) {
+                        'p' -> PieceType.PAWN
+                        'n' -> PieceType.KNIGHT
+                        'b' -> PieceType.BISHOP
+                        'r' -> PieceType.ROOK
+                        'q' -> PieceType.QUEEN
+                        'k' -> PieceType.KING
+                        else -> PieceType.PAWN
+                    }
+                    board[r][c] = Piece(type, color)
+                    c++
+                }
+            }
+        }
+
+        // Active color (simplified)
+        // val activeColor = if (parts.size > 1 && parts[1] == "w") PieceColor.WHITE else PieceColor.BLACK
+
+        // Castling rights
+        if (parts.size > 2) {
+            val castling = parts[2]
+            whiteKingMoved = !castling.contains("K") && !castling.contains("Q")
+            whiteRookKingsideMoved = !castling.contains("K")
+            whiteRookQueensideMoved = !castling.contains("Q")
+            blackKingMoved = !castling.contains("k") && !castling.contains("q")
+            blackRookKingsideMoved = !castling.contains("k")
+            blackRookQueensideMoved = !castling.contains("q")
+        }
+
+        // En passant
+        if (parts.size > 3 && parts[3] != "-") {
+            enPassantTarget = Position.fromAlgebraic(parts[3])
+        } else {
+            enPassantTarget = null
+        }
+    }
+
+    /**
      * Generates a Forsyth-Edwards Notation (FEN) string for the current board state.
      * Required for communication with external engines like Stockfish.
      */

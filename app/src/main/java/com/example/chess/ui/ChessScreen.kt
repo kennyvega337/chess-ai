@@ -90,11 +90,15 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.ui.graphics.graphicsLayer
+import com.example.GameSetupActivity
 import com.example.chess.ui.GameHistoryDialog
 import com.example.chess.ui.ChessThemeDialog
 import com.example.chess.ui.GeneralSettingsDialog
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChessScreen(
@@ -122,6 +126,9 @@ fun ChessScreen(
         },
         onStartTutorialPiece = { pieceType ->
             viewModel.startTutorialMode(pieceType)
+        },
+        onStartPuzzle = { fen, cat, lvl ->
+            viewModel.startPuzzleMode(fen, cat, lvl)
         },
         onReturnToCurrentGame = {
             viewModel.returnToCurrentGame()
@@ -154,6 +161,8 @@ fun ChessScreen(
         onCloseGameOverModal = { viewModel.closeGameOverModal() },
         onCompletePromotion = { type -> viewModel.completePromotion(type) },
         onOpenSetupActivity = { openSetupActivity(context, state) },
+        onNavigateToSetup = { viewModel.navigateToSetup() },
+        onNextPuzzle = { viewModel.startNextPuzzle() },
         onLoadPersistedGame = { viewModel.loadPersistedGame() },
         onShowMessage = { message -> Toast.makeText(context, message, Toast.LENGTH_SHORT).show() }
     )
@@ -164,6 +173,7 @@ fun ChessScreenContent(
     state: ChessUiState,
     onStartGame: (SideOption, DifficultyLevel, GameMode, GameTimerOption, Int?) -> Unit,
     onStartTutorialPiece: (PieceType) -> Unit,
+    onStartPuzzle: (String, String, Int) -> Unit,
     onReturnToCurrentGame: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenCapturedPiecesModal: () -> Unit,
@@ -191,6 +201,8 @@ fun ChessScreenContent(
     onCloseGameOverModal: () -> Unit,
     onCompletePromotion: (PieceType) -> Unit,
     onOpenSetupActivity: () -> Unit,
+    onNavigateToSetup: () -> Unit,
+    onNextPuzzle: () -> Unit,
     onLoadPersistedGame: () -> Unit,
     onShowMessage: (String) -> Unit
 ) {
@@ -202,13 +214,11 @@ fun ChessScreenContent(
                 initialGameMode = state.gameMode,
                 initialTimerOption = state.timerOption,
                 initialCustomMinutes = 10, // Default for in-app setup
-                gameStatus = state.gameStatus,
                 onStartGame = onStartGame,
                 onStartTutorialPiece = onStartTutorialPiece,
-                onReturnToCurrentGame = onReturnToCurrentGame,
-                onOpenHistory = onOpenHistory,
-                hasPersistedGame = state.hasPersistedGame,
-                onLoadPersistedGame = onLoadPersistedGame
+                onStartPuzzle = onStartPuzzle,
+                onBack = { onOpenSetupActivity() },
+                completedPuzzles = state.completedPuzzles
             )
         }
         AppScreen.GAME -> {
@@ -239,14 +249,39 @@ fun ChessScreenContent(
                 onCloseGameOverModal = onCloseGameOverModal,
                 onCompletePromotion = onCompletePromotion,
                 onStartTutorialPiece = onStartTutorialPiece,
+                onNavigateToSetup = onNavigateToSetup,
                 onOpenSetupActivity = onOpenSetupActivity,
+                onShowMessage = onShowMessage
+            )
+        }
+        AppScreen.PUZZLE -> {
+            PuzzlesScreen(
+                state = state,
+                onOpenCapturedPiecesModal = onOpenCapturedPiecesModal,
+                onShowHint = onShowHint,
+                onOpenThemeModal = onOpenThemeModal,
+                onOpenGeneralSettingsModal = onOpenGeneralSettingsModal,
+                onUndoMove = onUndoMove,
+                onRestartGame = onRestartGame,
+                onSquareClick = onSquareClick,
+                onSelectTheme = onSelectTheme,
+                onSetBoardViewMode = onSetBoardViewMode,
+                onSetSoundEnabled = onSetSoundEnabled,
+                onSetMoveHintsEnabled = onSetMoveHintsEnabled,
+                onSetSaveGameEnabled = onSetSaveGameEnabled,
+                onCloseThemeModal = onCloseThemeModal,
+                onCloseGeneralSettingsModal = onCloseGeneralSettingsModal,
+                onDismissCheckPopup = onDismissCheckPopup,
+                onCloseGameOverModal = onCloseGameOverModal,
+                onCompletePromotion = onCompletePromotion,
+                onNavigateToSetup = onNavigateToSetup,
+                onNavigateToMenu = onOpenSetupActivity,
+                onNextPuzzle = onNextPuzzle,
                 onShowMessage = onShowMessage
             )
         }
     }
 }
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -277,6 +312,7 @@ fun ChessBoardScreenContent(
     onCloseGameOverModal: () -> Unit,
     onCompletePromotion: (PieceType) -> Unit,
     onStartTutorialPiece: (PieceType) -> Unit,
+    onNavigateToSetup: () -> Unit,
     onOpenSetupActivity: () -> Unit,
     onShowMessage: (String) -> Unit
 ) {
@@ -316,20 +352,37 @@ fun ChessBoardScreenContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Left: Game Mode
-                            Text(
-                                text = when (state.gameMode) {
-                                    GameMode.TWO_PLAYERS -> "Chế Độ 2 Người Chơi"
-                                    GameMode.TUTORIAL -> "Hướng Dẫn Quân Cờ"
-                                    else -> "Thách Đấu Máy (${state.difficulty.displayNameVi})"
-                                },
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MedievalParchmentDark,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                            // Left: Back button and Game Mode
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
-                            )
+                            ) {
+                                IconButton(
+                                    onClick = { onNavigateToSetup() },
+                                    enabled = !state.isAiThinking,
+                                    modifier = Modifier.size(36.dp).testTag("back_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                                        contentDescription = "Quay lại thiết lập",
+                                        tint = MedievalGold,
+                                        modifier = Modifier.size(22.dp).graphicsLayer(rotationZ = 180f)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = when (state.gameMode) {
+                                        GameMode.TWO_PLAYERS -> "Chế Độ 2 Người Chơi"
+                                        GameMode.TUTORIAL -> "Hướng Dẫn Quân Cờ"
+                                        else -> "Thách Đấu Máy (${state.difficulty.displayNameVi})"
+                                    },
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MedievalParchmentDark,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
 
                             // Right: Icons
                             Row(
@@ -747,8 +800,9 @@ fun ChessBoardScreenContent(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
+                                    val badgeLabel = if (state.gameMode == GameMode.TWO_PLAYERS) "👑 N.Chơi 1:" else "👑 Bạn:"
                                     Text(
-                                        text = if (state.gameMode == GameMode.TWO_PLAYERS) "👑 N.Chơi 1:" else "👑 Bạn:",
+                                        text = badgeLabel,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF93C5FD)
@@ -856,10 +910,22 @@ fun ChessBoardScreenContent(
                                     disabledContainerColor = Color(0xFF382315).copy(alpha = 0.5f)
                                 ),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(0xFFEF4444) else Color(0xFFEF4444).copy(alpha = 0.4f)),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.5.dp,
+                                    if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(
+                                        0xFFEF4444
+                                    ) else Color(0xFFEF4444).copy(alpha = 0.4f)
+                                ),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Flag, contentDescription = "Đầu hàng", tint = if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(0xFFEF4444) else Color(0xFFEF4444).copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Flag,
+                                    contentDescription = "Đầu hàng",
+                                    tint = if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(
+                                        0xFFEF4444
+                                    ) else Color(0xFFEF4444).copy(alpha = 0.4f),
+                                    modifier = Modifier.size(22.dp)
+                                )
                             }
 
                             // 4. NÚT TRANG CHỦ
@@ -964,7 +1030,7 @@ fun ChessBoardScreenContent(
                 winner = state.winner,
                 userColor = state.userColor,
                 gameMode = state.gameMode,
-                onPlayAgain = { onOpenSetupActivity() },
+                onPlayAgain = { onNavigateToSetup() },
                 onRestart = { onRestartGame() },
                 onDismiss = { onCloseGameOverModal() }
             )
@@ -1115,10 +1181,7 @@ private fun ActionIconButton(
 }
 
 private fun openSetupActivity(context: Context, state: ChessUiState) {
-    val intent = Intent(context, GameSetupActivity::class.java).apply {
-        putExtra(MainActivity.EXTRA_GAME_MODE, state.gameMode.name)
-        putExtra(MainActivity.EXTRA_SIDE_OPTION, state.selectedSideOption.name)
-        putExtra(MainActivity.EXTRA_DIFFICULTY, state.difficulty.name)
+    val intent = Intent(context, com.example.GameModeSelectionActivity::class.java).apply {
         putExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, state.gameStatus == GameStatus.IN_PROGRESS)
     }
     context.startActivity(intent)
@@ -1135,6 +1198,7 @@ fun ChessScreenPreview() {
             ),
             onStartGame = { _, _, _, _, _ -> },
             onStartTutorialPiece = {},
+            onStartPuzzle = { _, _, _ -> },
             onReturnToCurrentGame = {},
             onOpenHistory = {},
             onOpenCapturedPiecesModal = {},
@@ -1162,6 +1226,8 @@ fun ChessScreenPreview() {
             onCloseGameOverModal = {},
             onCompletePromotion = {},
             onOpenSetupActivity = {},
+            onNavigateToSetup = {},
+            onNextPuzzle = {},
             onLoadPersistedGame = {},
             onShowMessage = {}
         )
