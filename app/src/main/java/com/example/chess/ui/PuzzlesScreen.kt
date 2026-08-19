@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,8 @@ fun PuzzlesScreen(
     onSetSaveGameEnabled: (Boolean) -> Unit,
     onCloseThemeModal: () -> Unit,
     onCloseGeneralSettingsModal: () -> Unit,
+    onConfirmRestart: () -> Unit,
+    onCancelRestart: () -> Unit,
     onDismissCheckPopup: () -> Unit,
     onCloseGameOverModal: () -> Unit,
     onCompletePromotion: (PieceType) -> Unit,
@@ -78,7 +81,7 @@ fun PuzzlesScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color(state.selectedTheme.darkSquareColor).copy(alpha = 0.4f),
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             if (!useLandscapeLayout) {
                 Surface(
@@ -124,7 +127,7 @@ fun PuzzlesScreen(
                                 }
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Giải Đố Cờ Vua",
+                                    text = if (state.gameMode == GameMode.ONE_MOVE) "Thử Thách 1 Nước" else "Giải Đố Cờ Vua",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MedievalParchmentDark,
@@ -187,6 +190,7 @@ fun PuzzlesScreen(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
                     .padding(innerPadding)
                     .padding(start = 3.dp, end = 3.dp, top = 0.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -205,8 +209,8 @@ fun PuzzlesScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val isPuzzleWinFinished = state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor && state.isGameEndControlsEnabled
-                        val showNextButton = isPuzzleWinFinished && !state.isLastPuzzleInCategory
+                        val isUserWin = state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor
+                        val showNextButton = isUserWin && !state.isLastPuzzleInCategory
                         
                         ActionIconButton(
                             icon = if (showNextButton) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Undo,
@@ -326,7 +330,7 @@ fun PuzzlesScreen(
                             horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Text(
-                                text = "🎯 Mục tiêu: Chiếu Tướng",
+                                text = if (state.gameMode == GameMode.ONE_MOVE) "🎯 Mục tiêu: Kết thúc ván đấu trong 1 nước" else "🎯 Mục tiêu: Thắng thế cờ",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFFCA5A5)
@@ -370,32 +374,6 @@ fun PuzzlesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Surface(
-                            color = Color(0xFF1E3A8A),
-                            shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF93C5FD)),
-                            modifier = Modifier.padding(bottom = 0.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Text(
-                                    text = "🧩 Giải Đố:",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF93C5FD)
-                                )
-                                Text(
-                                    text = "${state.capturedBlackPieces.sumOf { it.pointValue }}đ",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-
                         PlayerCard(
                             isUser = true,
                             playerColor = state.userColor,
@@ -419,8 +397,8 @@ fun PuzzlesScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val isPuzzleWinFinished = state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor && state.isGameEndControlsEnabled
-                        val showNextButton = isPuzzleWinFinished && !state.isLastPuzzleInCategory
+                        val isUserWin = state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor
+                        val showNextButton = isUserWin && !state.isLastPuzzleInCategory
 
                         Button(
                             onClick = { if (showNextButton) onNextPuzzle() else onUndoMove() },
@@ -482,8 +460,8 @@ fun PuzzlesScreen(
 
         if (state.showRestartConfirmationModal) {
             RestartConfirmationDialog(
-                onConfirmRestart = { onRestartGame() },
-                onCancel = { onCloseGameOverModal() }
+                onConfirmRestart = onConfirmRestart,
+                onCancel = onCancelRestart
             )
         }
 
@@ -520,17 +498,20 @@ fun PuzzlesScreen(
                 winner = state.winner,
                 userColor = state.userColor,
                 gameMode = state.gameMode,
+                difficulty = state.difficulty,
+                timestamp = state.matchEndTimestamp,
                 onPlayAgain = onNavigateToSetup, // "Đổi chế độ"
                 onRestart = onRestartGame,        // "Chơi lại"
                 onDismiss = onCloseGameOverModal,
-                onNextMatch = if (state.isLastPuzzleInCategory) null else onNextPuzzle
+                onNextMatch = if (state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor && !state.isLastPuzzleInCategory) onNextPuzzle else null
             )
         }
 
-        state.pendingPromotionMove?.let {
+        state.pendingPromotionMove?.let { move ->
             PawnPromotionDialog(
-                color = state.userColor,
-                onSelectPiece = { type -> onCompletePromotion(type) }
+                color = move.piece.color,
+                onSelectPiece = { type -> onCompletePromotion(type) },
+                viewMode = if (state.gameMode == GameMode.TWO_PLAYERS) BoardViewMode.VIEW_2D else state.boardViewMode
             )
         }
     }
@@ -570,6 +551,80 @@ private fun ActionIconButton(
             contentDescription = contentDesc,
             tint = color.copy(alpha = alpha),
             modifier = Modifier.size(if (isLandscape) 22.dp else 20.dp)
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Puzzles Screen Portrait", widthDp = 1024, heightDp = 1600)
+@Composable
+fun PuzzlesScreenPreview() {
+    MyApplicationTheme {
+        PuzzlesScreen(
+            state = ChessUiState(
+                gameMode = GameMode.PUZZLE,
+                gameStatus = GameStatus.IN_PROGRESS,
+                selectedTheme = ChessTheme.CLASSIC
+            ),
+            onOpenCapturedPiecesModal = {},
+            onShowHint = {},
+            onOpenThemeModal = {},
+            onOpenGeneralSettingsModal = {},
+            onUndoMove = {},
+            onRestartGame = {},
+            onSquareClick = {},
+            onSelectTheme = {},
+            onSetBoardViewMode = {},
+            onSetSoundEnabled = {},
+            onSetMoveHintsEnabled = {},
+            onSetSaveGameEnabled = {},
+            onCloseThemeModal = {},
+            onCloseGeneralSettingsModal = {},
+            onConfirmRestart = {},
+            onCancelRestart = {},
+            onDismissCheckPopup = {},
+            onCloseGameOverModal = {},
+            onCompletePromotion = {},
+            onNavigateToSetup = {},
+            onNavigateToMenu = {},
+            onNextPuzzle = {},
+            onShowMessage = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Puzzles Screen Landscape", widthDp = 1600, heightDp = 1024)
+@Composable
+fun PuzzlesScreenLandscapePreview() {
+    MyApplicationTheme {
+        PuzzlesScreen(
+            state = ChessUiState(
+                gameMode = GameMode.PUZZLE,
+                gameStatus = GameStatus.IN_PROGRESS,
+                selectedTheme = ChessTheme.CLASSIC
+            ),
+            onOpenCapturedPiecesModal = {},
+            onShowHint = {},
+            onOpenThemeModal = {},
+            onOpenGeneralSettingsModal = {},
+            onUndoMove = {},
+            onRestartGame = {},
+            onSquareClick = {},
+            onSelectTheme = {},
+            onSetBoardViewMode = {},
+            onSetSoundEnabled = {},
+            onSetMoveHintsEnabled = {},
+            onSetSaveGameEnabled = {},
+            onCloseThemeModal = {},
+            onCloseGeneralSettingsModal = {},
+            onConfirmRestart = {},
+            onCancelRestart = {},
+            onDismissCheckPopup = {},
+            onCloseGameOverModal = {},
+            onCompletePromotion = {},
+            onNavigateToSetup = {},
+            onNavigateToMenu = {},
+            onNextPuzzle = {},
+            onShowMessage = {}
         )
     }
 }

@@ -51,6 +51,11 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
         
+        if (intent.getBooleanExtra("RETURN_TO_GAME", false)) {
+            viewModel.returnToCurrentGame()
+            return
+        }
+
         if (intent.getBooleanExtra("LOAD_PERSISTED", false)) {
             viewModel.loadPersistedGame()
             return
@@ -72,8 +77,8 @@ class MainActivity : ComponentActivity() {
             val difficulty = try { DifficultyLevel.valueOf(difficultyStr ?: "LEVEL_2") } catch (e: Exception) { DifficultyLevel.LEVEL_2 }
             val timerOption = try { GameTimerOption.valueOf(timerOptionStr ?: "NONE") } catch (e: Exception) { GameTimerOption.NONE }
 
-            if (gameMode == GameMode.PUZZLE && puzzleFen != null) {
-                viewModel.startPuzzleMode(puzzleFen, puzzleCategory, if (puzzleLevel != -1) puzzleLevel else null)
+            if ((gameMode == GameMode.PUZZLE || gameMode == GameMode.ONE_MOVE) && puzzleFen != null) {
+                viewModel.startPuzzleMode(puzzleFen, puzzleCategory, if (puzzleLevel != -1) puzzleLevel else null, gameMode)
             } else if (gameMode == GameMode.TUTORIAL && tutorialPieceStr != null) {
                 val pieceType = try { PieceType.valueOf(tutorialPieceStr) } catch (e: Exception) { PieceType.ROOK }
                 viewModel.startTutorialMode(pieceType)

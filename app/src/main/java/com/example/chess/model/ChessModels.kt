@@ -75,10 +75,16 @@ enum class BoardViewMode {
     VIEW_3D
 }
 
+enum class NavigationTarget {
+    SETUP,
+    MENU
+}
+
 enum class GameMode(val displayNameVi: String, val subtitleVi: String) {
     VS_AI("Đấu Với Máy AI", "1 Người chơi đấu với máy"),
     TWO_PLAYERS("2 Người Chơi", "Chơi 2 người trên cùng 1 máy"),
     PUZZLE("Giải Đố", "Thử thách chiếu bí trong X nước"),
+    ONE_MOVE("1 Nước Đi", "Thử thách chiếu bí trong 1 nước"),
     TUTORIAL("Hướng Dẫn", "Học cách đi cờ 6 quân")
 }
 

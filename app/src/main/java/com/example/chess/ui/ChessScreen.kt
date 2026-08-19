@@ -44,6 +44,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -107,6 +108,14 @@ fun ChessScreen(
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    // Handle navigation trigger for Menu
+    LaunchedEffect(state.navigateToMenuTrigger) {
+        if (state.navigateToMenuTrigger) {
+            viewModel.onMenuNavigationHandled()
+            openSetupActivity(context, state)
+        }
+    }
+
     // Ensure system navigation bar is hidden and top status bar icons are white
     SideEffect {
         (context as? Activity)?.window?.let { window ->
@@ -160,8 +169,14 @@ fun ChessScreen(
         onDismissCheckPopup = { viewModel.dismissCheckPopup() },
         onCloseGameOverModal = { viewModel.closeGameOverModal() },
         onCompletePromotion = { type -> viewModel.completePromotion(type) },
-        onOpenSetupActivity = { openSetupActivity(context, state) },
-        onNavigateToSetup = { viewModel.navigateToSetup() },
+        onOpenSetupActivity = { 
+            viewModel.requestNavigation(com.example.chess.model.NavigationTarget.MENU)
+        },
+        onNavigateToSetup = { 
+            viewModel.requestNavigation(com.example.chess.model.NavigationTarget.SETUP)
+        },
+        onConfirmSaveGame = { viewModel.confirmSaveGame(it) },
+        onCancelSaveGame = { viewModel.cancelSaveGameDialog() },
         onNextPuzzle = { viewModel.startNextPuzzle() },
         onLoadPersistedGame = { viewModel.loadPersistedGame() },
         onShowMessage = { message -> Toast.makeText(context, message, Toast.LENGTH_SHORT).show() }
@@ -202,6 +217,8 @@ fun ChessScreenContent(
     onCompletePromotion: (PieceType) -> Unit,
     onOpenSetupActivity: () -> Unit,
     onNavigateToSetup: () -> Unit,
+    onConfirmSaveGame: (Boolean) -> Unit,
+    onCancelSaveGame: () -> Unit,
     onNextPuzzle: () -> Unit,
     onLoadPersistedGame: () -> Unit,
     onShowMessage: (String) -> Unit
@@ -251,6 +268,8 @@ fun ChessScreenContent(
                 onStartTutorialPiece = onStartTutorialPiece,
                 onNavigateToSetup = onNavigateToSetup,
                 onOpenSetupActivity = onOpenSetupActivity,
+                onConfirmSaveGame = onConfirmSaveGame,
+                onCancelSaveGame = onCancelSaveGame,
                 onShowMessage = onShowMessage
             )
         }
@@ -271,6 +290,8 @@ fun ChessScreenContent(
                 onSetSaveGameEnabled = onSetSaveGameEnabled,
                 onCloseThemeModal = onCloseThemeModal,
                 onCloseGeneralSettingsModal = onCloseGeneralSettingsModal,
+                onConfirmRestart = onConfirmRestart,
+                onCancelRestart = onCancelRestart,
                 onDismissCheckPopup = onDismissCheckPopup,
                 onCloseGameOverModal = onCloseGameOverModal,
                 onCompletePromotion = onCompletePromotion,
@@ -314,6 +335,8 @@ fun ChessBoardScreenContent(
     onStartTutorialPiece: (PieceType) -> Unit,
     onNavigateToSetup: () -> Unit,
     onOpenSetupActivity: () -> Unit,
+    onConfirmSaveGame: (Boolean) -> Unit,
+    onCancelSaveGame: () -> Unit,
     onShowMessage: (String) -> Unit
 ) {
     val configuration = LocalConfiguration.current
@@ -322,7 +345,7 @@ fun ChessBoardScreenContent(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color(state.selectedTheme.darkSquareColor).copy(alpha = 0.4f),
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             if (!useLandscapeLayout) {
                 Surface(
@@ -455,6 +478,7 @@ fun ChessBoardScreenContent(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
                     .padding(innerPadding)
                     .padding(start = 3.dp, end = 3.dp, top = 0.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -596,7 +620,7 @@ fun ChessBoardScreenContent(
                         ActionIconButton(
                             icon = Icons.Default.Home,
                             contentDesc = "Trang chủ",
-                            enabled = (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking,
+                            enabled = !state.isAiThinking,
                             isLandscape = true,
                             onClick = { onOpenSetupActivity() }
                         )
@@ -931,7 +955,7 @@ fun ChessBoardScreenContent(
                             // 4. NÚT TRANG CHỦ
                             Button(
                                 onClick = { onOpenSetupActivity() },
-                                enabled = (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking,
+                                enabled = !state.isAiThinking,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(46.dp)
@@ -1030,16 +1054,26 @@ fun ChessBoardScreenContent(
                 winner = state.winner,
                 userColor = state.userColor,
                 gameMode = state.gameMode,
+                difficulty = state.difficulty,
+                timestamp = state.matchEndTimestamp,
                 onPlayAgain = { onNavigateToSetup() },
                 onRestart = { onRestartGame() },
                 onDismiss = { onCloseGameOverModal() }
             )
         }
 
-        state.pendingPromotionMove?.let {
+        state.pendingPromotionMove?.let { move ->
             PawnPromotionDialog(
-                color = state.userColor,
-                onSelectPiece = { type -> onCompletePromotion(type) }
+                color = move.piece.color,
+                onSelectPiece = { type -> onCompletePromotion(type) },
+                viewMode = if (state.gameMode == GameMode.TWO_PLAYERS) BoardViewMode.VIEW_2D else state.boardViewMode
+            )
+        }
+
+        if (state.showSaveGameConfirmationModal) {
+            SaveGameConfirmationDialog(
+                onConfirm = onConfirmSaveGame,
+                onCancel = onCancelSaveGame
             )
         }
     }
@@ -1131,7 +1165,7 @@ private fun TutorialHeaderBar(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "💡 Chấm vàng phát sáng gợi ý nước đi hợp lệ liên tục",
+                        text = "💡 Chấm xanh phát sáng gợi ý nước đi hợp lệ liên tục",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
                         color = MedievalGold
@@ -1182,7 +1216,12 @@ private fun ActionIconButton(
 
 private fun openSetupActivity(context: Context, state: ChessUiState) {
     val intent = Intent(context, com.example.GameModeSelectionActivity::class.java).apply {
-        putExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, state.gameStatus == GameStatus.IN_PROGRESS)
+        // A game is only "InProgress" for the Main Menu if it's VS_AI or TWO_PLAYERS
+        // and we don't care about persistence setting here because this is for the "Session Resume" (return to activity)
+        val isEligibleMode = state.gameMode == GameMode.VS_AI || state.gameMode == GameMode.TWO_PLAYERS
+        val isGameInProgress = state.gameStatus == GameStatus.IN_PROGRESS && isEligibleMode && state.moveHistory.isNotEmpty()
+
+        putExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, isGameInProgress)
     }
     context.startActivity(intent)
 }
@@ -1227,6 +1266,8 @@ fun ChessScreenPreview() {
             onCompletePromotion = {},
             onOpenSetupActivity = {},
             onNavigateToSetup = {},
+            onConfirmSaveGame = {},
+            onCancelSaveGame = {},
             onNextPuzzle = {},
             onLoadPersistedGame = {},
             onShowMessage = {}

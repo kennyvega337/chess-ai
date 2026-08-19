@@ -42,7 +42,7 @@ class GameSetupActivity : ComponentActivity() {
                     initialGameMode = selectedGameMode,
                     initialTimerOption = initialTimer,
                     initialCustomMinutes = initialCustomMinutes,
-                    completedPuzzles = themeManager.getCompletedPuzzles(),
+                    completedPuzzles = themeManager.getCompletedPuzzles(selectedGameMode),
                     onStartGame = { sideOption, difficulty, gameMode, timerOption, customMinutes ->
                         themeManager.saveSideOption(sideOption)
                         themeManager.saveDifficulty(difficulty)
@@ -57,7 +57,7 @@ class GameSetupActivity : ComponentActivity() {
                         launchGame(SideOption.WHITE, DifficultyLevel.LEVEL_1, GameMode.TUTORIAL, GameTimerOption.NONE, null, pieceType)
                     },
                     onStartPuzzle = { fen, category, level ->
-                        launchPuzzle(fen, category, level)
+                        launchPuzzle(fen, category, level, selectedGameMode)
                     },
                     onBack = {
                         finish()
@@ -67,12 +67,12 @@ class GameSetupActivity : ComponentActivity() {
         }
     }
 
-    private fun launchPuzzle(fen: String, category: String, level: Int) {
+    private fun launchPuzzle(fen: String, category: String, level: Int, mode: GameMode) {
         val intent = Intent(this, MainActivity::class.java).apply {
             putExtra("PUZZLE_FEN", fen)
             putExtra("PUZZLE_CATEGORY", category)
             putExtra("PUZZLE_LEVEL", level)
-            putExtra(MainActivity.EXTRA_GAME_MODE, GameMode.PUZZLE.name)
+            putExtra(MainActivity.EXTRA_GAME_MODE, mode.name)
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         startActivity(intent)

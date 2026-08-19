@@ -45,7 +45,11 @@ class GameModeSelectionActivity : ComponentActivity() {
                     },
                     gameStatus = if (isGameInProgress) GameStatus.IN_PROGRESS else GameStatus.NOT_STARTED,
                     onReturnToCurrentGame = {
-                        finish()
+                        val intent = Intent(this@GameModeSelectionActivity, MainActivity::class.java).apply {
+                            putExtra("RETURN_TO_GAME", true)
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        startActivity(intent)
                     },
                     hasPersistedGame = themeManager.getPersistedGameState() != null,
                     onLoadPersistedGame = {

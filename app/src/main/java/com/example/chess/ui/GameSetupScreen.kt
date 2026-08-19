@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -137,7 +138,7 @@ fun GameSetupScreen(
                     )
                 )
             )
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = if (isLandscape) 12.dp else 16.dp, vertical = if (isLandscape) 4.dp else 12.dp)
             .testTag("game_setup_screen")
     ) {
         if (isLandscape) {
@@ -150,56 +151,59 @@ fun GameSetupScreen(
                 // LEFT SIDE COLUMN
                 Column(
                     modifier = Modifier
-                        .weight(1.1f)
+                        .weight(1f)
                         .fillMaxHeight()
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        if (onBack != null) {
-                            IconButton(
-                                onClick = onBack,
-                                modifier = Modifier.align(Alignment.CenterStart).size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow, // Using PlayArrow rotated for back
-                                    contentDescription = "Back",
-                                    tint = MedievalGold,
-                                    modifier = Modifier.rotate(180f)
-                                )
-                            }
-                        }
-                        SetupHeader()
+                        SetupHeader(isLandscape = true)
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL) {
+                    if (selectedGameMode == GameMode.PUZZLE || selectedGameMode == GameMode.ONE_MOVE || selectedGameMode == GameMode.TUTORIAL) {
+                        BackHomeButton(onBack, isLandscape = true)
+                    }
+
+                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE) {
                         MatchPreviewCard(
                             selectedSide,
                             selectedDifficulty,
                             selectedGameMode,
                             selectedTimerOption,
-                            customMinutes
+                            customMinutes,
+                            isLandscape = true
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        StartGameButton(
-                            gameMode = selectedGameMode,
-                            onClick = {
-                                onStartGame(
-                                    selectedSide,
-                                    selectedDifficulty,
-                                    selectedGameMode,
-                                    selectedTimerOption,
-                                    customMinutes
-                                )
-                            }
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            BackHomeButton(onBack, modifier = Modifier.weight(0.15f), isLandscape = true, showText = false)
+                            StartGameButton(
+                                gameMode = selectedGameMode,
+                                onClick = {
+                                    onStartGame(
+                                        selectedSide,
+                                        selectedDifficulty,
+                                        selectedGameMode,
+                                        selectedTimerOption,
+                                        customMinutes
+                                    )
+                                },
+                                isLandscape = true,
+                                modifier = Modifier.weight(0.85f)
+                            )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.width(12.dp))
 
                 // RIGHT SIDE COLUMN
                 Column(
@@ -214,12 +218,14 @@ fun GameSetupScreen(
                         GameMode.VS_AI -> {
                             DifficultySectionCard(
                                 selectedDifficulty = selectedDifficulty,
-                                onSelectDifficulty = { selectedDifficulty = it }
+                                onSelectDifficulty = { selectedDifficulty = it },
+                                isLandscape = true
                             )
 
                             SideSelectionCard(
                                 selectedSide = selectedSide,
-                                onSelectSide = { selectedSide = it }
+                                onSelectSide = { selectedSide = it },
+                                isLandscape = true
                             )
 
                             TimerSelectionCard(
@@ -231,14 +237,16 @@ fun GameSetupScreen(
                                         selectedTimerOption = option
                                     }
                                 },
-                                customMinutes = if (selectedTimerOption == GameTimerOption.CUSTOM) customMinutes else null
+                                customMinutes = if (selectedTimerOption == GameTimerOption.CUSTOM) customMinutes else null,
+                                isLandscape = true
                             )
                         }
                         GameMode.TWO_PLAYERS -> {
                             SideSelectionCard(
                                 selectedSide = selectedSide,
                                 onSelectSide = { selectedSide = it },
-                                title = "1. CHỌN PHE CHO NGƯỜI CHƠI 1"
+                                title = "1. CHỌN PHE CHO NGƯỜI CHƠI 1",
+                                isLandscape = true
                             )
                             TimerSelectionCard(
                                 selectedTimerOption = selectedTimerOption,
@@ -250,24 +258,38 @@ fun GameSetupScreen(
                                     }
                                 },
                                 customMinutes = if (selectedTimerOption == GameTimerOption.CUSTOM) customMinutes else null,
-                                title = "2. THỜI GIAN TRẬN ĐẤU"
+                                title = "2. THỜI GIAN TRẬN ĐẤU",
+                                isLandscape = true
                             )
-                            TwoPlayersInfoCard()
+                            TwoPlayersInfoCard(isLandscape = true)
                         }
                         GameMode.TUTORIAL -> {
                             TutorialPieceSelectionCard(
                                 onSelectPiece = { pieceType ->
                                     onStartTutorialPiece?.invoke(pieceType)
-                                }
+                                },
+                                isLandscape = true
                             )
                         }
                         GameMode.PUZZLE -> {
                             PuzzleSelectionCard(
+                                gameMode = GameMode.PUZZLE,
                                 completedPuzzles = completedPuzzles,
-                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) }
+                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) },
+                                isLandscape = true
+                            )
+                        }
+                        GameMode.ONE_MOVE -> {
+                            PuzzleSelectionCard(
+                                gameMode = GameMode.ONE_MOVE,
+                                completedPuzzles = completedPuzzles,
+                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) },
+                                isLandscape = true
                             )
                         }
                     }
+                    
+
                 }
             }
         } else {
@@ -287,19 +309,6 @@ fun GameSetupScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        if (onBack != null) {
-                            IconButton(
-                                onClick = onBack,
-                                modifier = Modifier.align(Alignment.CenterStart).size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "Back",
-                                    tint = MedievalGold,
-                                    modifier = Modifier.rotate(180f).size(28.dp)
-                                )
-                            }
-                        }
                         SetupHeader()
                     }
 
@@ -370,19 +379,35 @@ fun GameSetupScreen(
                                 }
                             )
 
+                            BackHomeButton(onBack)
+
                             Spacer(modifier = Modifier.height(14.dp))
                         }
                         GameMode.PUZZLE -> {
                             PuzzleSelectionCard(
+                                gameMode = GameMode.PUZZLE,
                                 completedPuzzles = completedPuzzles,
                                 onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) }
                             )
+
+                            BackHomeButton(onBack)
+
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
+                        GameMode.ONE_MOVE -> {
+                            PuzzleSelectionCard(
+                                gameMode = GameMode.ONE_MOVE,
+                                completedPuzzles = completedPuzzles,
+                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) }
+                            )
+
+                            BackHomeButton(onBack)
 
                             Spacer(modifier = Modifier.height(14.dp))
                         }
                     }
 
-                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL) {
+                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE) {
                         MatchPreviewCard(
                             selectedSide,
                             selectedDifficulty,
@@ -395,19 +420,27 @@ fun GameSetupScreen(
                     }
                 }
 
-                if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL) {
-                    StartGameButton(
-                        gameMode = selectedGameMode,
-                        onClick = {
-                            onStartGame(
-                                selectedSide,
-                                selectedDifficulty,
-                                selectedGameMode,
-                                selectedTimerOption,
-                                customMinutes
-                            )
-                        }
-                    )
+                if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BackHomeButton(onBack, modifier = Modifier.weight(0.15f), showText = false)
+                        StartGameButton(
+                            gameMode = selectedGameMode,
+                            onClick = {
+                                onStartGame(
+                                    selectedSide,
+                                    selectedDifficulty,
+                                    selectedGameMode,
+                                    selectedTimerOption,
+                                    customMinutes
+                                )
+                            },
+                            modifier = Modifier.weight(0.85f)
+                        )
+                    }
                 }
             }
         }
@@ -430,62 +463,55 @@ fun GameSetupScreen(
 }
 
 @Composable
-fun SetupHeader() {
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
+fun SetupHeader(isLandscape: Boolean = false) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (!isLandscape) {
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(MedievalGold.copy(alpha = 0.3f), Color.Transparent)
-                        )
+        Box(
+            modifier = Modifier
+                .size(if (isLandscape) 36.dp else 50.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(MedievalGold.copy(alpha = 0.3f), Color.Transparent)
                     )
-                    .border(2.dp, MedievalGold, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = MedievalGold,
-                    modifier = Modifier.size(30.dp)
                 )
-            }
-            Spacer(modifier = Modifier.height(6.dp))
+                .border(if (isLandscape) 1.5.dp else 2.dp, MedievalGold, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Shield,
+                contentDescription = null,
+                tint = MedievalGold,
+                modifier = Modifier.size(if (isLandscape) 22.dp else 30.dp)
+            )
         }
+        Spacer(modifier = Modifier.height(if (isLandscape) 2.dp else 6.dp))
 
         Text(
             text = "⚔️ CỜ VUA TRUNG CỔ ⚔️",
             fontSize = if (isLandscape) 11.sp else 13.sp,
             fontWeight = FontWeight.Bold,
             color = MedievalGoldLight,
-            letterSpacing = 2.sp,
+            letterSpacing = if (isLandscape) 1.5.sp else 2.sp,
             textAlign = TextAlign.Center
         )
 
-        if (!isLandscape) {
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "THIẾT LẬP TRẬN ĐẤU",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MedievalGold,
-                textAlign = TextAlign.Center
-            )
-        }
+        Spacer(modifier = Modifier.height(1.dp))
+        Text(
+            text = "THIẾT LẬP TRẬN ĐẤU",
+            style = if (isLandscape) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = MedievalGold,
+            textAlign = TextAlign.Center
+        )
 
         Spacer(modifier = Modifier.height(if (isLandscape) 2.dp else 4.dp))
 
         Box(
             modifier = Modifier
-                .fillMaxWidth(if (isLandscape) 0.8f else 0.5f)
+                .fillMaxWidth(if (isLandscape) 0.4f else 0.5f)
                 .height(if (isLandscape) 1.dp else 2.dp)
                 .background(
                     Brush.horizontalGradient(
@@ -500,7 +526,8 @@ fun SetupHeader() {
 @Composable
 private fun DifficultySectionCard(
     selectedDifficulty: DifficultyLevel,
-    onSelectDifficulty: (DifficultyLevel) -> Unit
+    onSelectDifficulty: (DifficultyLevel) -> Unit,
+    isLandscape: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -512,25 +539,25 @@ private fun DifficultySectionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(if (isLandscape) 8.dp else 12.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Psychology,
                     contentDescription = null,
                     tint = MedievalGold,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "1. CẤP ĐỘ ĐỐI THỦ (MÁY AI)",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGold
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 10.dp))
 
             val interactionSource = remember { MutableInteractionSource() }
             Slider(
@@ -562,7 +589,7 @@ private fun DifficultySectionCard(
                 thumb = {
                     Box(
                         modifier = Modifier
-                            .size(14.dp)
+                            .size(if (isLandscape) 12.dp else 14.dp)
                             .rotate(45f)
                             .background(MedievalGold)
                             .border(1.dp, MedievalGoldLight)
@@ -582,11 +609,11 @@ private fun DifficultySectionCard(
                 DifficultyLevel.entries.forEach { level ->
                     Text(
                         text = level.displayNameVi,
-                        fontSize = 9.sp,
+                        fontSize = if (isLandscape) 8.5.sp else 9.sp,
                         fontWeight = if (selectedDifficulty == level) FontWeight.ExtraBold else FontWeight.Normal,
                         color = if (selectedDifficulty == level) MedievalGoldLight else MedievalParchmentDark,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.width(40.dp)
+                        modifier = Modifier.width(if (isLandscape) 36.dp else 40.dp)
                     )
                 }
             }
@@ -598,11 +625,13 @@ private fun DifficultySectionCard(
 private fun SideSelectionCard(
     selectedSide: SideOption,
     onSelectSide: (SideOption) -> Unit,
-    title: String = "2. CHỌN PHE QUÂN CỦA BẠN"
+    title: String = "2. CHỌN PHE QUÂN CỦA BẠN",
+    isLandscape: Boolean = false
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(top = if (isLandscape) 4.dp else 0.dp)
             .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MedievalMidWood.copy(alpha = 0.8f))
@@ -610,25 +639,25 @@ private fun SideSelectionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(if (isLandscape) 8.dp else 12.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
                     tint = MedievalGold,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGold
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -653,22 +682,22 @@ private fun SideSelectionCard(
                         color = activeBgColor
                     ) {
                         Column(
-                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 2.dp),
+                            modifier = Modifier.padding(vertical = if (isLandscape) 6.dp else 10.dp, horizontal = 2.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 text = option.iconSymbol,
-                                fontSize = 18.sp,
+                                fontSize = if (isLandscape) 16.sp else 18.sp,
                                 color = if (isSelected) MedievalGoldLight else MedievalParchment
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = when(option) {
                                     SideOption.WHITE -> "Bạch Vương"
                                     SideOption.BLACK -> "Hắc Vương"
                                     SideOption.RANDOM -> "Ngẫu nhiên"
                                 },
-                                fontSize = 10.5.sp,
+                                fontSize = if (isLandscape) 10.sp else 10.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isSelected) MedievalGoldLight else MedievalParchment,
                                 textAlign = TextAlign.Center
@@ -682,162 +711,11 @@ private fun SideSelectionCard(
 }
 
 @Composable
-private fun GameModeSelectionCard(
-    selectedGameMode: GameMode,
-    onSelectGameMode: (GameMode) -> Unit,
-    onOpenHistory: (() -> Unit)? = null,
-    gameStatus: GameStatus = GameStatus.NOT_STARTED,
-    onReturnToCurrentGame: (() -> Unit)? = null,
-    hasPersistedGame: Boolean = false,
-    onLoadPersistedGame: (() -> Unit)? = null
-) {
+private fun TwoPlayersInfoCard(isLandscape: Boolean = false) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.5.dp, MedievalGold, RoundedCornerShape(14.dp)),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MedievalMidWood.copy(alpha = 0.85f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.People,
-                        contentDescription = null,
-                        tint = MedievalGold,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "CHẾ ĐỘ CHƠI",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MedievalGold
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (onOpenHistory != null && selectedGameMode != GameMode.TUTORIAL) {
-                        IconButton(
-                            onClick = onOpenHistory,
-                            modifier = Modifier.size(32.dp).testTag("history_icon_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = "Xem lịch sử đấu",
-                                tint = MedievalGoldLight,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-
-                    // --- NEW RESUME LOGIC ---
-                    // Priority 1: Current In-Memory Game
-                    if (gameStatus == GameStatus.IN_PROGRESS && onReturnToCurrentGame != null && selectedGameMode != GameMode.TUTORIAL) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        IconButton(
-                            onClick = { /* Xử lý sự kiện Play */ },
-                            modifier = Modifier
-                                .size(40.dp) // Cân bằng kích thước vùng chứa với icon bên trái
-                                .background(Color(0xFF22C55E).copy(alpha = 0.15f), CircleShape)
-                                // Tăng độ dày border một chút lên 0.5.dp để sắc nét hơn và rõ ràng
-                                .border(0.5.dp, Color(0xFF22C55E).copy(alpha = 0.7f), CircleShape)
-                                .testTag("return_to_game_button")
-                        ) {
-                            // Cần đảm bảo Icon bên trong lấp đầy vùng chứa và hiển thị biểu tượng rõ ràng
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Tiếp tục trận đấu",
-                                tint = Color(0xFF22C55E),
-                                modifier = Modifier
-                                    .fillMaxSize() // Chiếm toàn bộ vùng chứa của IconButton
-                                    .padding(8.dp) // Tạo padding để biểu tượng nằm giữa và không chạm viền
-                                    .padding(start = 2.dp)
-                            )
-                        }
-                    } 
-                    // Priority 2: Persisted Game from Storage (only if no active game in memory)
-                    else if (hasPersistedGame && onLoadPersistedGame != null && selectedGameMode != GameMode.TUTORIAL) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = onLoadPersistedGame,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(Color(0xFF22C55E).copy(alpha = 0.15f), CircleShape)
-                                .border(1.2.dp, Color(0xFF22C55E).copy(alpha = 0.7f), CircleShape)
-                                .testTag("resume_persisted_game_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Khôi phục ván cờ đã lưu",
-                                tint = Color(0xFF22C55E),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                GameMode.values().forEach { mode ->
-                    val isSelected = selectedGameMode == mode
-                    val activeColor = MedievalGold
-
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable { onSelectGameMode(mode) }
-                            .border(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) activeColor else Color(0x44D4AF37),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .testTag("setup_mode_${mode.name.lowercase()}"),
-                        color = if (isSelected) activeColor.copy(alpha = 0.25f) else Color(0xFF22140A)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = when (mode) {
-                                    GameMode.VS_AI -> "⚔️ Đấu Máy"
-                                    GameMode.TWO_PLAYERS -> "👥 2 Người"
-                                    GameMode.PUZZLE -> "🧩 Giải Đố"
-                                    GameMode.TUTORIAL -> "📖 Hướng Dẫn"
-                                },
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isSelected) MedievalGoldLight else MedievalParchment,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TwoPlayersInfoCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
+            .padding(top = if (isLandscape) 4.dp else 0.dp)
             .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MedievalMidWood.copy(alpha = 0.8f))
@@ -845,25 +723,25 @@ private fun TwoPlayersInfoCard() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(if (isLandscape) 10.dp else 14.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.People,
                     contentDescription = null,
                     tint = MedievalGold,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "CHẾ ĐỘ 2 NGƯỜI CHƠI TRÊN 1 MÁY",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGold
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 10.dp))
 
             Surface(
                 modifier = Modifier
@@ -872,19 +750,19 @@ private fun TwoPlayersInfoCard() {
                 color = Color(0xFF1D1109),
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33D4AF37))
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(if (isLandscape) 8.dp else 12.dp)) {
                     Text(
                         text = "👥 Cùng đấu cờ vua trực tiếp trên một thiết bị:",
-                        fontSize = 12.sp,
+                        fontSize = if (isLandscape) 11.sp else 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = MedievalGoldLight
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 6.dp))
                     Text(
                         text = "• Người chơi 1: Cầm quân Trắng (♔) - Đi trước\n• Người chơi 2: Cầm quân Đen (♚) - Đi sau\n• Hoàn toàn không có sự can thiệp của máy AI.",
-                        fontSize = 11.5.sp,
+                        fontSize = if (isLandscape) 10.5.sp else 11.5.sp,
                         color = MedievalParchment,
-                        lineHeight = 17.sp
+                        lineHeight = if (isLandscape) 15.sp else 17.sp
                     )
                 }
             }
@@ -894,7 +772,8 @@ private fun TwoPlayersInfoCard() {
 
 @Composable
 private fun TutorialPieceSelectionCard(
-    onSelectPiece: (PieceType) -> Unit
+    onSelectPiece: (PieceType) -> Unit,
+    isLandscape: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -906,19 +785,19 @@ private fun TutorialPieceSelectionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(if (isLandscape) 10.dp else 14.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
                     tint = MedievalGold,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "CHỌN QUÂN CỜ ĐỂ HỌC NƯỚC ĐI",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGold
                 )
@@ -926,9 +805,9 @@ private fun TutorialPieceSelectionCard(
 
             Text(
                 text = "Chọn quân cờ để chuyển sang bàn cờ giả định (gợi ý đi liên tục):",
-                fontSize = 11.5.sp,
+                fontSize = if (isLandscape) 10.5.sp else 11.5.sp,
                 color = MedievalParchmentDark,
-                modifier = Modifier.padding(top = 2.dp, bottom = 10.dp)
+                modifier = Modifier.padding(top = 2.dp, bottom = if (isLandscape) 6.dp else 10.dp)
             )
 
             val pieces = listOf(
@@ -940,7 +819,7 @@ private fun TutorialPieceSelectionCard(
                 Triple(PieceType.PAWN, "Tốt (♟)", "Đi thẳng 1 ô (ô đầu đi 2 ô), ăn chéo")
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(if (isLandscape) 4.dp else 8.dp)) {
                 pieces.forEach { (pieceType, title, note) ->
                     Surface(
                         modifier = Modifier
@@ -954,12 +833,12 @@ private fun TutorialPieceSelectionCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                                .padding(horizontal = if (isLandscape) 8.dp else 12.dp, vertical = if (isLandscape) 6.dp else 9.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(34.dp)
+                                    .size(if (isLandscape) 28.dp else 34.dp)
                                     .clip(CircleShape)
                                     .background(MedievalGold.copy(alpha = 0.2f))
                                     .border(1.dp, MedievalGold, CircleShape),
@@ -974,7 +853,7 @@ private fun TutorialPieceSelectionCard(
                                         PieceType.KING -> "♚"
                                         PieceType.PAWN -> "♟"
                                     },
-                                    fontSize = 18.sp,
+                                    fontSize = if (isLandscape) 15.sp else 18.sp,
                                     color = MedievalGoldLight
                                 )
                             }
@@ -984,21 +863,21 @@ private fun TutorialPieceSelectionCard(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = title,
-                                    fontSize = 13.5.sp,
+                                    fontSize = if (isLandscape) 12.5.sp else 13.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MedievalParchment
                                 )
                                 Text(
                                     text = note,
-                                    fontSize = 11.sp,
+                                    fontSize = if (isLandscape) 10.sp else 11.sp,
                                     color = MedievalGoldLight,
-                                    lineHeight = 14.sp
+                                    lineHeight = if (isLandscape) 12.sp else 14.sp
                                 )
                             }
 
                             Text(
-                                text = "Tập đi ➔",
-                                fontSize = 11.5.sp,
+                                text = "➔",
+                                fontSize = if (isLandscape) 10.sp else 11.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MedievalGold
                             )
@@ -1016,7 +895,8 @@ private fun MatchPreviewCard(
     selectedDifficulty: DifficultyLevel,
     selectedGameMode: GameMode,
     selectedTimerOption: GameTimerOption,
-    customMinutes: Int?
+    customMinutes: Int?,
+    isLandscape: Boolean = false
 ) {
     Surface(
         modifier = Modifier
@@ -1028,7 +908,7 @@ private fun MatchPreviewCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
+                .padding(if (isLandscape) 6.dp else 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1043,7 +923,7 @@ private fun MatchPreviewCard(
                         GameMode.PUZZLE -> "THỬ THÁCH"
                         else -> "BẠN CẦM QUÂN"
                     },
-                    fontSize = 9.5.sp,
+                    fontSize = if (isLandscape) 8.5.sp else 9.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGoldLight
                 )
@@ -1061,7 +941,7 @@ private fun MatchPreviewCard(
                         GameMode.PUZZLE -> "Chiếu Bí"
                         else -> selectedSide.displayNameVi
                     },
-                    fontSize = 12.sp,
+                    fontSize = if (isLandscape) 11.sp else 12.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = MedievalParchment,
                     textAlign = TextAlign.Center
@@ -1074,7 +954,7 @@ private fun MatchPreviewCard(
             ) {
                 Text(
                     text = if (selectedGameMode == GameMode.TUTORIAL || selectedGameMode == GameMode.PUZZLE) "🧩" else "⚔️ VS ⚔️",
-                    fontSize = 11.sp,
+                    fontSize = if (isLandscape) 10.sp else 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = MedievalGold
                 )
@@ -1087,7 +967,7 @@ private fun MatchPreviewCard(
                     }
                     Text(
                         text = "($timerLabel)",
-                        fontSize = 9.sp,
+                        fontSize = if (isLandscape) 8.sp else 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = MedievalGoldLight
                     )
@@ -1105,7 +985,7 @@ private fun MatchPreviewCard(
                         GameMode.PUZZLE -> "CẤP ĐỘ"
                         else -> "ĐỐI THỦ MÁY"
                     },
-                    fontSize = 9.5.sp,
+                    fontSize = if (isLandscape) 8.5.sp else 9.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGoldLight
                 )
@@ -1123,7 +1003,7 @@ private fun MatchPreviewCard(
                         GameMode.PUZZLE -> "Cơ Bản"
                         else -> selectedDifficulty.displayNameVi
                     },
-                    fontSize = 12.sp,
+                    fontSize = if (isLandscape) 11.sp else 12.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = if (selectedGameMode == GameMode.TWO_PLAYERS || selectedGameMode == GameMode.TUTORIAL || selectedGameMode == GameMode.PUZZLE) MedievalParchment else when (selectedDifficulty) {
                         DifficultyLevel.LEVEL_1 -> Color(0xFF22C55E) // Xanh lá tươi
@@ -1142,20 +1022,71 @@ private fun MatchPreviewCard(
 }
 
 @Composable
+private fun BackHomeButton(
+    onBack: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    isLandscape: Boolean = false,
+    showText: Boolean = true
+) {
+    if (onBack != null) {
+        if (showText) {
+            Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 10.dp))
+        }
+        OutlinedButton(
+            onClick = onBack,
+            modifier = modifier
+                .then(if (showText) Modifier.fillMaxWidth() else Modifier)
+                .height(if (isLandscape) 40.dp else 48.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MedievalGold
+            ),
+            border = androidx.compose.foundation.BorderStroke(if (isLandscape) 1.5.dp else 2.dp, MedievalGold),
+            shape = RoundedCornerShape(14.dp),
+            contentPadding = if (showText) (if (isLandscape) PaddingValues(0.dp) else ButtonDefaults.ContentPadding) else PaddingValues(0.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = null,
+                    tint = MedievalGold,
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
+                )
+                if (showText) {
+                    Spacer(modifier = Modifier.width(if (isLandscape) 6.dp else 8.dp))
+                    Text(
+                        text = "VỀ TRANG CHỦ",
+                        fontSize = if (isLandscape) 14.sp else 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MedievalGoldLight,
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StartGameButton(
     gameMode: GameMode = GameMode.VS_AI,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isLandscape: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(50.dp)
-            .shadow(12.dp, RoundedCornerShape(14.dp))
+            .height(if (isLandscape) 44.dp else 50.dp)
+            .shadow(if (isLandscape) 8.dp else 12.dp, RoundedCornerShape(14.dp))
             .testTag("start_game_button"),
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3E2312)),
         shape = RoundedCornerShape(14.dp),
-        border = androidx.compose.foundation.BorderStroke(2.dp, MedievalGold)
+        border = androidx.compose.foundation.BorderStroke(if (isLandscape) 1.5.dp else 2.dp, MedievalGold),
+        contentPadding = if (isLandscape) PaddingValues(0.dp) else ButtonDefaults.ContentPadding
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1168,7 +1099,7 @@ private fun StartGameButton(
             }
             Text(
                 text = text,
-                fontSize = 15.sp,
+                fontSize = if (isLandscape) 14.sp else 15.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = MedievalGoldLight,
                 letterSpacing = 1.sp
@@ -1202,11 +1133,13 @@ private fun TimerSelectionCard(
     selectedTimerOption: GameTimerOption,
     onSelectTimerOption: (GameTimerOption) -> Unit,
     customMinutes: Int? = null,
-    title: String = "3. THỜI GIAN TRẬN ĐẤU"
+    title: String = "3. THỜI GIAN TRẬN ĐẤU",
+    isLandscape: Boolean = false
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(top = if (isLandscape) 4.dp else 0.dp)
             .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MedievalMidWood.copy(alpha = 0.8f))
@@ -1214,25 +1147,25 @@ private fun TimerSelectionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(if (isLandscape) 8.dp else 12.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.FlashOn,
                     contentDescription = null,
                     tint = MedievalGold,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGold
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1255,12 +1188,12 @@ private fun TimerSelectionCard(
                         color = if (isSelected) MedievalGold.copy(alpha = 0.2f) else Color(0xFF22140A)
                     ) {
                         Box(
-                            modifier = Modifier.padding(vertical = 8.dp),
+                            modifier = Modifier.padding(vertical = if (isLandscape) 6.dp else 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
-                                fontSize = 10.sp,
+                                fontSize = if (isLandscape) 9.5.sp else 10.sp,
                                 fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
                                 color = if (isSelected) MedievalGoldLight else MedievalParchment
                             )
@@ -1471,8 +1404,10 @@ private fun CustomTimerDialog(
 
 @Composable
 private fun PuzzleSelectionCard(
+    gameMode: GameMode,
     completedPuzzles: Set<String>,
-    onSelectPuzzle: (String, String, Int) -> Unit
+    onSelectPuzzle: (String, String, Int) -> Unit,
+    isLandscape: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -1484,37 +1419,47 @@ private fun PuzzleSelectionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(if (isLandscape) 12.dp else 16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.AutoAwesome,
+                    imageVector = if (gameMode == GameMode.ONE_MOVE) Icons.Default.FlashOn else Icons.Default.AutoAwesome,
                     contentDescription = null,
                     tint = MedievalGold,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(if (isLandscape) 20.dp else 24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "THỬ THÁCH GIẢI ĐỐ",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = if (gameMode == GameMode.ONE_MOVE) "THỬ THÁCH 1 NƯỚC" else "THỬ THÁCH GIẢI ĐỐ",
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MedievalGold
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 16.dp))
 
-            val categories = listOf(
-                "Nhập môn" to PuzzlesBeginner.list,
-                "Dễ" to PuzzlesEasy.list,
-                "Trung bình" to PuzzlesMedium.list,
-                "Khó" to PuzzlesHard.list,
-                "Cao thủ" to PuzzlesExpert.list
-            )
+            val categories = if (gameMode == GameMode.ONE_MOVE) {
+                listOf(
+                    "Nhập môn" to OneMoveBeginner.list,
+                    "Dễ" to OneMoveEasy.list,
+                    "Trung bình" to OneMoveMedium.list,
+                    "Khó" to OneMoveHard.list,
+                    "Cao thủ" to OneMoveExpert.list
+                )
+            } else {
+                listOf(
+                    "Nhập môn" to PuzzlesBeginner.list,
+                    "Dễ" to PuzzlesEasy.list,
+                    "Trung bình" to PuzzlesMedium.list,
+                    "Khó" to PuzzlesHard.list,
+                    "Cao thủ" to PuzzlesExpert.list
+                )
+            }
 
             var expandedCategory by remember { mutableStateOf<String?>(null) }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(if (isLandscape) 6.dp else 8.dp)) {
                 categories.forEach { (name, puzzles) ->
                     PuzzleCategoryItem(
                         name = name,
@@ -1522,7 +1467,8 @@ private fun PuzzleSelectionCard(
                         completedPuzzles = completedPuzzles,
                         isExpanded = expandedCategory == name,
                         onToggle = { expandedCategory = if (expandedCategory == name) null else name },
-                        onSelectPuzzle = onSelectPuzzle
+                        onSelectPuzzle = onSelectPuzzle,
+                        isLandscape = isLandscape
                     )
                 }
             }
@@ -1537,7 +1483,8 @@ private fun PuzzleCategoryItem(
     completedPuzzles: Set<String>,
     isExpanded: Boolean,
     onToggle: () -> Unit,
-    onSelectPuzzle: (String, String, Int) -> Unit
+    onSelectPuzzle: (String, String, Int) -> Unit,
+    isLandscape: Boolean = false
 ) {
     Column(
         modifier = Modifier
@@ -1550,7 +1497,7 @@ private fun PuzzleCategoryItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onToggle() }
-                .padding(12.dp),
+                .padding(if (isLandscape) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1558,21 +1505,22 @@ private fun PuzzleCategoryItem(
                 text = name,
                 color = if (isExpanded) MedievalGoldLight else MedievalParchment,
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
+                fontSize = if (isLandscape) 14.sp else 15.sp
             )
             Icon(
                 imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                 contentDescription = null,
-                tint = MedievalGold
+                tint = MedievalGold,
+                modifier = Modifier.size(if (isLandscape) 20.dp else 24.dp)
             )
         }
 
         AnimatedVisibility(visible = isExpanded) {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(5),
+                columns = GridCells.Fixed(if (isLandscape) 8 else 5),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 300.dp)
+                    .heightIn(max = if (isLandscape) 200.dp else 300.dp)
                     .padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -1596,7 +1544,7 @@ private fun PuzzleCategoryItem(
                                 text = puzzle.level.toString(),
                                 color = if (isCompleted) Color.Green else MedievalGoldLight,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                fontSize = if (isLandscape) 13.sp else 14.sp
                             )
                         }
                     }

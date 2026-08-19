@@ -110,13 +110,15 @@ class ChessThemeManager(context: Context) {
         prefs.edit().remove("persisted_game_state").apply()
     }
 
-    fun savePuzzleCompleted(category: String, level: Int) {
-        val completed = prefs.getStringSet("completed_puzzles", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+    fun savePuzzleCompleted(category: String, level: Int, mode: com.example.chess.model.GameMode = com.example.chess.model.GameMode.PUZZLE) {
+        val key = if (mode == com.example.chess.model.GameMode.ONE_MOVE) "completed_one_move_puzzles" else "completed_puzzles"
+        val completed = prefs.getStringSet(key, mutableSetOf())?.toMutableSet() ?: mutableSetOf()
         completed.add("${category}_$level")
-        prefs.edit().putStringSet("completed_puzzles", completed).apply()
+        prefs.edit().putStringSet(key, completed).apply()
     }
 
-    fun getCompletedPuzzles(): Set<String> {
-        return prefs.getStringSet("completed_puzzles", emptySet()) ?: emptySet()
+    fun getCompletedPuzzles(mode: com.example.chess.model.GameMode = com.example.chess.model.GameMode.PUZZLE): Set<String> {
+        val key = if (mode == com.example.chess.model.GameMode.ONE_MOVE) "completed_one_move_puzzles" else "completed_puzzles"
+        return prefs.getStringSet(key, emptySet()) ?: emptySet()
     }
 }

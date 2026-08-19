@@ -407,7 +407,7 @@ fun ChessBoard3DPreview() {
     Box(modifier = Modifier.size(400.dp)) {
         ChessBoard3D(
             board = mockBoard,
-            userColor = PieceColor.BLACK,
+            userColor = PieceColor.WHITE,
             selectedPosition = Position(6, 4), 
             legalMoves = listOf(
                 Move(Position(6, 4), Position(4, 4), mockBoard.getPiece(Position(6, 4))!!),
@@ -443,10 +443,10 @@ private fun getPieceDrawable3D(piece: Piece, userColor: PieceColor): Int {
         "user_knight_black" -> R.drawable.user_knight_black
         "enemy_knight_white" -> R.drawable.enemy_knight_white
         "enemy_knight_black" -> R.drawable.enemy_knight_black
-        "user_bishop_white" -> R.drawable.user_bishop_white
-        "user_bishop_black" -> R.drawable.user_bishop_black
-        "enemy_bishop_white" -> R.drawable.enemy_bishop_white
-        "enemy_bishop_black" -> R.drawable.enemy_bishop_black
+        "user_bishop_white" -> R.drawable.bishop_white
+        "user_bishop_black" -> R.drawable.bishop_black
+        "enemy_bishop_white" -> R.drawable.bishop_white
+        "enemy_bishop_black" -> R.drawable.bishop_black
         "user_rook_white" -> R.drawable.user_rook_white
         "user_rook_black" -> R.drawable.user_rook_black
         "enemy_rook_white" -> R.drawable.enemy_rook_white
@@ -469,36 +469,36 @@ private fun get3DPieceScale(type: PieceType, color: PieceColor, perspective: Pie
             PieceColor.WHITE -> when (type) {
                 PieceType.KING -> 1.5f
                 PieceType.QUEEN -> 1.5f
-                PieceType.ROOK -> 1.4f
+                PieceType.ROOK -> 1.5f
                 PieceType.BISHOP -> 1.5f
-                PieceType.KNIGHT -> 1.4f
-                PieceType.PAWN -> 1.1f
+                PieceType.KNIGHT -> 1.5f
+                PieceType.PAWN -> 1.2f
             }
             PieceColor.BLACK -> when (type) {
                 PieceType.KING -> 1.5f
                 PieceType.QUEEN -> 1.5f
-                PieceType.ROOK -> 1.4f
+                PieceType.ROOK -> 1.5f
                 PieceType.BISHOP -> 1.5f
-                PieceType.KNIGHT -> 1.4f
-                PieceType.PAWN -> 1.1f
+                PieceType.KNIGHT -> 1.5f
+                PieceType.PAWN -> 1.2f
             }
         }
     } else {
         when (color) {
             PieceColor.WHITE -> when (type) {
-                PieceType.KING -> 1.4f
-                PieceType.QUEEN -> 1.4f
-                PieceType.ROOK -> 1.2f
-                PieceType.BISHOP -> 1.2f
-                PieceType.KNIGHT -> 1.2f
+                PieceType.KING -> 1.5f
+                PieceType.QUEEN -> 1.5f
+                PieceType.ROOK -> 1.5f
+                PieceType.BISHOP -> 1.5f
+                PieceType.KNIGHT -> 1.5f
                 PieceType.PAWN -> 1.1f
             }
             PieceColor.BLACK -> when (type) {
-                PieceType.KING -> 1.4f
-                PieceType.QUEEN -> 1.4f
-                PieceType.ROOK -> 1.2f
-                PieceType.BISHOP -> 1.2f
-                PieceType.KNIGHT -> 1.2f
+                PieceType.KING -> 1.5f
+                PieceType.QUEEN -> 1.5f
+                PieceType.ROOK -> 1.5f
+                PieceType.BISHOP -> 1.5f
+                PieceType.KNIGHT -> 1.5f
                 PieceType.PAWN -> 1.1f
             }
         }

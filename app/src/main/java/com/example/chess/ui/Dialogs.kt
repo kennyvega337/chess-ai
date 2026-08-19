@@ -53,32 +53,29 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import android.app.Activity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.R
 import com.example.ui.theme.MyApplicationTheme
-import com.example.chess.model.DifficultyLevel
-import com.example.chess.model.GameMode
-import com.example.chess.model.GameStatus
-import com.example.chess.model.PieceColor
-import com.example.chess.model.PieceType
-import com.example.ui.theme.MedievalCrimson
-import com.example.ui.theme.MedievalCrimsonBright
-import com.example.ui.theme.MedievalDarkWood
-import com.example.ui.theme.MedievalEmerald
+import com.example.chess.model.*
+import com.example.chess.data.*
 import com.example.ui.theme.*
 
 @Composable
 fun HideSystemBarsInDialog() {
     val view = LocalView.current
     SideEffect {
-        fun applyHide(win: android.view.Window) {
+        fun applyHide(win: android.view.Window, isDialog: Boolean) {
             WindowCompat.setDecorFitsSystemWindows(win, false)
             win.navigationBarColor = android.graphics.Color.TRANSPARENT
             
-            // Critical for preventing jumps: ensure window is full screen before drawing
-            win.setLayout(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT
-            )
+            if (isDialog) {
+                win.setLayout(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            }
 
             WindowCompat.getInsetsController(win, win.decorView).apply {
                 isAppearanceLightStatusBars = false
@@ -98,177 +95,67 @@ fun HideSystemBarsInDialog() {
             parentView = parentView.parent
         }
 
-        dialogWindow?.let { win ->
-            applyHide(win)
+        if (dialogWindow != null) {
+            applyHide(dialogWindow!!, isDialog = true)
+        } else {
+            (view.context as? Activity)?.window?.let { applyHide(it, isDialog = false) }
         }
     }
 }
 
 @Composable
 fun SideSelectionDialog(
-    initialDifficulty: DifficultyLevel = DifficultyLevel.LEVEL_2,
-    onSideSelected: (PieceColor) -> Unit = {},
-    onSideAndDifficultySelected: (PieceColor, DifficultyLevel) -> Unit = { color, level -> onSideSelected(color) },
-    onDismiss: (() -> Unit)? = null
+    onDismiss: () -> Unit,
+    onSelect: (PieceColor) -> Unit = {}
 ) {
     HideSystemBarsInDialog()
-    var selectedDifficulty by remember { mutableStateOf(initialDifficulty) }
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val isLargeScreen = configuration.smallestScreenWidthDp >= 600
-    val cardWidthAlpha = if (isLargeScreen) 0.6f else if (isLandscape) 0.75f else 0.88f
-
     Dialog(
-        onDismissRequest = { onDismiss?.invoke() },
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false, 
-            decorFitsSystemWindows = false
-        )
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
         HideSystemBarsInDialog()
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f)),
             contentAlignment = Alignment.Center
         ) {
-            Box(
+            Surface(
                 modifier = Modifier
-                    .fillMaxWidth(cardWidthAlpha)
-                    .widthIn(max = 480.dp)
+                    .fillMaxWidth(0.85f)
+                    .widthIn(max = 400.dp)
                     .wrapContentHeight(),
-                contentAlignment = Alignment.TopEnd
+                shape = RoundedCornerShape(24.dp),
+                color = MedievalMidWood,
+                border = androidx.compose.foundation.BorderStroke(3.dp, MedievalGold),
+                shadowElevation = 16.dp
             ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(if (isLandscape) 0.92f else Float.NaN)
-                        .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
-                        .shadow(16.dp, RoundedCornerShape(16.dp))
-                        .testTag("side_selection_dialog"),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MedievalMidWood)
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(ColorWoodDark, ColorWoodDeep)
-                                )
-                            )
-                            .padding(if (isLandscape) 16.dp else 20.dp)
-                            .verticalScroll(rememberScrollState()),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Text(
+                        text = "CHỌN PHE QUÂN",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MedievalGold,
+                        letterSpacing = 2.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Text(
-                            text = "⚔️ CỜ VUA TRUNG CỔ ⚔️",
-                            fontSize = if (isLandscape) 12.sp else 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MedievalGoldLight,
-                            letterSpacing = 2.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 14.dp))
-
-                        Text(
-                            text = "1. Cấp độ đối thủ (Máy):",
-                            style = if (isLandscape) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MedievalParchment,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Start
-                        )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-                        
-                        Text(
-                            text = selectedDifficulty.displayNameVi,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MedievalGoldLight,
-                            fontSize = if (isLandscape) 12.sp else 13.sp,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End
-                        )
-
-                        Slider(
-                            value = selectedDifficulty.level.toFloat(),
-                            onValueChange = { selectedDifficulty = DifficultyLevel.fromInt(it.toInt()) },
-                            valueRange = 1f..7f,
-                            steps = 5,
-                            colors = SliderDefaults.colors(
-                                thumbColor = MedievalGold,
-                                activeTrackColor = MedievalGold,
-                                inactiveTrackColor = ColorDarkBrown,
-                            ),
-                            modifier = Modifier.fillMaxWidth().height(if (isLandscape) 32.dp else 40.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
-
-                        Text(
-                            text = "2. Phe quân của bạn:",
-                            style = if (isLandscape) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MedievalParchment,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Start
-                        )
-
-                        Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf(
-                                Triple(PieceColor.WHITE, "Bạch Vương", "♔"),
-                                Triple(PieceColor.BLACK, "Hắc Vương", "♚")
-                            ).forEach { (color, label, icon) ->
-                                Surface(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .clickable { onSideAndDifficultySelected(color, selectedDifficulty) }
-                                        .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
-                                    color = ColorWoodVariant
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(vertical = if (isLandscape) 6.dp else 10.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(text = icon, fontSize = if (isLandscape) 18.sp else 20.sp, color = MedievalGoldLight)
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MedievalParchment)
-                                    }
-                                }
-                            }
-                        }
-
-                        if (onDismiss != null) {
-                            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 12.dp))
-                            TextButton(
-                                onClick = onDismiss,
-                                modifier = Modifier.height(if (isLandscape) 36.dp else 48.dp)
-                            ) {
-                                Text("Hủy bỏ", color = MedievalSteel, fontSize = 12.sp)
-                            }
-                        }
+                        SideSelectionItem("TRẮNG", "♔", PieceColor.WHITE, onSelect)
+                        SideSelectionItem("ĐEN", "♚", PieceColor.BLACK, onSelect)
                     }
-                }
-
-                if (onDismiss != null) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .offset(x = 10.dp, y = (-10).dp)
-                            .size(34.dp)
-                            .background(ColorWoodMid, CircleShape)
-                            .border(2.dp, MedievalGold, CircleShape)
-                            .shadow(8.dp, CircleShape)
-                    ) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = MedievalGoldLight, modifier = Modifier.size(18.dp))
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    TextButton(onClick = onDismiss) {
+                        Text("ĐÓNG", color = MedievalGoldLight, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -277,61 +164,199 @@ fun SideSelectionDialog(
 }
 
 @Composable
-fun SideOptionCard(
-    title: String,
-    subtitle: String,
-    iconSymbol: String,
-    badgeColor: Color,
-    textColor: Color,
-    borderColor: Color,
-    onClick: () -> Unit,
-    testTag: String
+private fun SideSelectionItem(
+    label: String,
+    icon: String,
+    color: PieceColor,
+    onSelect: (PieceColor) -> Unit
 ) {
-    Surface(
+    val bgColor = if (color == PieceColor.WHITE) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.2f)
+    val textColor = if (color == PieceColor.WHITE) Color.White else Color.Black
+    
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
-            .testTag(testTag),
-        color = ColorWoodSoft
+            .clip(RoundedCornerShape(16.dp))
+            .background(bgColor)
+            .border(2.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .clickable { onSelect(color) }
+            .padding(16.dp)
+            .width(100.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Text(text = icon, fontSize = 48.sp, color = textColor)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = label, fontWeight = FontWeight.Bold, color = MedievalGoldLight)
+    }
+}
+
+@Composable
+fun PawnPromotionDialog(
+    color: PieceColor,
+    onSelectPiece: (PieceType) -> Unit,
+    viewMode: BoardViewMode = BoardViewMode.VIEW_2D
+) {
+    HideSystemBarsInDialog()
+    val choices = listOf(
+        PieceType.QUEEN to "Hậu",
+        PieceType.ROOK to "Xe",
+        PieceType.BISHOP to "Tượng",
+        PieceType.KNIGHT to "Mã"
+    )
+
+    Dialog(
+        onDismissRequest = { /* Force selection */ },
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, dismissOnBackPress = false, dismissOnClickOutside = false)
+    ) {
+        HideSystemBarsInDialog()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.7f)),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
+            Surface(
                 modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(badgeColor)
-                    .border(2.dp, MedievalGold, CircleShape),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth(0.9f)
+                    .widthIn(max = 450.dp)
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(20.dp),
+                color = MedievalDarkWood,
+                border = androidx.compose.foundation.BorderStroke(2.dp, MedievalGold)
             ) {
-                Text(
-                    text = iconSymbol,
-                    fontSize = 28.sp,
-                    color = textColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = MedievalGold,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.width(14.dp))
+                    Text(
+                        text = "PHONG CẤP QUÂN CỜ",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MedievalGold,
+                        textAlign = TextAlign.Center
+                    )
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = MedievalGoldLight
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = MedievalParchmentDark
-                )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Chọn binh chủng thăng cấp cho Tốt:",
+                        fontSize = 12.sp,
+                        color = MedievalParchmentDark
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        choices.forEach { (type, name) ->
+                            val resId = if (viewMode == BoardViewMode.VIEW_3D) {
+                                getPieceDrawable3D(Piece(type, color), color)
+                            } else {
+                                getPieceResource(Piece(type, color))
+                            }
+                            
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF382315))
+                                    .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                    .clickable { onSelectPiece(type) }
+                                    .padding(vertical = 12.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = resId),
+                                    contentDescription = name,
+                                    modifier = Modifier.size(if (viewMode == BoardViewMode.VIEW_3D) 50.dp else 40.dp)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = name, 
+                                    fontSize = 10.sp, 
+                                    fontWeight = FontWeight.Bold, 
+                                    color = MedievalGoldLight,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+private fun getPieceResource(piece: Piece): Int {
+    return when (piece.color) {
+        PieceColor.WHITE -> when (piece.type) {
+            PieceType.PAWN -> R.drawable.white_pawn
+            PieceType.KNIGHT -> R.drawable.white_knight
+            PieceType.BISHOP -> R.drawable.white_bishop
+            PieceType.ROOK -> R.drawable.white_rook
+            PieceType.QUEEN -> R.drawable.white_queen
+            PieceType.KING -> R.drawable.white_king
+        }
+        PieceColor.BLACK -> when (piece.type) {
+            PieceType.PAWN -> R.drawable.black_pawn
+            PieceType.KNIGHT -> R.drawable.black_knight
+            PieceType.BISHOP -> R.drawable.black_bishop
+            PieceType.ROOK -> R.drawable.black_rook
+            PieceType.QUEEN -> R.drawable.black_queen
+            PieceType.KING -> R.drawable.black_king
+        }
+    }
+}
+
+private fun getPieceDrawable3D(piece: Piece, userColor: PieceColor): Int {
+    val prefix = if (piece.color == userColor) "user" else "enemy"
+    val typeStr = when (piece.type) {
+        PieceType.PAWN -> "pawn"
+        PieceType.KNIGHT -> "knight"
+        PieceType.BISHOP -> "bishop"
+        PieceType.ROOK -> "rook"
+        PieceType.QUEEN -> "queen"
+        PieceType.KING -> "king"
+    }
+    val colorStr = if (piece.color == PieceColor.WHITE) "white" else "black"
+
+    return when ("${prefix}_${typeStr}_${colorStr}") {
+        "user_pawn_white" -> R.drawable.user_pawn_white
+        "user_pawn_black" -> R.drawable.user_pawn_black
+        "enemy_pawn_white" -> R.drawable.enemy_pawn_white
+        "enemy_pawn_black" -> R.drawable.enemy_pawn_black
+        "user_knight_white" -> R.drawable.user_knight_white
+        "user_knight_black" -> R.drawable.user_knight_black
+        "enemy_knight_white" -> R.drawable.enemy_knight_white
+        "enemy_knight_black" -> R.drawable.enemy_knight_black
+        "user_bishop_white" -> R.drawable.user_bishop_white
+        "user_bishop_black" -> R.drawable.user_bishop_black
+        "enemy_bishop_white" -> R.drawable.enemy_bishop_white
+        "enemy_bishop_black" -> R.drawable.enemy_bishop_black
+        "user_rook_white" -> R.drawable.user_rook_white
+        "user_rook_black" -> R.drawable.user_rook_black
+        "enemy_rook_white" -> R.drawable.enemy_rook_white
+        "enemy_rook_black" -> R.drawable.enemy_rook_black
+        "user_queen_white" -> R.drawable.user_queen_white
+        "user_queen_black" -> R.drawable.user_queen_black
+        "enemy_queen_white" -> R.drawable.enemy_queen_white
+        "enemy_queen_black" -> R.drawable.enemy_queen_black
+        "user_king_white" -> R.drawable.user_king_white
+        "user_king_black" -> R.drawable.user_king_black
+        "enemy_king_white" -> R.drawable.enemy_king_white
+        "enemy_king_black" -> R.drawable.enemy_king_black
+        else -> R.drawable.white_pawn
     }
 }
 
@@ -341,6 +366,8 @@ fun GameOverDialog(
     winner: PieceColor?,
     userColor: PieceColor,
     gameMode: GameMode = GameMode.VS_AI,
+    difficulty: DifficultyLevel = DifficultyLevel.LEVEL_2,
+    timestamp: Long = 0,
     onPlayAgain: () -> Unit,
     onRestart: () -> Unit,
     onDismiss: () -> Unit,
@@ -350,10 +377,29 @@ fun GameOverDialog(
     val isDraw = gameStatus == GameStatus.STALEMATE || gameStatus == GameStatus.DRAW
     val isResigned = gameStatus == GameStatus.RESIGNED
 
-    val bannerTitle = if (gameMode == GameMode.TWO_PLAYERS) {
-        if (winner != null) "👑 THÔNG BÁO KẾT QUẢ 👑" else "⚖️ HÒA CỜ TRUNG CỔ ⚖️"
-    } else {
-        when {
+    val randomEntry = remember(gameStatus, winner, gameMode, difficulty, timestamp) {
+        val filtered = EndGameMessages.list.filter { msg ->
+            when (gameMode) {
+                GameMode.VS_AI -> {
+                    if (isDraw) {
+                        msg.Mode == "AI" && msg.Level == 0
+                    } else {
+                        msg.Mode == "AI" && msg.IsWon == isWin && msg.Level == difficulty.level
+                    }
+                }
+                GameMode.PUZZLE -> msg.Mode == "PUZZLES" && msg.IsWon == isWin
+                GameMode.ONE_MOVE -> msg.Mode == "ONE_MOVE" && msg.IsWon == isWin
+                else -> false
+            }
+        }
+        if (filtered.isNotEmpty()) filtered.random() else null
+    }
+
+    val bannerTitle = randomEntry?.Title ?: when {
+        gameMode == GameMode.TWO_PLAYERS -> if (winner != null) "👑 THÔNG BÁO KẾT QUẢ 👑" else "⚖️ HÒA CỜ TRUNG CỔ ⚖️"
+        gameMode == GameMode.PUZZLE -> if (isWin) "👑 THIÊN TÀI (HAY MAY MẮN?) 👑" else "💀 QUÁ SỨC RỒI SAO? 💀"
+        gameMode == GameMode.ONE_MOVE -> if (isWin) "🎯 ĐOÁN MÒ THÀNH CÔNG 🎯" else "🤡 BÓ TAY TOÀN TẬP 🤡"
+        else -> when {
             isWin -> "👑 THÔNG BÁO CHIẾN THẮNG 👑"
             isDraw -> "⚖️ HÒA CỜ TRUNG CỔ ⚖️"
             isResigned && !isWin -> "🏳️ BẠN ĐÃ ĐẦU HÀNG 🏳️"
@@ -361,16 +407,20 @@ fun GameOverDialog(
         }
     }
 
-    val mainStatusText = if (gameMode == GameMode.TWO_PLAYERS) {
-        val p1ColorName = if (userColor == PieceColor.WHITE) "TRẮNG" else "ĐEN"
-        val p2ColorName = if (userColor == PieceColor.WHITE) "ĐEN" else "TRẮNG"
-        when (winner) {
-            userColor -> "NGƯỜI CHƠI 1 ($p1ColorName) THẮNG!"
-            userColor.opposite -> "NGƯỜI CHƠI 2 ($p2ColorName) THẮNG!"
-            else -> "TRẬN ĐẤU BẤT PHÂN THẮNG BẠI!"
+    val mainStatusText = when {
+        gameMode == GameMode.TWO_PLAYERS -> {
+            val p1ColorName = if (userColor == PieceColor.WHITE) "TRẮNG" else "ĐEN"
+            val p2ColorName = if (userColor == PieceColor.WHITE) "ĐEN" else "TRẮNG"
+            when (winner) {
+                userColor -> "NGƯỜI CHƠI 1 ($p1ColorName) THẮNG!"
+                userColor.opposite -> "NGƯỜI CHƠI 2 ($p2ColorName) THẮNG!"
+                else -> "TRẬN ĐẤU BẤT PHÂN THẮNG BẠI!"
+            }
         }
-    } else {
-        when {
+        randomEntry != null -> if (isWin) "CHIẾN THẮNG!" else if (isDraw) "HÒA CỜ!" else "BẠN ĐÃ THẤT THỦ!"
+        gameMode == GameMode.PUZZLE -> if (isWin) "TRÌNH ĐỘ... CŨNG TẠM!" else "NÃO ĐANG 'LOAD' SAO?"
+        gameMode == GameMode.ONE_MOVE -> if (isWin) "CHẮC LÀ ĂN MAY THÔI!" else "THUA TRONG TỨC TƯỞI!"
+        else -> when {
             isWin -> "BẠN ĐÃ CHIẾN THẮNG!"
             isDraw -> "TRẬN ĐẤU BẤT PHÂN THẮNG BẠI!"
             isResigned && !isWin -> "BẠN ĐÃ CHỦ ĐỘNG ĐẦU HÀNG!"
@@ -378,16 +428,19 @@ fun GameOverDialog(
         }
     }
 
-    val bodyText = if (gameMode == GameMode.TWO_PLAYERS) {
-        val p1ColorVi = if (userColor == PieceColor.WHITE) "Quân Trắng" else "Quân Đen"
-        val p2ColorVi = if (userColor == PieceColor.WHITE) "Quân Đen" else "Quân Trắng"
-        when (winner) {
-            userColor -> "Chúc mừng Người chơi 1 ($p1ColorVi) đã bằng chiến thuật kiệt xuất giành thắng lợi toàn diện!"
-            userColor.opposite -> "Chúc mừng Người chơi 2 ($p2ColorVi) đã bằng chiến thuật kiệt xuất giành thắng lợi toàn diện!"
-            else -> "Cả hai người chơi đã chiến đấu ngoan cường và hòa ván cờ này."
+    val bodyText = randomEntry?.Message ?: when {
+        gameMode == GameMode.TWO_PLAYERS -> {
+            val p1ColorVi = if (userColor == PieceColor.WHITE) "Quân Trắng" else "Quân Đen"
+            val p2ColorVi = if (userColor == PieceColor.WHITE) "Quân Đen" else "Quân Trắng"
+            when (winner) {
+                userColor -> "Chúc mừng Người chơi 1 ($p1ColorVi) đã bằng chiến thuật kiệt xuất giành thắng lợi toàn diện!"
+                userColor.opposite -> "Chúc mừng Người chơi 2 ($p2ColorVi) đã bằng chiến thuật kiệt xuất giành thắng lợi toàn diện!"
+                else -> "Cả hai người chơi đã chiến đấu ngoan cường và hòa ván cờ này."
+            }
         }
-    } else {
-        when {
+        gameMode == GameMode.PUZZLE -> if (isWin) "Chiếu bí thần sầu! Cuối cùng thì nhà ngươi cũng đã chịu dùng tới bộ não của mình rồi đấy." else "Câu đố này có vẻ hơi 'quá tầm' với bộ óc của ngươi rồi. Thử lại hay đi ngủ cho đỡ nhức đầu?"
+        gameMode == GameMode.ONE_MOVE -> if (isWin) "Chỉ một nước mà cũng thắng? Chắc chắn là nhìn trộm đáp án ở đâu đó rồi chứ gì, đừng hòng lừa ta!" else "Có đúng một nước đi mà cũng làm không xong. Ngươi nên về tập đi quân Tốt cho vững trước khi mơ làm Đại kiện tướng!"
+        else -> when {
             isWin -> "Xuất sắc! Bằng mưu trí và chiến thuật kiệt xuất, bạn đã chiếu bí quân địch và giành toàn thắng."
             isDraw -> "Cả hai phe đã chiến đấu ngoan cường. Thế cờ hòa (Stalemate) không còn nước đi hợp lệ."
             isResigned && !isWin -> "Bạn đã giơ cờ trắng chịu thua ván đấu này. Hãy chuẩn bị lực lượng cho ván mới!"
@@ -427,7 +480,6 @@ fun GameOverDialog(
                 .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Container for centered dialog and close button
             Box(
                 modifier = Modifier
                     .fillMaxWidth(cardWidthAlpha)
@@ -442,61 +494,64 @@ fun GameOverDialog(
                         .shadow(24.dp, RoundedCornerShape(18.dp))
                         .testTag("game_over_dialog"),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MedievalParchment)
+                    colors = CardDefaults.cardColors(containerColor = MedievalDarkWood)
                 ) {
                     Column(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(MedievalParchment, MedievalParchmentDark)
+                                    colors = listOf(Color(0xFF2C190E), Color(0xFF190F08))
                                 )
                             )
-                            .verticalScroll(rememberScrollState())
-                            .padding(22.dp),
+                            .padding(24.dp)
+                            .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = MedievalDarkWood,
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold),
-                            modifier = Modifier.padding(bottom = 12.dp)
+                            color = MedievalGold.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold)
                         ) {
                             Text(
                                 text = bannerTitle,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MedievalGold,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                                letterSpacing = 1.sp,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis
+                                color = MedievalGold,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 14.sp,
+                                letterSpacing = 1.sp
                             )
                         }
 
+                        Spacer(modifier = Modifier.height(20.dp))
+
                         Box(
                             modifier = Modifier
-                                .size(68.dp)
+                                .size(72.dp)
                                 .clip(CircleShape)
                                 .background(accentColor.copy(alpha = 0.15f))
                                 .border(2.5.dp, accentColor, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = if (isWin) Icons.Default.EmojiEvents else if (isDraw) Icons.Default.Security else Icons.Default.SentimentDissatisfied,
+                                imageVector = when {
+                                    isWin -> Icons.Default.EmojiEvents
+                                    isDraw -> Icons.Default.Security
+                                    else -> Icons.Default.SentimentDissatisfied
+                                },
                                 contentDescription = null,
                                 tint = accentColor,
                                 modifier = Modifier.size(40.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
                             text = mainStatusText,
-                            fontSize = 20.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = ColorWoodDark,
+                            color = Color.White,
                             textAlign = TextAlign.Center
                         )
 
@@ -504,15 +559,16 @@ fun GameOverDialog(
 
                         Text(
                             text = bodyText,
-                            fontSize = 13.sp,
-                            color = ColorBrownMuted,
+                            fontSize = 14.sp,
+                            color = MedievalParchment,
                             textAlign = TextAlign.Center,
-                            lineHeight = 18.sp
+                            lineHeight = 20.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                        if (onNextMatch != null && isWin) {
+                        if (onNextMatch != null) {
                             Button(
                                 onClick = onNextMatch,
                                 modifier = Modifier
@@ -541,10 +597,10 @@ fun GameOverDialog(
                         Button(
                             onClick = onRestart,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                                .shadow(8.dp, RoundedCornerShape(12.dp))
-                                .testTag("restart_game_button"),
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .shadow(8.dp, RoundedCornerShape(12.dp))
+                                    .testTag("restart_game_button"),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A)),
                             shape = RoundedCornerShape(12.dp),
                             border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF93C5FD))
@@ -574,13 +630,13 @@ fun GameOverDialog(
                             border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold)
                         ) {
                             Icon(
-                                imageVector = if (gameMode == GameMode.PUZZLE) Icons.Default.Extension else Icons.Default.Refresh,
+                                imageVector = if (gameMode == GameMode.PUZZLE || gameMode == GameMode.ONE_MOVE) Icons.Default.Extension else Icons.Default.Refresh,
                                 contentDescription = null,
                                 tint = MedievalGold
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (gameMode == GameMode.PUZZLE) "ĐỔI CHẾ ĐỘ" else "CHƠI VÁN MỚI",
+                                text = if (gameMode == GameMode.PUZZLE || gameMode == GameMode.ONE_MOVE) "ĐỔI CHẾ ĐỘ" else "CHƠI VÁN MỚI",
                                 color = MedievalGold,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
@@ -590,7 +646,6 @@ fun GameOverDialog(
                     }
                 }
 
-                // Overflowing Close Button (X) - Stuck to Top-Right corner
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier
@@ -598,7 +653,7 @@ fun GameOverDialog(
                         .size(34.dp)
                         .background(Color(0xFF382315), CircleShape)
                         .border(2.dp, MedievalGold, CircleShape)
-                        .shadow(4.dp, CircleShape)
+                        .shadow(12.dp, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -606,200 +661,6 @@ fun GameOverDialog(
                         tint = MedievalGoldLight,
                         modifier = Modifier.size(18.dp)
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CheckPopupDialog(
-    onDismiss: () -> Unit
-) {
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(700)
-        onDismiss()
-    }
-
-    val infiniteTransition = rememberInfiniteTransition(label = "check_glow")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(450, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glow_alpha"
-    )
-
-    HideSystemBarsInDialog()
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false, 
-            decorFitsSystemWindows = false
-        )
-    ) {
-        HideSystemBarsInDialog()
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { onDismiss() }
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                ColorCrimsonRich,
-                                Color(0xFF1E0505)
-                            )
-                        )
-                    )
-                    .border(
-                        3.dp,
-                        MedievalCrimsonBright.copy(alpha = glowAlpha),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .border(
-                        1.dp,
-                        MedievalGold.copy(alpha = 0.8f),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .shadow(24.dp, RoundedCornerShape(20.dp))
-                    .padding(20.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(MedievalCrimson.copy(alpha = 0.4f))
-                            .border(2.dp, MedievalGold, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FlashOn,
-                            contentDescription = "Chiếu Tướng",
-                            tint = MedievalGold,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = "⚔️ CHIẾU TƯỚNG! ⚔️",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MedievalGold,
-                        letterSpacing = 2.sp,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Vua đang nằm trong tầm ngắm!",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MedievalParchment,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PawnPromotionDialog(
-    color: PieceColor,
-    onSelectPiece: (PieceType) -> Unit
-) {
-    val choices = listOf(
-        PieceType.QUEEN to "Hậu ♛",
-        PieceType.ROOK to "Xe ♜",
-        PieceType.BISHOP to "Tượng ♝",
-        PieceType.KNIGHT to "Mã ♞"
-    )
-
-    HideSystemBarsInDialog()
-    Dialog(
-        onDismissRequest = { },
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
-    ) {
-        HideSystemBarsInDialog()
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .wrapContentHeight()
-                    .padding(12.dp)
-                    .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
-                    .shadow(16.dp, RoundedCornerShape(16.dp))
-                    .testTag("pawn_promotion_dialog"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MedievalDarkWood)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color(0xFF2C190E), Color(0xFF190F08))
-                            )
-                        )
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "👑 PHONG CẤP HOÀNG GIA 👑",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MedievalGold,
-                        letterSpacing = 1.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Chọn binh chủng thăng cấp cho Tốt:",
-                        fontSize = 12.sp,
-                        color = MedievalParchmentDark
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        choices.forEach { (type, name) ->
-                            val symbol = if (color == PieceColor.WHITE) type.symbolWhite else type.symbolBlack
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF382315))
-                                    .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                                    .clickable { onSelectPiece(type) }
-                                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                            ) {
-                                Text(text = symbol, fontSize = 34.sp)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = name, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MedievalGoldLight)
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -847,7 +708,7 @@ fun RestartConfirmationDialog(
                             modifier = Modifier
                                 .size(64.dp)
                                 .background(Color(0xFF1E3A8A).copy(alpha = 0.2f), CircleShape)
-                                .border(2.dp, Color(0xFF93C5FD), CircleShape),
+                                .border(2.2.dp, Color(0xFF93C5FD), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -1042,7 +903,7 @@ fun ResignConfirmationDialog(
                         .offset(x = 10.dp, y = (-10).dp)
                         .size(34.dp)
                         .background(Color(0xFF382315), CircleShape)
-                        .border(2.dp, MedievalGold, CircleShape)
+                        .border(2.2.dp, MedievalGold, CircleShape)
                         .shadow(8.dp, CircleShape)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = MedievalGoldLight, modifier = Modifier.size(18.dp))
@@ -1125,7 +986,7 @@ fun CapturedPiecesDialog(
                                 .size(46.dp)
                                 .clip(CircleShape)
                                 .background(MedievalGold.copy(alpha = 0.15f))
-                                .border(2.dp, MedievalGold, CircleShape),
+                                .border(2.2.dp, MedievalGold, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -1224,7 +1085,7 @@ fun CapturedPiecesDialog(
                         .offset(x = 10.dp, y = (-10).dp)
                         .size(34.dp)
                         .background(Color(0xFF382315), CircleShape)
-                        .border(2.dp, MedievalGold, CircleShape)
+                        .border(2.2.dp, MedievalGold, CircleShape)
                         .shadow(4.dp, CircleShape)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = MedievalGoldLight, modifier = Modifier.size(18.dp))
@@ -1263,13 +1124,211 @@ private fun CapturedPieceSection(title: String, capturedList: List<PieceType>, o
     }
 }
 
-@Preview(showBackground = true, widthDp = 800, heightDp = 400)
 @Composable
-fun SideSelectionDialogLandscapePreview() {
-    MyApplicationTheme {
-        SideSelectionDialog(onDismiss = {})
+fun SaveGameConfirmationDialog(
+    onConfirm: (Boolean) -> Unit,
+    onCancel: () -> Unit
+) {
+    HideSystemBarsInDialog()
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        HideSystemBarsInDialog()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 400.dp)
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(16.dp),
+                color = MedievalMidWood,
+                border = androidx.compose.foundation.BorderStroke(2.dp, MedievalGold)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = null,
+                        tint = MedievalGold,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "LƯU VÁN CỜ?",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MedievalGold
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Bạn có muốn lưu lại ván cờ hiện tại để tiếp tục vào lần sau không?",
+                        textAlign = TextAlign.Center,
+                        color = MedievalParchment,
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = { onConfirm(false) },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MedievalCrimson),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.2.dp, MedievalCrimsonBright)
+                        ) {
+                            Text("KHÔNG LƯU", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = { onConfirm(true) },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MedievalEmerald),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MedievalGoldLight)
+                        ) {
+                            Text("ĐỒNG Ý LƯU", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    TextButton(onClick = onCancel) {
+                        Text("QUAY LẠI", color = MedievalGoldLight, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
     }
 }
+
+@Composable
+fun CheckPopupDialog(
+    onDismiss: () -> Unit
+) {
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(700)
+        onDismiss()
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "check_glow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(450, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glow_alpha"
+    )
+
+    HideSystemBarsInDialog()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        HideSystemBarsInDialog()
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onDismiss() }
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                ColorCrimsonRich,
+                                Color(0xFF1E0505)
+                            )
+                        )
+                    )
+                    .border(
+                        3.dp,
+                        MedievalCrimsonBright.copy(alpha = glowAlpha),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .border(
+                        1.dp,
+                        MedievalGold.copy(alpha = 0.8f),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .shadow(24.dp, RoundedCornerShape(20.dp))
+                    .padding(20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(MedievalCrimson.copy(alpha = 0.4f))
+                            .border(2.dp, MedievalGold, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FlashOn,
+                            contentDescription = "Chiếu Tướng",
+                            tint = MedievalGold,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "⚔️ CHIẾU TƯỚNG! ⚔️",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MedievalGold,
+                        letterSpacing = 2.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Vua đang nằm trong tầm ngắm!",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MedievalParchment,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable
@@ -1278,7 +1337,7 @@ fun GameOverDialogTwoPlayersPreview() {
         GameOverDialog(
             gameStatus = GameStatus.CHECKMATE,
             winner = PieceColor.BLACK,
-            userColor = PieceColor.BLACK, // Player 1 is Black and won
+            userColor = PieceColor.BLACK,
             gameMode = GameMode.TWO_PLAYERS,
             onPlayAgain = {},
             onRestart = {},
