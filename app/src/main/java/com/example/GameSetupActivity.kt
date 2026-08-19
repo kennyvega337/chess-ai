@@ -14,6 +14,7 @@ import com.example.chess.model.GameStatus
 import com.example.chess.model.GameTimerOption
 import com.example.chess.model.PieceType
 import com.example.chess.model.SideOption
+import com.example.chess.model.SpecialTutorialType
 import com.example.ui.theme.MyApplicationTheme
 import com.example.chess.ui.GameSetupScreen
 
@@ -56,6 +57,9 @@ class GameSetupActivity : ComponentActivity() {
                     onStartTutorialPiece = { pieceType ->
                         launchGame(SideOption.WHITE, DifficultyLevel.LEVEL_1, GameMode.TUTORIAL, GameTimerOption.NONE, null, pieceType)
                     },
+                    onStartSpecialMove = { specialType ->
+                        launchSpecialMove(specialType)
+                    },
                     onStartPuzzle = { fen, category, level ->
                         launchPuzzle(fen, category, level, selectedGameMode)
                     },
@@ -73,6 +77,16 @@ class GameSetupActivity : ComponentActivity() {
             putExtra("PUZZLE_CATEGORY", category)
             putExtra("PUZZLE_LEVEL", level)
             putExtra(MainActivity.EXTRA_GAME_MODE, mode.name)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    private fun launchSpecialMove(type: SpecialTutorialType) {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            putExtra(MainActivity.EXTRA_GAME_MODE, GameMode.SPECIAL_MOVE.name)
+            putExtra("EXTRA_SPECIAL_MOVE_TYPE", type.name)
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         startActivity(intent)

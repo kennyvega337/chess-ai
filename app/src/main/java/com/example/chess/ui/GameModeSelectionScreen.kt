@@ -230,7 +230,7 @@ private fun GameModeSelectionBox(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                GameMode.values().forEach { mode ->
+                GameMode.values().filter { it != GameMode.SPECIAL_MOVE }.forEach { mode ->
                     ModeButton(mode = mode, isLandscape = false, onClick = { onSelectMode(mode) })
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -295,6 +295,7 @@ private fun ModeButton(
         GameMode.PUZZLE -> "GIẢI ĐỐ CỜ VUA" to "🧩"
         GameMode.ONE_MOVE -> "THỬ THÁCH 1 NƯỚC" to "🎯"
         GameMode.TUTORIAL -> "HƯỚNG DẪN QUÂN CỜ" to "📖"
+        else -> "" to "" // GameMode.SPECIAL_MOVE handled by filter
     }
 
     Surface(

@@ -74,6 +74,7 @@ import com.example.chess.model.GameStatus
 import com.example.chess.model.GameTimerOption
 import com.example.chess.model.PieceType
 import com.example.chess.model.SideOption
+import com.example.chess.model.SpecialTutorialType
 import com.example.ui.theme.*
 
 import android.content.res.Configuration
@@ -112,9 +113,12 @@ fun GameSetupScreen(
     initialCustomMinutes: Int = 10,
     onStartGame: (SideOption, DifficultyLevel, GameMode, GameTimerOption, Int?) -> Unit,
     onStartTutorialPiece: ((PieceType) -> Unit)? = null,
+    onStartSpecialMove: ((SpecialTutorialType) -> Unit)? = null,
     onStartPuzzle: ((String, String, Int) -> Unit)? = null,
     onBack: (() -> Unit)? = null,
-    completedPuzzles: Set<String> = emptySet()
+    completedPuzzles: Set<String> = emptySet(),
+    lastPuzzleCategory: String? = null,
+    lastPuzzleLevel: Int? = null
 ) {
     var selectedSide by rememberSaveable { mutableStateOf(initialSideOption) }
     var selectedDifficulty by rememberSaveable { mutableStateOf(initialDifficulty) }
@@ -163,11 +167,11 @@ fun GameSetupScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    if (selectedGameMode == GameMode.PUZZLE || selectedGameMode == GameMode.ONE_MOVE || selectedGameMode == GameMode.TUTORIAL) {
+                    if (selectedGameMode == GameMode.PUZZLE || selectedGameMode == GameMode.ONE_MOVE || selectedGameMode == GameMode.TUTORIAL || selectedGameMode == GameMode.SPECIAL_MOVE) {
                         BackHomeButton(onBack, isLandscape = true)
                     }
 
-                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE) {
+                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE && selectedGameMode != GameMode.SPECIAL_MOVE) {
                         MatchPreviewCard(
                             selectedSide,
                             selectedDifficulty,
@@ -263,10 +267,19 @@ fun GameSetupScreen(
                             )
                             TwoPlayersInfoCard(isLandscape = true)
                         }
-                        GameMode.TUTORIAL -> {
+                        GameMode.TUTORIAL, GameMode.SPECIAL_MOVE -> {
                             TutorialPieceSelectionCard(
                                 onSelectPiece = { pieceType ->
                                     onStartTutorialPiece?.invoke(pieceType)
+                                },
+                                isLandscape = true
+                            )
+                            
+                            Spacer(modifier = Modifier.height(10.dp))
+                            
+                            SpecialMovesSelectionCard(
+                                onSelectSpecialMove = { moveType ->
+                                    onStartSpecialMove?.invoke(moveType)
                                 },
                                 isLandscape = true
                             )
@@ -276,7 +289,9 @@ fun GameSetupScreen(
                                 gameMode = GameMode.PUZZLE,
                                 completedPuzzles = completedPuzzles,
                                 onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) },
-                                isLandscape = true
+                                isLandscape = true,
+                                lastPuzzleCategory = lastPuzzleCategory,
+                                lastPuzzleLevel = lastPuzzleLevel
                             )
                         }
                         GameMode.ONE_MOVE -> {
@@ -284,7 +299,9 @@ fun GameSetupScreen(
                                 gameMode = GameMode.ONE_MOVE,
                                 completedPuzzles = completedPuzzles,
                                 onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) },
-                                isLandscape = true
+                                isLandscape = true,
+                                lastPuzzleCategory = lastPuzzleCategory,
+                                lastPuzzleLevel = lastPuzzleLevel
                             )
                         }
                     }
@@ -372,10 +389,18 @@ fun GameSetupScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
                         }
-                        GameMode.TUTORIAL -> {
+                        GameMode.TUTORIAL, GameMode.SPECIAL_MOVE -> {
                             TutorialPieceSelectionCard(
                                 onSelectPiece = { pieceType ->
                                     onStartTutorialPiece?.invoke(pieceType)
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            SpecialMovesSelectionCard(
+                                onSelectSpecialMove = { moveType ->
+                                    onStartSpecialMove?.invoke(moveType)
                                 }
                             )
 
@@ -387,7 +412,9 @@ fun GameSetupScreen(
                             PuzzleSelectionCard(
                                 gameMode = GameMode.PUZZLE,
                                 completedPuzzles = completedPuzzles,
-                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) }
+                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) },
+                                lastPuzzleCategory = lastPuzzleCategory,
+                                lastPuzzleLevel = lastPuzzleLevel
                             )
 
                             BackHomeButton(onBack)
@@ -398,7 +425,9 @@ fun GameSetupScreen(
                             PuzzleSelectionCard(
                                 gameMode = GameMode.ONE_MOVE,
                                 completedPuzzles = completedPuzzles,
-                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) }
+                                onSelectPuzzle = { fen, cat, lvl -> onStartPuzzle?.invoke(fen, cat, lvl) },
+                                lastPuzzleCategory = lastPuzzleCategory,
+                                lastPuzzleLevel = lastPuzzleLevel
                             )
 
                             BackHomeButton(onBack)
@@ -407,7 +436,7 @@ fun GameSetupScreen(
                         }
                     }
 
-                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE) {
+                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE && selectedGameMode != GameMode.SPECIAL_MOVE) {
                         MatchPreviewCard(
                             selectedSide,
                             selectedDifficulty,
@@ -420,7 +449,7 @@ fun GameSetupScreen(
                     }
                 }
 
-                if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE) {
+                if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE && selectedGameMode != GameMode.SPECIAL_MOVE) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -869,6 +898,116 @@ private fun TutorialPieceSelectionCard(
                                 )
                                 Text(
                                     text = note,
+                                    fontSize = if (isLandscape) 10.sp else 11.sp,
+                                    color = MedievalGoldLight,
+                                    lineHeight = if (isLandscape) 12.sp else 14.sp
+                                )
+                            }
+
+                            Text(
+                                text = "➔",
+                                fontSize = if (isLandscape) 10.sp else 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MedievalGold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpecialMovesSelectionCard(
+    onSelectSpecialMove: (SpecialTutorialType) -> Unit,
+    isLandscape: Boolean = false
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.5.dp, MedievalGold, RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MedievalMidWood.copy(alpha = 0.9f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (isLandscape) 10.dp else 14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = MedievalGold,
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "NƯỚC ĐI ĐẶC BIỆT",
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MedievalGold
+                )
+            }
+
+            Text(
+                text = "Các quy tắc di chuyển nâng cao trong cờ vua:",
+                fontSize = if (isLandscape) 10.5.sp else 11.5.sp,
+                color = MedievalParchmentDark,
+                modifier = Modifier.padding(top = 2.dp, bottom = if (isLandscape) 6.dp else 10.dp)
+            )
+
+            val specialMoves = listOf(
+                SpecialTutorialType.CASTLING_KINGSIDE,
+                SpecialTutorialType.CASTLING_QUEENSIDE,
+                SpecialTutorialType.PAWN_PROMOTION,
+                SpecialTutorialType.EN_PASSANT
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(if (isLandscape) 4.dp else 8.dp)) {
+                specialMoves.forEach { moveType ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onSelectSpecialMove(moveType) }
+                            .border(1.dp, MedievalGold.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
+                        color = Color(0xFF23150B)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = if (isLandscape) 8.dp else 12.dp, vertical = if (isLandscape) 6.dp else 9.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(if (isLandscape) 28.dp else 34.dp)
+                                    .clip(CircleShape)
+                                    .background(MedievalGold.copy(alpha = 0.2f))
+                                    .border(1.dp, MedievalGold, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FlashOn,
+                                    contentDescription = null,
+                                    tint = MedievalGoldLight,
+                                    modifier = Modifier.size(if (isLandscape) 16.dp else 20.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = moveType.displayNameVi,
+                                    fontSize = if (isLandscape) 12.5.sp else 13.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MedievalParchment
+                                )
+                                Text(
+                                    text = moveType.description,
                                     fontSize = if (isLandscape) 10.sp else 11.sp,
                                     color = MedievalGoldLight,
                                     lineHeight = if (isLandscape) 12.sp else 14.sp
@@ -1407,7 +1546,9 @@ private fun PuzzleSelectionCard(
     gameMode: GameMode,
     completedPuzzles: Set<String>,
     onSelectPuzzle: (String, String, Int) -> Unit,
-    isLandscape: Boolean = false
+    isLandscape: Boolean = false,
+    lastPuzzleCategory: String? = null,
+    lastPuzzleLevel: Int? = null
 ) {
     Card(
         modifier = Modifier
@@ -1457,7 +1598,9 @@ private fun PuzzleSelectionCard(
                 )
             }
 
-            var expandedCategory by remember { mutableStateOf<String?>(null) }
+            var expandedCategory by remember { mutableStateOf<String?>(lastPuzzleCategory) }
+            // Theo dõi xem đã thực hiện cuộn lần đầu khi quay lại chưa
+            var hasAutoScrolled by remember(lastPuzzleCategory, lastPuzzleLevel) { mutableStateOf(false) }
 
             Column(verticalArrangement = Arrangement.spacedBy(if (isLandscape) 6.dp else 8.dp)) {
                 categories.forEach { (name, puzzles) ->
@@ -1466,9 +1609,15 @@ private fun PuzzleSelectionCard(
                         puzzles = puzzles,
                         completedPuzzles = completedPuzzles,
                         isExpanded = expandedCategory == name,
-                        onToggle = { expandedCategory = if (expandedCategory == name) null else name },
+                        onToggle = { 
+                            expandedCategory = if (expandedCategory == name) null else name 
+                            // Nếu người dùng nhấn vào danh mục khác hoặc đóng lại, coi như đã xử lý xong trạng thái tự động
+                            if (expandedCategory != lastPuzzleCategory) hasAutoScrolled = true
+                        },
                         onSelectPuzzle = onSelectPuzzle,
-                        isLandscape = isLandscape
+                        isLandscape = isLandscape,
+                        lastPuzzleLevel = if (expandedCategory == name && name == lastPuzzleCategory && !hasAutoScrolled) lastPuzzleLevel else null,
+                        onInitialScrollDone = { if (name == lastPuzzleCategory) hasAutoScrolled = true }
                     )
                 }
             }
@@ -1484,8 +1633,32 @@ private fun PuzzleCategoryItem(
     isExpanded: Boolean,
     onToggle: () -> Unit,
     onSelectPuzzle: (String, String, Int) -> Unit,
-    isLandscape: Boolean = false
+    isLandscape: Boolean = false,
+    lastPuzzleLevel: Int? = null,
+    onInitialScrollDone: (() -> Unit)? = null
 ) {
+    // Khởi tạo index để tránh bị nhảy (chớp) từ level 1
+    val initialIndex = remember(lastPuzzleLevel) {
+        if (lastPuzzleLevel != null) {
+            puzzles.indexOfFirst { it.level == lastPuzzleLevel }.coerceAtLeast(0)
+        } else 0
+    }
+    
+    val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState(
+        initialFirstVisibleItemIndex = initialIndex
+    )
+
+    // Sử dụng animateScrollToItem để có hiệu ứng mượt mà nếu cần cuộn lại
+    if (isExpanded && lastPuzzleLevel != null) {
+        androidx.compose.runtime.LaunchedEffect(lastPuzzleLevel) {
+            val index = puzzles.indexOfFirst { it.level == lastPuzzleLevel }
+            if (index >= 0 && gridState.firstVisibleItemIndex != index) {
+                gridState.animateScrollToItem(index)
+            }
+            onInitialScrollDone?.invoke()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1517,6 +1690,7 @@ private fun PuzzleCategoryItem(
 
         AnimatedVisibility(visible = isExpanded) {
             LazyVerticalGrid(
+                state = gridState,
                 columns = GridCells.Fixed(if (isLandscape) 8 else 5),
                 modifier = Modifier
                     .fillMaxWidth()

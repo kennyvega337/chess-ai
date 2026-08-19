@@ -85,7 +85,15 @@ enum class GameMode(val displayNameVi: String, val subtitleVi: String) {
     TWO_PLAYERS("2 Người Chơi", "Chơi 2 người trên cùng 1 máy"),
     PUZZLE("Giải Đố", "Thử thách chiếu bí trong X nước"),
     ONE_MOVE("1 Nước Đi", "Thử thách chiếu bí trong 1 nước"),
-    TUTORIAL("Hướng Dẫn", "Học cách đi cờ 6 quân")
+    TUTORIAL("Hướng Dẫn", "Học cách đi cờ 6 quân"),
+    SPECIAL_MOVE("Nước Đi Đặc Biệt", "Học các quy tắc đặc biệt")
+}
+
+enum class SpecialTutorialType(val displayNameVi: String, val description: String) {
+    CASTLING_KINGSIDE("Vua nhập thành", "Nhập thành phía cánh Vua (Castling - King side)"),
+    CASTLING_QUEENSIDE("Hậu nhập thành", "Nhập thành phía cánh Hậu (Castling - Queen side)"),
+    PAWN_PROMOTION("Phong cấp Tốt", "Khi Tốt đi đến hàng cuối cùng (Pawn Promotion)"),
+    EN_PASSANT("Bắt tốt qua đường", "Bắt Tốt của đối phương khi vừa tiến 2 ô (En Passant)")
 }
 
 enum class SideOption(val displayNameVi: String, val subtitleVi: String, val iconSymbol: String) {

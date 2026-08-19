@@ -49,6 +49,7 @@ data class ChessUiState(
     val pendingPromotionMove: Move? = null,
     val hintMove: Move? = null,
     val tutorialPiece: PieceType? = null,
+    val specialTutorialType: SpecialTutorialType? = null,
     val boardViewMode: com.example.chess.model.BoardViewMode = com.example.chess.model.BoardViewMode.VIEW_2D,
     val checkingPieces: List<Position> = emptyList(),
     val halfMoveClock: Int = 0,
@@ -1558,6 +1559,91 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             lastMove = null,
             hintMove = null
         )
+    }
+
+    fun startSpecialMoveTutorial(type: SpecialTutorialType) {
+        val board = ChessBoard(initialize = false)
+        val userColor = PieceColor.WHITE
+        val opponentColor = PieceColor.BLACK
+
+        var primaryPos = Position(7, 4) // Default to King position for castling
+
+        when (type) {
+            SpecialTutorialType.CASTLING_KINGSIDE -> {
+                primaryPos = Position(7, 4)
+                board.setPiece(primaryPos, Piece(PieceType.KING, userColor))
+                board.setPiece(Position(7, 7), Piece(PieceType.ROOK, userColor))
+                board.setPiece(Position(0, 4), Piece(PieceType.KING, opponentColor))
+            }
+            SpecialTutorialType.CASTLING_QUEENSIDE -> {
+                primaryPos = Position(7, 4)
+                board.setPiece(primaryPos, Piece(PieceType.KING, userColor))
+                board.setPiece(Position(7, 0), Piece(PieceType.ROOK, userColor))
+                board.setPiece(Position(0, 4), Piece(PieceType.KING, opponentColor))
+            }
+            SpecialTutorialType.PAWN_PROMOTION -> {
+                primaryPos = Position(1, 3)
+                board.setPiece(primaryPos, Piece(PieceType.PAWN, userColor))
+                board.setPiece(Position(7, 4), Piece(PieceType.KING, userColor))
+                board.setPiece(Position(0, 7), Piece(PieceType.KING, opponentColor))
+            }
+            SpecialTutorialType.EN_PASSANT -> {
+                primaryPos = Position(3, 3)
+                board.setPiece(primaryPos, Piece(PieceType.PAWN, userColor))
+                // Place black pawn at its starting square
+                board.setPiece(Position(1, 4), Piece(PieceType.PAWN, opponentColor))
+                board.setPiece(Position(7, 4), Piece(PieceType.KING, userColor))
+                board.setPiece(Position(0, 4), Piece(PieceType.KING, opponentColor))
+            }
+        }
+
+        val initialTurn = if (type == SpecialTutorialType.EN_PASSANT) opponentColor else userColor
+        val initialSelectedPos = if (type == SpecialTutorialType.EN_PASSANT) null else primaryPos
+        val initialLegalMoves = initialSelectedPos?.let { board.getLegalMovesForPosition(it) } ?: emptyList()
+
+        _uiState.value = ChessUiState(
+            currentScreen = AppScreen.GAME,
+            gameMode = GameMode.SPECIAL_MOVE,
+            board = board,
+            userColor = userColor,
+            currentTurn = initialTurn,
+            selectedPosition = initialSelectedPos,
+            legalMovesForSelected = initialLegalMoves,
+            specialTutorialType = type,
+            gameStatus = GameStatus.IN_PROGRESS,
+            selectedTheme = themeManager.getSelectedTheme(),
+            boardViewMode = themeManager.getSelectedViewMode(),
+            isSoundEnabled = themeManager.isSoundEnabled(),
+            isMoveHintsEnabled = themeManager.isMoveHintsEnabled()
+        )
+
+        // If it's En Passant, trigger the black pawn move automatically
+        if (type == SpecialTutorialType.EN_PASSANT) {
+            viewModelScope.launch {
+                delay(800) // Slightly longer delay for clarity
+                val move = Move(
+                    from = Position(1, 4),
+                    to = Position(3, 4),
+                    piece = Piece(PieceType.PAWN, opponentColor)
+                )
+                // Execute move directly on current state
+                val updatedBoard = _uiState.value.board.copy()
+                updatedBoard.applyMove(move)
+                
+                // After black moves, select the white pawn (primaryPos)
+                val legalMovesForWhitePawn = updatedBoard.getLegalMovesForPosition(primaryPos)
+
+                _uiState.value = _uiState.value.copy(
+                    board = updatedBoard,
+                    currentTurn = userColor,
+                    selectedPosition = primaryPos,
+                    legalMovesForSelected = legalMovesForWhitePawn,
+                    aiLastMove = move,
+                    lastMove = move
+                )
+                SoundManager.playMoveSound(PieceType.PAWN, false, false)
+            }
+        }
     }
 
     fun resetTutorialBoard() {

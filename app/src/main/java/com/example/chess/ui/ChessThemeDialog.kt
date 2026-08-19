@@ -179,7 +179,7 @@ fun ChessThemeDialog(
                         ) {
                             Text(
                                 text = "ÁP DỤNG THAY ĐỔI", 
-                                color = ColorDarkDeep, 
+                                color = ColorDarkDeep,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = if (isLandscape) 13.sp else 14.sp
                             )

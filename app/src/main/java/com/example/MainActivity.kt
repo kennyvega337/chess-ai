@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
         val sideOptionStr = intent.getStringExtra(EXTRA_SIDE_OPTION)
         val difficultyStr = intent.getStringExtra(EXTRA_DIFFICULTY)
         val tutorialPieceStr = intent.getStringExtra(EXTRA_TUTORIAL_PIECE)
+        val specialMoveTypeStr = intent.getStringExtra("EXTRA_SPECIAL_MOVE_TYPE")
         val timerOptionStr = intent.getStringExtra(EXTRA_TIMER_OPTION)
         val customMinutes = if (intent.hasExtra(EXTRA_CUSTOM_MINUTES)) intent.getIntExtra(EXTRA_CUSTOM_MINUTES, 10) else null
 
@@ -82,6 +83,9 @@ class MainActivity : ComponentActivity() {
             } else if (gameMode == GameMode.TUTORIAL && tutorialPieceStr != null) {
                 val pieceType = try { PieceType.valueOf(tutorialPieceStr) } catch (e: Exception) { PieceType.ROOK }
                 viewModel.startTutorialMode(pieceType)
+            } else if (gameMode == GameMode.SPECIAL_MOVE && specialMoveTypeStr != null) {
+                val type = try { com.example.chess.model.SpecialTutorialType.valueOf(specialMoveTypeStr) } catch (e: Exception) { com.example.chess.model.SpecialTutorialType.CASTLING_KINGSIDE }
+                viewModel.startSpecialMoveTutorial(type)
             } else {
                 viewModel.startNewGame(sideOption, difficulty, gameMode, timerOption, customMinutes)
             }

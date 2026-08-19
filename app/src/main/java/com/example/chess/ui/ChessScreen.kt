@@ -75,6 +75,7 @@ import com.example.chess.model.BoardViewMode
 import com.example.chess.model.Position
 import com.example.chess.model.SideOption
 import com.example.chess.model.GameTimerOption
+import com.example.chess.model.SpecialTutorialType
 import com.example.ui.theme.*
 
 import android.app.Activity
@@ -136,6 +137,9 @@ fun ChessScreen(
         onStartTutorialPiece = { pieceType ->
             viewModel.startTutorialMode(pieceType)
         },
+        onStartSpecialMove = { moveType ->
+            viewModel.startSpecialMoveTutorial(moveType)
+        },
         onStartPuzzle = { fen, cat, lvl ->
             viewModel.startPuzzleMode(fen, cat, lvl)
         },
@@ -188,6 +192,7 @@ fun ChessScreenContent(
     state: ChessUiState,
     onStartGame: (SideOption, DifficultyLevel, GameMode, GameTimerOption, Int?) -> Unit,
     onStartTutorialPiece: (PieceType) -> Unit,
+    onStartSpecialMove: (SpecialTutorialType) -> Unit,
     onStartPuzzle: (String, String, Int) -> Unit,
     onReturnToCurrentGame: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -233,9 +238,12 @@ fun ChessScreenContent(
                 initialCustomMinutes = 10, // Default for in-app setup
                 onStartGame = onStartGame,
                 onStartTutorialPiece = onStartTutorialPiece,
+                onStartSpecialMove = onStartSpecialMove,
                 onStartPuzzle = onStartPuzzle,
                 onBack = { onOpenSetupActivity() },
-                completedPuzzles = state.completedPuzzles
+                completedPuzzles = state.completedPuzzles,
+                lastPuzzleCategory = state.puzzleCategory,
+                lastPuzzleLevel = state.puzzleLevel
             )
         }
         AppScreen.GAME -> {
@@ -266,6 +274,7 @@ fun ChessScreenContent(
                 onCloseGameOverModal = onCloseGameOverModal,
                 onCompletePromotion = onCompletePromotion,
                 onStartTutorialPiece = onStartTutorialPiece,
+                onStartSpecialMove = onStartSpecialMove,
                 onNavigateToSetup = onNavigateToSetup,
                 onOpenSetupActivity = onOpenSetupActivity,
                 onConfirmSaveGame = onConfirmSaveGame,
@@ -333,6 +342,7 @@ fun ChessBoardScreenContent(
     onCloseGameOverModal: () -> Unit,
     onCompletePromotion: (PieceType) -> Unit,
     onStartTutorialPiece: (PieceType) -> Unit,
+    onStartSpecialMove: (SpecialTutorialType) -> Unit,
     onNavigateToSetup: () -> Unit,
     onOpenSetupActivity: () -> Unit,
     onConfirmSaveGame: (Boolean) -> Unit,
@@ -397,6 +407,7 @@ fun ChessBoardScreenContent(
                                     text = when (state.gameMode) {
                                         GameMode.TWO_PLAYERS -> "Chế Độ 2 Người Chơi"
                                         GameMode.TUTORIAL -> "Hướng Dẫn Quân Cờ"
+                                        GameMode.SPECIAL_MOVE -> "Nước Đi Đặc Biệt"
                                         else -> "Thách Đấu Máy (${state.difficulty.displayNameVi})"
                                     },
                                     fontSize = 12.sp,
@@ -425,7 +436,7 @@ fun ChessBoardScreenContent(
                                         )
                                     }
                                 }
-                                if (state.gameMode != GameMode.TWO_PLAYERS && state.gameMode != GameMode.TUTORIAL) {
+                                if (state.gameMode != GameMode.TWO_PLAYERS && state.gameMode != GameMode.TUTORIAL && state.gameMode != GameMode.SPECIAL_MOVE) {
                                     IconButton(
                                         onClick = {
                                             if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking && state.currentTurn == state.userColor) {
@@ -495,38 +506,40 @@ fun ChessBoardScreenContent(
                 ) {
                     Spacer(modifier = Modifier.height(5.dp))
                     // Row 1: Icons
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ActionIconButton(
-                            icon = Icons.Default.Undo,
-                            contentDesc = "Hoàn tác",
-                            enabled = state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS,
-                            isLandscape = true,
-                            onClick = { onUndoMove() }
-                        )
-                        ActionIconButton(
-                            icon = Icons.Default.Refresh,
-                            contentDesc = "Chơi lại",
-                            enabled = !state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal),
-                            isLandscape = true,
-                            onClick = { onRestartGame() }
-                        )
-                        ActionIconButton(
-                            icon = Icons.Default.Flag,
-                            contentDesc = "Đầu hàng",
-                            enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
-                            isLandscape = true,
-                            onClick = { onResignRequest() }
-                        )
-                        ActionIconButton(
-                            icon = Icons.Default.Lightbulb,
-                            contentDesc = "Gợi ý",
-                            enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking && state.currentTurn == state.userColor,
-                            isLandscape = true,
-                            onClick = { onShowHint() }
-                        )
+                    if (state.gameMode != GameMode.SPECIAL_MOVE) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ActionIconButton(
+                                icon = Icons.Default.Undo,
+                                contentDesc = "Hoàn tác",
+                                enabled = state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS,
+                                isLandscape = true,
+                                onClick = { onUndoMove() }
+                            )
+                            ActionIconButton(
+                                icon = Icons.Default.Refresh,
+                                contentDesc = "Chơi lại",
+                                enabled = !state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal),
+                                isLandscape = true,
+                                onClick = { onRestartGame() }
+                            )
+                            ActionIconButton(
+                                icon = Icons.Default.Flag,
+                                contentDesc = "Đầu hàng",
+                                enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
+                                isLandscape = true,
+                                onClick = { onResignRequest() }
+                            )
+                            ActionIconButton(
+                                icon = Icons.Default.Lightbulb,
+                                contentDesc = "Gợi ý",
+                                enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking && state.currentTurn == state.userColor,
+                                isLandscape = true,
+                                onClick = { onShowHint() }
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -719,6 +732,11 @@ fun ChessBoardScreenContent(
                             currentTutorialPiece = state.tutorialPiece,
                             onSelectPiece = { pieceType -> onStartTutorialPiece(pieceType) }
                         )
+                    } else if (state.gameMode == GameMode.SPECIAL_MOVE) {
+                        SpecialMoveHeaderBar(
+                            currentType = state.specialTutorialType,
+                            onSelectType = { type -> onStartSpecialMove(type) }
+                        )
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             PlayerCard(
@@ -865,7 +883,7 @@ fun ChessBoardScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (state.gameMode == GameMode.TUTORIAL) {
+                        if (state.gameMode == GameMode.TUTORIAL || state.gameMode == GameMode.SPECIAL_MOVE) {
                             Button(
                                 onClick = { onOpenSetupActivity() },
                                 modifier = Modifier
@@ -1177,6 +1195,87 @@ private fun TutorialHeaderBar(
 }
 
 @Composable
+private fun SpecialMoveHeaderBar(
+    currentType: SpecialTutorialType?,
+    onSelectType: (SpecialTutorialType) -> Unit
+) {
+    val selectedType = currentType ?: SpecialTutorialType.CASTLING_KINGSIDE
+    val types = SpecialTutorialType.entries
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.5.dp, MedievalGold, RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF22140A))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                types.forEach { type ->
+                    val isSelected = selectedType == type
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onSelectType(type) }
+                            .border(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) MedievalGold else Color(0x44D4AF37),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .testTag("special_move_bar_${type.name.lowercase()}"),
+                        color = if (isSelected) MedievalGold.copy(alpha = 0.25f) else Color(0xFF190C05)
+                    ) {
+                        Text(
+                            text = type.displayNameVi,
+                            fontSize = 13.5.sp,
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                            color = if (isSelected) MedievalGoldLight else MedievalParchment,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF170B04), RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0x44D4AF37), RoundedCornerShape(8.dp))
+                    .padding(10.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "⚡ " + selectedType.description,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MedievalParchment,
+                        lineHeight = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "💡 Thực hành các nước đi đặc biệt trong cờ vua",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MedievalGold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ActionIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDesc: String,
@@ -1237,6 +1336,7 @@ fun ChessScreenPreview() {
             ),
             onStartGame = { _, _, _, _, _ -> },
             onStartTutorialPiece = {},
+            onStartSpecialMove = {},
             onStartPuzzle = { _, _, _ -> },
             onReturnToCurrentGame = {},
             onOpenHistory = {},

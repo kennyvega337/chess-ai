@@ -461,7 +461,7 @@ fun GameOverDialog(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
-    val cardWidthAlpha = if (isLargeScreen) 0.65f else if (isLandscape) 0.6f else 0.9f
+    val cardWidthAlpha = if (isLargeScreen) 0.65f else if (isLandscape) 0.55f else 0.9f
 
     HideSystemBarsInDialog()
     Dialog(
@@ -477,13 +477,13 @@ fun GameOverDialog(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(vertical = 12.dp),
+                .padding(vertical = if (isLandscape) 4.dp else 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(cardWidthAlpha)
-                    .widthIn(max = 500.dp)
+                    .widthIn(max = if (isLandscape) 420.dp else 500.dp)
                     .wrapContentHeight(),
                 contentAlignment = Alignment.TopEnd
             ) {
@@ -504,7 +504,7 @@ fun GameOverDialog(
                                     colors = listOf(Color(0xFF2C190E), Color(0xFF190F08))
                                 )
                             )
-                            .padding(24.dp)
+                            .padding(if (isLandscape) 16.dp else 24.dp)
                             .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -515,19 +515,19 @@ fun GameOverDialog(
                         ) {
                             Text(
                                 text = bannerTitle,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = if (isLandscape) 4.dp else 6.dp),
                                 color = MedievalGold,
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 14.sp,
+                                fontSize = if (isLandscape) 12.sp else 14.sp,
                                 letterSpacing = 1.sp
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 20.dp))
 
                         Box(
                             modifier = Modifier
-                                .size(72.dp)
+                                .size(if (isLandscape) 56.dp else 72.dp)
                                 .clip(CircleShape)
                                 .background(accentColor.copy(alpha = 0.15f))
                                 .border(2.5.dp, accentColor, CircleShape),
@@ -541,88 +541,88 @@ fun GameOverDialog(
                                 },
                                 contentDescription = null,
                                 tint = accentColor,
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(if (isLandscape) 30.dp else 40.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 16.dp))
 
                         Text(
                             text = mainStatusText,
-                            fontSize = 22.sp,
+                            fontSize = if (isLandscape) 18.sp else 22.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
                             textAlign = TextAlign.Center
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
 
                         Text(
                             text = bodyText,
-                            fontSize = 14.sp,
+                            fontSize = if (isLandscape) 12.sp else 14.sp,
                             color = MedievalParchment,
                             textAlign = TextAlign.Center,
-                            lineHeight = 20.sp,
+                            lineHeight = if (isLandscape) 18.sp else 20.sp,
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(if (isLandscape) 16.dp else 24.dp))
 
                         if (onNextMatch != null) {
                             Button(
                                 onClick = onNextMatch,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp)
+                                    .height(if (isLandscape) 44.dp else 50.dp)
                                     .shadow(8.dp, RoundedCornerShape(12.dp))
                                     .testTag("next_puzzle_button"),
                                 colors = ButtonDefaults.buttonColors(containerColor = MedievalEmerald),
                                 shape = RoundedCornerShape(12.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold)
                             ) {
-                                Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+                                Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(if (isLandscape) 18.dp else 24.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "VÁN TIẾP THEO",
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
+                                    fontSize = if (isLandscape) 12.sp else 14.sp,
                                     letterSpacing = 1.sp
                                 )
                             }
                             
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 12.dp))
                         }
 
                         Button(
                             onClick = onRestart,
                             modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp)
+                                    .height(if (isLandscape) 44.dp else 50.dp)
                                     .shadow(8.dp, RoundedCornerShape(12.dp))
                                     .testTag("restart_game_button"),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A)),
                             shape = RoundedCornerShape(12.dp),
                             border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF93C5FD))
                         ) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White)
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(if (isLandscape) 18.dp else 24.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "CHƠI LẠI",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
+                                fontSize = if (isLandscape) 12.sp else 14.sp,
                                 letterSpacing = 1.sp
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 12.dp))
 
                         Button(
                             onClick = onPlayAgain,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp)
+                                .height(if (isLandscape) 44.dp else 50.dp)
                                 .shadow(8.dp, RoundedCornerShape(12.dp))
                                 .testTag("play_again_button"),
                             colors = ButtonDefaults.buttonColors(containerColor = MedievalDarkWood),
@@ -632,14 +632,15 @@ fun GameOverDialog(
                             Icon(
                                 imageVector = if (gameMode == GameMode.PUZZLE || gameMode == GameMode.ONE_MOVE) Icons.Default.Extension else Icons.Default.Refresh,
                                 contentDescription = null,
-                                tint = MedievalGold
+                                tint = MedievalGold,
+                                modifier = Modifier.size(if (isLandscape) 18.dp else 24.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (gameMode == GameMode.PUZZLE || gameMode == GameMode.ONE_MOVE) "ĐỔI CHẾ ĐỘ" else "CHƠI VÁN MỚI",
                                 color = MedievalGold,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
+                                fontSize = if (isLandscape) 12.sp else 14.sp,
                                 letterSpacing = 1.sp
                             )
                         }

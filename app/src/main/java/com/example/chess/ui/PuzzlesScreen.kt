@@ -196,6 +196,7 @@ fun PuzzlesScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
+                // COL 1: Điều khiển & Thông tin câu đố
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -204,7 +205,9 @@ fun PuzzlesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 1. Dãy nút chức năng (Undo, Refresh, Hint)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -235,10 +238,54 @@ fun PuzzlesScreen(
                             onClick = { onShowHint() }
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 2. Chế độ & Cấp độ (Đồng nhất với giao diện dọc)
+                    Surface(
+                        color = Color(0xFF450A0A),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFFFCA5A5)),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        val categoryInfo = if (state.puzzleCategory != null && state.puzzleLevel != null) {
+                            " | ${state.puzzleCategory} - Lv.${state.puzzleLevel}"
+                        } else ""
+                        
+                        Text(
+                            text = (if (state.gameMode == GameMode.ONE_MOVE) "🎯 1 Nước" else "🎯 Giải Đố") + categoryInfo,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFCA5A5),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    // 3. Thông tin người chơi & Lượt đi (Sử dụng PlayerCard đồng nhất với giao diện dọc)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(0.95f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        PlayerCard(
+                            isUser = true,
+                            playerColor = state.userColor,
+                            isCurrentTurn = state.currentTurn == state.userColor,
+                            isAiThinking = state.isAiThinking,
+                            capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedBlackPieces else state.capturedWhitePieces,
+                            gameMode = state.gameMode,
+                            gameStatus = state.gameStatus,
+                            winner = state.winner,
+                            title = "THỬ THÁCH",
+                            timeMillis = if (state.userColor == PieceColor.WHITE) state.whiteTimeMillis else state.blackTimeMillis,
+                            timerOption = state.timerOption,
+                            onClick = {}
+                        )
+                    }
+
                     Spacer(modifier = Modifier.weight(1f))
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
+                // COL 2: Bàn cờ (Trung tâm)
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
@@ -268,6 +315,7 @@ fun PuzzlesScreen(
                     )
                 }
 
+                // COL 3: Cài đặt & Trang chủ
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -276,7 +324,8 @@ fun PuzzlesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -302,7 +351,6 @@ fun PuzzlesScreen(
                         )
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         } else {
@@ -324,13 +372,17 @@ fun PuzzlesScreen(
                         border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFFFCA5A5)),
                         modifier = Modifier.padding(top = 0.dp)
                     ) {
+                        val categoryInfo = if (state.puzzleCategory != null && state.puzzleLevel != null) {
+                            " | ${state.puzzleCategory} - Lv.${state.puzzleLevel}"
+                        } else ""
+                        
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Text(
-                                text = if (state.gameMode == GameMode.ONE_MOVE) "🎯 Mục tiêu: Kết thúc ván đấu trong 1 nước" else "🎯 Mục tiêu: Thắng thế cờ",
+                                text = (if (state.gameMode == GameMode.ONE_MOVE) "🎯 1 Nước" else "🎯 Giải Đố") + categoryInfo,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFFCA5A5)
@@ -563,7 +615,9 @@ fun PuzzlesScreenPreview() {
             state = ChessUiState(
                 gameMode = GameMode.PUZZLE,
                 gameStatus = GameStatus.IN_PROGRESS,
-                selectedTheme = ChessTheme.CLASSIC
+                selectedTheme = ChessTheme.CLASSIC,
+                puzzleCategory = "Trung bình",
+                puzzleLevel = 5
             ),
             onOpenCapturedPiecesModal = {},
             onShowHint = {},
@@ -600,7 +654,9 @@ fun PuzzlesScreenLandscapePreview() {
             state = ChessUiState(
                 gameMode = GameMode.PUZZLE,
                 gameStatus = GameStatus.IN_PROGRESS,
-                selectedTheme = ChessTheme.CLASSIC
+                selectedTheme = ChessTheme.CLASSIC,
+                puzzleCategory = "Trung bình",
+                puzzleLevel = 5
             ),
             onOpenCapturedPiecesModal = {},
             onShowHint = {},
