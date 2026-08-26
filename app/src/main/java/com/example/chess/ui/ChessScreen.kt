@@ -51,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -243,7 +244,8 @@ fun ChessScreenContent(
                 onBack = { onOpenSetupActivity() },
                 completedPuzzles = state.completedPuzzles,
                 lastPuzzleCategory = state.puzzleCategory,
-                lastPuzzleLevel = state.puzzleLevel
+                lastPuzzleLevel = state.puzzleLevel,
+                selectedTheme = state.selectedTheme
             )
         }
         AppScreen.GAME -> {
@@ -352,14 +354,25 @@ fun ChessBoardScreenContent(
     val configuration = LocalConfiguration.current
     val useLandscapeLayout = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = Color(state.selectedTheme.darkSquareColor).copy(alpha = 0.4f),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
+    val accentColor = Color(state.selectedTheme.accentColor)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = state.selectedTheme.backgroundColors.map { Color(it) }
+                )
+            )
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            topBar = {
             if (!useLandscapeLayout) {
                 Surface(
-                    color = ColorDarkBrown,
+                    color = Color.Black.copy(alpha = 0.5f),
                     tonalElevation = 4.dp,
                     shadowElevation = 8.dp
                 ) {
@@ -375,7 +388,7 @@ fun ChessBoardScreenContent(
                             text = "⚔️ CỜ VUA TRUNG CỔ ⚔️",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = MedievalGold,
+                            color = accentColor,
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
 
@@ -398,7 +411,7 @@ fun ChessBoardScreenContent(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Logout,
                                         contentDescription = "Quay lại thiết lập",
-                                        tint = MedievalGold,
+                                        tint = accentColor,
                                         modifier = Modifier.size(22.dp).graphicsLayer(rotationZ = 180f)
                                     )
                                 }
@@ -412,7 +425,7 @@ fun ChessBoardScreenContent(
                                     },
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MedievalParchmentDark,
+                                    color = Color.White,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -431,7 +444,7 @@ fun ChessBoardScreenContent(
                                         Icon(
                                             imageVector = Icons.Default.EmojiEvents,
                                             contentDescription = "Bảng Chiến Tích & Điểm Số",
-                                            tint = MedievalGold,
+                                            tint = accentColor,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
@@ -450,7 +463,7 @@ fun ChessBoardScreenContent(
                                         Icon(
                                             imageVector = Icons.Default.Lightbulb,
                                             contentDescription = "Gợi ý nước đi",
-                                            tint = MedievalGold,
+                                            tint = accentColor,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
@@ -462,7 +475,7 @@ fun ChessBoardScreenContent(
                                     Icon(
                                         imageVector = Icons.Default.Palette,
                                         contentDescription = "Đổi chủ đề bàn cờ",
-                                        tint = MedievalGold,
+                                        tint = accentColor,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -473,7 +486,7 @@ fun ChessBoardScreenContent(
                                     Icon(
                                         imageVector = Icons.Default.Settings,
                                         contentDescription = "Cài đặt chung",
-                                        tint = MedievalGold,
+                                        tint = accentColor,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -549,8 +562,8 @@ fun ChessBoardScreenContent(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .fillMaxWidth(0.95f)
-                            .background(Color(0xFF1E3A8A).copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                            .border(1.5.dp, Color(0xFF93C5FD).copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                            .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                            .border(1.5.dp, accentColor.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
                             .padding(6.dp)
                     ) {
                         val userScoreVal = if (state.userColor == PieceColor.WHITE)
@@ -564,7 +577,7 @@ fun ChessBoardScreenContent(
                             text = "$userLabel: ${userScoreVal}đ",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF93C5FD)
+                            color = accentColor
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         PlayerCard(
@@ -664,8 +677,8 @@ fun ChessBoardScreenContent(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .fillMaxWidth(0.95f)
-                            .background(Color(0xFF450A0A).copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                            .border(1.5.dp, Color(0xFF450A0A).copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                            .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                            .border(1.5.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                             .padding(6.dp)
                     ) {
                         val opponentScoreVal = if (state.userColor == PieceColor.WHITE)
@@ -683,7 +696,7 @@ fun ChessBoardScreenContent(
                             text = "$opponentLabel: ${opponentScoreVal}đ",
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFFFCA5A5),
+                            color = Color.White.copy(alpha = 0.8f),
                             maxLines = 1
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -757,11 +770,11 @@ fun ChessBoardScreenContent(
 
                             // Opponent Score Badge - Sát Máy
                             Surface(
-                                color = Color(0xFF450A0A),
+                                color = accentColor.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.2.dp,
-                                    Color(0xFFFCA5A5)
+                                    accentColor.copy(alpha = 0.5f)
                                 ),
                                 modifier = Modifier.padding(top = 0.dp)
                             ) {
@@ -774,7 +787,7 @@ fun ChessBoardScreenContent(
                                         text = if (state.gameMode == GameMode.TWO_PLAYERS) "⚔️ N.Chơi 2:" else "⚔️ Máy:",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFFCA5A5)
+                                        color = accentColor
                                     )
                                     Text(
                                         text = "${opponentScoreVal}đ",
@@ -829,11 +842,11 @@ fun ChessBoardScreenContent(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             // User Score Badge - Sát Bạn
                             Surface(
-                                color = Color(0xFF1E3A8A),
+                                color = accentColor.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.2.dp,
-                                    Color(0xFF93C5FD)
+                                    accentColor
                                 ),
                                 modifier = Modifier.padding(bottom = 0.dp)
                             ) {
@@ -847,7 +860,7 @@ fun ChessBoardScreenContent(
                                         text = badgeLabel,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF93C5FD)
+                                        color = accentColor
                                     )
                                     Text(
                                         text = "${userScoreVal}đ",
@@ -890,14 +903,14 @@ fun ChessBoardScreenContent(
                                     .fillMaxWidth()
                                     .height(44.dp)
                                     .testTag("new_match_button"),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF382315)),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.4f)),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, MedievalGold),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor),
                                 contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Home, contentDescription = null, tint = MedievalGold, modifier = Modifier.size(18.dp))
+                                Icon(imageVector = Icons.Default.Home, contentDescription = null, tint = accentColor, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Trang Chủ", color = MedievalGold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Trang Chủ", color = accentColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         } else {
                             // 1. NÚT HOÀN TÁC
@@ -909,14 +922,14 @@ fun ChessBoardScreenContent(
                                     .height(46.dp)
                                     .testTag("undo_button"),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF382315),
-                                    disabledContainerColor = Color(0xFF382315).copy(alpha = 0.5f)
+                                    containerColor = Color.Black.copy(alpha = 0.4f),
+                                    disabledContainerColor = Color.Black.copy(alpha = 0.2f)
                                 ),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) MedievalGold else MedievalGold.copy(alpha = 0.4f)),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f)),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Undo, contentDescription = "Hoàn tác", tint = if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) MedievalGold else MedievalGold.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                                Icon(imageVector = Icons.Default.Undo, contentDescription = "Hoàn tác", tint = if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
                             }
 
                             // 2. NÚT CHƠI LẠI (RESET)
@@ -928,14 +941,14 @@ fun ChessBoardScreenContent(
                                     .height(46.dp)
                                     .testTag("restart_button"),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF1E3A8A),
-                                    disabledContainerColor = Color(0xFF1E3A8A).copy(alpha = 0.5f)
-                                ), // Xanh dương đậm
+                                    containerColor = Color.Black.copy(alpha = 0.4f),
+                                    disabledContainerColor = Color.Black.copy(alpha = 0.2f)
+                                ),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (!state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal)) Color(0xFF93C5FD) else Color(0xFF93C5FD).copy(alpha = 0.4f)),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (!state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal)) accentColor else accentColor.copy(alpha = 0.4f)),
                                 contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Refresh, contentDescription = "Chơi lại", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(imageVector = Icons.Default.Refresh, contentDescription = "Chơi lại", tint = accentColor, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                             }
 
@@ -948,24 +961,20 @@ fun ChessBoardScreenContent(
                                     .height(46.dp)
                                     .testTag("resign_button"),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF382315),
-                                    disabledContainerColor = Color(0xFF382315).copy(alpha = 0.5f)
+                                    containerColor = Color.Black.copy(alpha = 0.4f),
+                                    disabledContainerColor = Color.Black.copy(alpha = 0.2f)
                                 ),
                                 shape = RoundedCornerShape(10.dp),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.5.dp,
-                                    if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(
-                                        0xFFEF4444
-                                    ) else Color(0xFFEF4444).copy(alpha = 0.4f)
+                                    if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(0xFFEF4444) else Color(0xFFEF4444).copy(alpha = 0.4f)
                                 ),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Flag,
                                     contentDescription = "Đầu hàng",
-                                    tint = if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(
-                                        0xFFEF4444
-                                    ) else Color(0xFFEF4444).copy(alpha = 0.4f),
+                                    tint = if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(0xFFEF4444) else Color(0xFFEF4444).copy(alpha = 0.4f),
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -979,20 +988,21 @@ fun ChessBoardScreenContent(
                                     .height(46.dp)
                                     .testTag("home_button"),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF382315),
-                                    disabledContainerColor = Color(0xFF382315).copy(alpha = 0.5f)
+                                    containerColor = Color.Black.copy(alpha = 0.4f),
+                                    disabledContainerColor = Color.Black.copy(alpha = 0.2f)
                                 ),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) MedievalGold else MedievalGold.copy(alpha = 0.4f)),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) accentColor else accentColor.copy(alpha = 0.4f)),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Home, contentDescription = "Trang chủ", tint = if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) MedievalGold else MedievalGold.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                                Icon(imageVector = Icons.Default.Home, contentDescription = "Trang chủ", tint = if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) accentColor else accentColor.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
                             }
                         }
                     }
                 }
             }
         }
+    }
     }
 
     // Modals and Dialogs
@@ -1011,14 +1021,16 @@ fun ChessBoardScreenContent(
         if (state.showResignConfirmationModal) {
             ResignConfirmationDialog(
                 onConfirmResign = { onConfirmResign() },
-                onCancel = { onCancelResign() }
+                onCancel = { onCancelResign() },
+                selectedTheme = state.selectedTheme
             )
         }
 
         if (state.showRestartConfirmationModal) {
             RestartConfirmationDialog(
                 onConfirmRestart = { onConfirmRestart() },
-                onCancel = { onCancelRestart() }
+                onCancel = { onCancelRestart() },
+                selectedTheme = state.selectedTheme
             )
         }
 
@@ -1061,7 +1073,8 @@ fun ChessBoardScreenContent(
         // Center Medieval Check Popup Dialog
         if (state.showCheckPopup) {
             CheckPopupDialog(
-                onDismiss = { onDismissCheckPopup() }
+                onDismiss = { onDismissCheckPopup() },
+                selectedTheme = state.selectedTheme
             )
         }
 
@@ -1076,7 +1089,8 @@ fun ChessBoardScreenContent(
                 timestamp = state.matchEndTimestamp,
                 onPlayAgain = { onNavigateToSetup() },
                 onRestart = { onRestartGame() },
-                onDismiss = { onCloseGameOverModal() }
+                onDismiss = { onCloseGameOverModal() },
+                selectedTheme = state.selectedTheme
             )
         }
 
@@ -1084,7 +1098,8 @@ fun ChessBoardScreenContent(
             PawnPromotionDialog(
                 color = move.piece.color,
                 onSelectPiece = { type -> onCompletePromotion(type) },
-                viewMode = if (state.gameMode == GameMode.TWO_PLAYERS) BoardViewMode.VIEW_2D else state.boardViewMode
+                viewMode = if (state.gameMode == GameMode.TWO_PLAYERS) BoardViewMode.VIEW_2D else state.boardViewMode,
+                selectedTheme = state.selectedTheme
             )
         }
 
@@ -1276,12 +1291,12 @@ private fun SpecialMoveHeaderBar(
 }
 
 @Composable
-private fun ActionIconButton(
+internal fun ActionIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDesc: String,
     onClick: () -> Unit,
     enabled: Boolean = true,
-    color: Color = MedievalGold,
+    color: Color = MaterialTheme.colorScheme.tertiary,
     showBorder: Boolean = true,
     isLandscape: Boolean = false
 ) {

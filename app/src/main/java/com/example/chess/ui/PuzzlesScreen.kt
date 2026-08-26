@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -78,14 +79,25 @@ fun PuzzlesScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = Color(state.selectedTheme.darkSquareColor).copy(alpha = 0.4f),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    val accentColor = Color(state.selectedTheme.accentColor)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = state.selectedTheme.backgroundColors.map { Color(it) }
+                )
+            )
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             if (!useLandscapeLayout) {
                 Surface(
-                    color = ColorDarkBrown,
+                    color = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.9f),
                     tonalElevation = 4.dp,
                     shadowElevation = 8.dp
                 ) {
@@ -100,7 +112,7 @@ fun PuzzlesScreen(
                             text = "⚔️ CỜ VUA TRUNG CỔ ⚔️",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = MedievalGold,
+                            color = accentColor,
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
 
@@ -121,7 +133,7 @@ fun PuzzlesScreen(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Logout,
                                         contentDescription = "Quay lại thiết lập",
-                                        tint = MedievalGold,
+                                        tint = accentColor,
                                         modifier = Modifier.size(22.dp).graphicsLayer(rotationZ = 180f)
                                     )
                                 }
@@ -130,7 +142,7 @@ fun PuzzlesScreen(
                                     text = if (state.gameMode == GameMode.ONE_MOVE) "Thử Thách 1 Nước" else "Giải Đố Cờ Vua",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MedievalParchmentDark,
+                                    color = accentColor,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -153,7 +165,7 @@ fun PuzzlesScreen(
                                     Icon(
                                         imageVector = Icons.Default.Lightbulb,
                                         contentDescription = "Gợi ý nước đi",
-                                        tint = MedievalGold,
+                                        tint = accentColor,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -164,7 +176,7 @@ fun PuzzlesScreen(
                                     Icon(
                                         imageVector = Icons.Default.Palette,
                                         contentDescription = "Đổi chủ đề bàn cờ",
-                                        tint = MedievalGold,
+                                        tint = accentColor,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -175,7 +187,7 @@ fun PuzzlesScreen(
                                     Icon(
                                         imageVector = Icons.Default.Settings,
                                         contentDescription = "Cài đặt chung",
-                                        tint = MedievalGold,
+                                        tint = accentColor,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -243,9 +255,9 @@ fun PuzzlesScreen(
 
                     // 2. Chế độ & Cấp độ (Đồng nhất với giao diện dọc)
                     Surface(
-                        color = Color(0xFF450A0A),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFFFCA5A5)),
+                        border = androidx.compose.foundation.BorderStroke(1.2.dp, accentColor.copy(alpha = 0.5f)),
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
                         val categoryInfo = if (state.puzzleCategory != null && state.puzzleLevel != null) {
@@ -256,7 +268,7 @@ fun PuzzlesScreen(
                             text = (if (state.gameMode == GameMode.ONE_MOVE) "🎯 1 Nước" else "🎯 Giải Đố") + categoryInfo,
                             fontSize = 9.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFCA5A5),
+                            color = accentColor,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -367,9 +379,9 @@ fun PuzzlesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
-                        color = Color(0xFF450A0A),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFFFCA5A5)),
+                        border = androidx.compose.foundation.BorderStroke(1.2.dp, accentColor.copy(alpha = 0.5f)),
                         modifier = Modifier.padding(top = 0.dp)
                     ) {
                         val categoryInfo = if (state.puzzleCategory != null && state.puzzleLevel != null) {
@@ -385,7 +397,7 @@ fun PuzzlesScreen(
                                 text = (if (state.gameMode == GameMode.ONE_MOVE) "🎯 1 Nước" else "🎯 Giải Đố") + categoryInfo,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFFCA5A5)
+                                color = accentColor
                             )
                         }
                     }
@@ -457,14 +469,14 @@ fun PuzzlesScreen(
                             enabled = if (showNextButton) true else (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS),
                             modifier = Modifier.weight(1f).height(46.dp).testTag(if (showNextButton) "next_puzzle_button_inline" else "undo_button"),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (showNextButton) Color(0xFF065F46) else Color(0xFF382315),
-                                disabledContainerColor = (if (showNextButton) Color(0xFF065F46) else Color(0xFF382315)).copy(alpha = 0.5f)
+                                containerColor = if (showNextButton) MedievalEmerald else Color.Black.copy(alpha = 0.4f),
+                                disabledContainerColor = (if (showNextButton) MedievalEmerald else Color.Black.copy(alpha = 0.4f)).copy(alpha = 0.5f)
                             ),
                             shape = RoundedCornerShape(10.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if (showNextButton) MedievalEmerald else if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) MedievalGold else MedievalGold.copy(alpha = 0.4f)),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if (showNextButton) ColorEmeraldLight else if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f)),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Icon(imageVector = if (showNextButton) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Undo, contentDescription = if (showNextButton) "Ván tiếp theo" else "Hoàn tác", tint = if (showNextButton) Color.White else if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) MedievalGold else MedievalGold.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                            Icon(imageVector = if (showNextButton) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Undo, contentDescription = if (showNextButton) "Ván tiếp theo" else "Hoàn tác", tint = if (showNextButton) Color.White else if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
                         }
 
                         Button(
@@ -472,14 +484,14 @@ fun PuzzlesScreen(
                             enabled = !state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal),
                             modifier = Modifier.weight(1.1f).height(46.dp).testTag("restart_button"),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1E3A8A),
-                                disabledContainerColor = Color(0xFF1E3A8A).copy(alpha = 0.5f)
+                                containerColor = Color.Black.copy(alpha = 0.4f),
+                                disabledContainerColor = Color.Black.copy(alpha = 0.2f)
                             ),
                             shape = RoundedCornerShape(10.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if (!state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal)) Color(0xFF93C5FD) else Color(0xFF93C5FD).copy(alpha = 0.4f)),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if (!state.isAiThinking && (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal)) accentColor else accentColor.copy(alpha = 0.4f)),
                             contentPadding = PaddingValues(horizontal = 4.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Chơi lại", tint = Color.White, modifier = Modifier.size(20.dp))
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Chơi lại", tint = accentColor, modifier = Modifier.size(20.dp))
                         }
 
                         Button(
@@ -487,14 +499,14 @@ fun PuzzlesScreen(
                             enabled = (state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking,
                             modifier = Modifier.weight(1f).height(46.dp).testTag("home_button"),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF382315),
-                                disabledContainerColor = Color(0xFF382315).copy(alpha = 0.5f)
+                                containerColor = Color.Black.copy(alpha = 0.4f),
+                                disabledContainerColor = Color.Black.copy(alpha = 0.2f)
                             ),
                             shape = RoundedCornerShape(10.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) MedievalGold else MedievalGold.copy(alpha = 0.4f)),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) accentColor else accentColor.copy(alpha = 0.4f)),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Home, contentDescription = "Trang chủ", tint = if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) MedievalGold else MedievalGold.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                            Icon(imageVector = Icons.Default.Home, contentDescription = "Trang chủ", tint = if ((state.gameStatus == GameStatus.IN_PROGRESS || state.isGameEndControlsEnabled || state.showGameOverModal) && !state.isAiThinking) accentColor else accentColor.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
                         }
                     }
                 }
@@ -513,7 +525,8 @@ fun PuzzlesScreen(
         if (state.showRestartConfirmationModal) {
             RestartConfirmationDialog(
                 onConfirmRestart = onConfirmRestart,
-                onCancel = onCancelRestart
+                onCancel = onCancelRestart,
+                selectedTheme = state.selectedTheme
             )
         }
 
@@ -541,7 +554,7 @@ fun PuzzlesScreen(
         }
 
         if (state.showCheckPopup) {
-            CheckPopupDialog(onDismiss = { onDismissCheckPopup() })
+            CheckPopupDialog(onDismiss = { onDismissCheckPopup() }, selectedTheme = state.selectedTheme)
         }
 
         if (state.showGameOverModal) {
@@ -555,7 +568,8 @@ fun PuzzlesScreen(
                 onPlayAgain = onNavigateToSetup, // "Đổi chế độ"
                 onRestart = onRestartGame,        // "Chơi lại"
                 onDismiss = onCloseGameOverModal,
-                onNextMatch = if (state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor && !state.isLastPuzzleInCategory) onNextPuzzle else null
+                onNextMatch = if (state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor && !state.isLastPuzzleInCategory) onNextPuzzle else null,
+                selectedTheme = state.selectedTheme
             )
         }
 
@@ -563,51 +577,16 @@ fun PuzzlesScreen(
             PawnPromotionDialog(
                 color = move.piece.color,
                 onSelectPiece = { type -> onCompletePromotion(type) },
-                viewMode = if (state.gameMode == GameMode.TWO_PLAYERS) BoardViewMode.VIEW_2D else state.boardViewMode
+                viewMode = if (state.gameMode == GameMode.TWO_PLAYERS) BoardViewMode.VIEW_2D else state.boardViewMode,
+                selectedTheme = state.selectedTheme
             )
         }
     }
 }
-
-@Composable
-private fun ActionIconButton(
-    icon: ImageVector,
-    contentDesc: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-    color: Color = MedievalGold,
-    showBorder: Boolean = true,
-    isLandscape: Boolean = false
-) {
-    val alpha = if (enabled) 1f else 0.4f
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier
-            .size(20.dp)
-            .then(
-                if (isLandscape) {
-                    Modifier
-                } else {
-                    Modifier
-                        .background(MedievalDarkWood.copy(alpha = 0.6f * alpha), CircleShape)
-                        .then(
-                            if (showBorder) Modifier.border(1.2.dp, color.copy(alpha = alpha), CircleShape)
-                            else Modifier
-                        )
-                }
-            )
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDesc,
-            tint = color.copy(alpha = alpha),
-            modifier = Modifier.size(if (isLandscape) 22.dp else 20.dp)
-        )
-    }
 }
 
-@Preview(showBackground = true, name = "Puzzles Screen Portrait", widthDp = 1024, heightDp = 1600)
+
+@Preview(showBackground = true, name = "Puzzles Screen Portrait", widthDp = 384, heightDp = 854)
 @Composable
 fun PuzzlesScreenPreview() {
     MyApplicationTheme {
@@ -646,7 +625,7 @@ fun PuzzlesScreenPreview() {
     }
 }
 
-@Preview(showBackground = true, name = "Puzzles Screen Landscape", widthDp = 1600, heightDp = 1024)
+@Preview(showBackground = true, name = "Puzzles Screen Landscape", widthDp = 854, heightDp = 384)
 @Composable
 fun PuzzlesScreenLandscapePreview() {
     MyApplicationTheme {

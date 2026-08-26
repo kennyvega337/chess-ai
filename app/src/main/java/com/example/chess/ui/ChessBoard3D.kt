@@ -416,7 +416,7 @@ fun ChessBoard3DPreview() {
             hintMove = null,
             currentTurn = PieceColor.WHITE,
             onSquareClick = {},
-            theme = ChessTheme.WOOD
+            theme = ChessTheme.CLASSIC
         )
     }
 }

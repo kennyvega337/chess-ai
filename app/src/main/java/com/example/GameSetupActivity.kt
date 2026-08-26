@@ -34,15 +34,17 @@ class GameSetupActivity : ComponentActivity() {
         val initialDifficulty = themeManager.getSelectedDifficulty()
         val initialTimer = themeManager.getSelectedTimerOption()
         val initialCustomMinutes = themeManager.getSelectedCustomMinutes()
+        val currentTheme = themeManager.getSelectedTheme()
 
         setContent {
-            MyApplicationTheme {
+            MyApplicationTheme(selectedTheme = currentTheme) {
                 GameSetupScreen(
                     initialSideOption = initialSide,
                     initialDifficulty = initialDifficulty,
                     initialGameMode = selectedGameMode,
                     initialTimerOption = initialTimer,
                     initialCustomMinutes = initialCustomMinutes,
+                    selectedTheme = currentTheme,
                     completedPuzzles = themeManager.getCompletedPuzzles(selectedGameMode),
                     onStartGame = { sideOption, difficulty, gameMode, timerOption, customMinutes ->
                         themeManager.saveSideOption(sideOption)

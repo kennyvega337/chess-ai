@@ -94,14 +94,15 @@ fun PlayerCard(
             .clip(RoundedCornerShape(12.dp))
     }
 
+    val accentColor = MaterialTheme.colorScheme.tertiary
     Surface(
         modifier = surfaceModifier
             .border(
                 width = if (isCurrentTurn) 2.dp else 1.dp,
-                color = if (isCurrentTurn) MedievalGold else Color(0x33D4AF37),
+                color = if (isCurrentTurn) accentColor else accentColor.copy(alpha = 0.3f),
                 shape = RoundedCornerShape(12.dp)
             ),
-        color = if (isCurrentTurn) ColorWoodMid else ColorWoodLight
+        color = if (isCurrentTurn) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
     ) {
         Row(
             modifier = Modifier
@@ -116,14 +117,14 @@ fun PlayerCard(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(if (isHumanPlayer) ColorRoyalBlue else ColorCrimsonDeep)
-                        .border(1.dp, MedievalGold, CircleShape),
+                        .background(accentColor.copy(alpha = 0.2f))
+                        .border(1.5.dp, accentColor, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (isHumanPlayer) Icons.Default.Person else Icons.Default.Computer,
                         contentDescription = null,
-                        tint = MedievalGoldLight,
+                        tint = accentColor,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -173,7 +174,7 @@ fun PlayerCard(
                     if (isLandscape) {
                         Text(
                             text = title ?: (if (playerColor == PieceColor.WHITE) "Quân Trắng" else "Quân Đen"),
-                            color = MedievalGold,
+                            color = accentColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -192,14 +193,14 @@ fun PlayerCard(
 
                             Text(
                                 text = titleText,
-                                color = MedievalParchment,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (playerColor == PieceColor.WHITE) "(Trắng ♔)" else "(Đen ♚)",
-                                color = MedievalGold,
+                                color = accentColor,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
                             )

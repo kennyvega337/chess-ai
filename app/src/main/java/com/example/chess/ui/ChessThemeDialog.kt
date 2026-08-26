@@ -28,6 +28,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.chess.model.BoardViewMode
 import com.example.chess.model.ChessTheme
 import com.example.ui.theme.*
+import  com.example.ui.theme.TextGold
 
 @Composable
 fun ChessThemeDialog(
@@ -45,6 +46,9 @@ fun ChessThemeDialog(
     }
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
+    val previewAccentColor = Color(tempTheme.accentColor)
+    val previewSurfaceColor = Color(tempTheme.surfaceColor)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -72,10 +76,10 @@ fun ChessThemeDialog(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
+                        .border(2.dp, previewAccentColor, RoundedCornerShape(16.dp))
                         .testTag("chess_theme_dialog"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = ColorDarkDeep)
+                    colors = CardDefaults.cardColors(containerColor = previewSurfaceColor)
                 ) {
                     Column(
                         modifier = Modifier
@@ -90,7 +94,7 @@ fun ChessThemeDialog(
                             Icon(
                                 imageVector = Icons.Default.Palette,
                                 contentDescription = null,
-                                tint = MedievalGold,
+                                tint = previewAccentColor,
                                 modifier = Modifier.size(if (isLandscape) 22.dp else 26.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -98,7 +102,7 @@ fun ChessThemeDialog(
                                 text = "GIAO DIỆN BÀN CỜ",
                                 fontSize = if (isLandscape) 16.sp else 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MedievalGoldLight
+                                color = TextGold
                             )
                         }
 
@@ -108,7 +112,7 @@ fun ChessThemeDialog(
                             text = "CHẾ ĐỘ HIỂN THỊ",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MedievalParchment,
+                            color = TextGold.copy(alpha = 0.7f),
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
                         
@@ -121,7 +125,8 @@ fun ChessThemeDialog(
                                 isSelected = tempViewMode == BoardViewMode.VIEW_2D,
                                 onClick = { tempViewMode = BoardViewMode.VIEW_2D },
                                 modifier = Modifier.weight(1f),
-                                height = if (isLandscape) 36.dp else 44.dp
+                                height = if (isLandscape) 36.dp else 44.dp,
+                                accentColor = previewAccentColor
                             )
                             ViewModeButton(
                                 text = "CHẾ ĐỘ 3D",
@@ -133,7 +138,8 @@ fun ChessThemeDialog(
                                 },
                                 enabled = !isTwoPlayers,
                                 modifier = Modifier.weight(1f),
-                                height = if (isLandscape) 36.dp else 44.dp
+                                height = if (isLandscape) 36.dp else 44.dp,
+                                accentColor = previewAccentColor
                             )
                         }
 
@@ -143,7 +149,7 @@ fun ChessThemeDialog(
                             text = "CHỦ ĐỀ BÀN CỜ",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MedievalParchment,
+                            color = TextGold.copy(alpha = 0.7f),
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
 
@@ -159,7 +165,8 @@ fun ChessThemeDialog(
                                     theme = theme,
                                     isSelected = theme.name == tempTheme.name,
                                     onClick = { tempTheme = theme },
-                                    isLandscape = isLandscape
+                                    isLandscape = isLandscape,
+                                    accentColor = previewAccentColor
                                 )
                             }
                         }
@@ -173,13 +180,13 @@ fun ChessThemeDialog(
                                 onDismiss()
                             },
                             modifier = Modifier.fillMaxWidth().height(if (isLandscape) 40.dp else 48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MedievalGold),
+                            colors = ButtonDefaults.buttonColors(containerColor = previewAccentColor),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             Text(
                                 text = "ÁP DỤNG THAY ĐỔI", 
-                                color = ColorDarkDeep,
+                                color = TextGold,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = if (isLandscape) 13.sp else 14.sp
                             )
@@ -193,14 +200,14 @@ fun ChessThemeDialog(
                     modifier = Modifier
                         .offset(x = 10.dp, y = (-10).dp)
                         .size(34.dp)
-                        .background(ColorWoodMid, CircleShape)
-                        .border(2.dp, MedievalGold, CircleShape)
+                        .background(Color.Black.copy(alpha = 0.8f), CircleShape)
+                        .border(2.dp, previewAccentColor, CircleShape)
                         .shadow(4.dp, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Đóng",
-                        tint = MedievalGoldLight,
+                        tint = previewAccentColor,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -216,7 +223,8 @@ private fun ViewModeButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    height: androidx.compose.ui.unit.Dp = 44.dp
+    height: androidx.compose.ui.unit.Dp = 44.dp,
+    accentColor: Color = MaterialTheme.colorScheme.tertiary
 ) {
     val alpha = if (enabled) 1f else 0.4f
     Button(
@@ -224,16 +232,16 @@ private fun ViewModeButton(
         enabled = enabled,
         modifier = modifier.height(height),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) MedievalGold else ColorWoodMid,
-            disabledContainerColor = ColorWoodMid.copy(alpha = 0.5f)
+            containerColor = if (isSelected) accentColor else MaterialTheme.colorScheme.surfaceVariant,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         shape = RoundedCornerShape(8.dp),
-        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, MedievalGold.copy(alpha = 0.3f * alpha)) else null,
+        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.3f * alpha)) else null,
         contentPadding = PaddingValues(0.dp)
     ) {
         Text(
             text = text,
-            color = if (isSelected) ColorDarkDeep else MedievalGoldLight.copy(alpha = alpha),
+            color = if (isSelected) TextGold else TextGold.copy(alpha = alpha),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -245,15 +253,16 @@ private fun ThemeItem(
     theme: ChessTheme,
     isSelected: Boolean,
     onClick: () -> Unit,
-    isLandscape: Boolean = false
+    isLandscape: Boolean = false,
+    accentColor: Color = MaterialTheme.colorScheme.tertiary
 ) {
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) Color(0x33D4AF37) else ColorWoodWarm)
+            .background(if (isSelected) accentColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) MedievalGold else Color(0x33D4AF37),
+                color = if (isSelected) accentColor else Color.Transparent,
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable { onClick() }
@@ -285,7 +294,7 @@ private fun ThemeItem(
         Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
         Text(
             text = theme.displayName,
-            color = if (isSelected) MedievalGoldLight else MedievalParchment,
+            color = if (isSelected) TextGold else TextGold.copy(alpha = 0.7f),
             fontSize = if (isLandscape) 12.sp else 14.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
         )

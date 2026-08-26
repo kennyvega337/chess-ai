@@ -9,6 +9,8 @@ import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameTimerOption
@@ -36,7 +38,8 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MyApplicationTheme {
+            val state by viewModel.uiState.collectAsState()
+            MyApplicationTheme(selectedTheme = state.selectedTheme) {
                 ChessScreen(viewModel = viewModel)
             }
         }

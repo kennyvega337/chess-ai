@@ -87,12 +87,13 @@ fun ChessBoard2D(
     val lightSquareColor = Color(theme.lightSquareColor)
     val darkSquareColor = Color(theme.darkSquareColor)
 
-    var currentBorderColor by remember { mutableStateOf(MedievalGold) }
+    val accentColor = Color(theme.accentColor)
+    var currentBorderColor by remember { mutableStateOf(accentColor) }
 
-    LaunchedEffect(winner) {
+    LaunchedEffect(winner, theme) {
         if (winner != null) {
             val resultColor = if (winner == userColor) ColorRoyalBlue else Color.Red
-            val flashColor = MedievalGold
+            val flashColor = accentColor
             
             // Flashing for 5 seconds (10 cycles of 500ms)
             repeat(10) {
@@ -103,7 +104,7 @@ fun ChessBoard2D(
             }
             currentBorderColor = resultColor
         } else {
-            currentBorderColor = MedievalGold
+            currentBorderColor = accentColor
         }
     }
 
@@ -156,7 +157,7 @@ fun ChessBoard2D(
                 val letter = if (userColor == PieceColor.WHITE) ('a' + i).toString() else ('h' - i).toString()
                 Text(
                     text = letter,
-                    color = Color(0xEEFFFFFF),
+                    color = Color.White.copy(alpha = 0.8f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.ExtraBold,
                     style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)),
@@ -171,7 +172,7 @@ fun ChessBoard2D(
                 val number = if (userColor == PieceColor.WHITE) (8 - i).toString() else (i + 1).toString()
                 Text(
                     text = number,
-                    color = Color(0xEEFFFFFF),
+                    color = Color.White.copy(alpha = 0.8f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.ExtraBold,
                     style = TextStyle(
@@ -249,34 +250,34 @@ fun ChessBoard2D(
                                     }
 
                                     if (isCheckSquare) {
-                                        Box(Modifier.fillMaxSize().background(ColorRedCheck))
-                                        val borderColor = if (currentPiece?.color == userColor) ColorEmeraldLight else ColorGoldAmber
+                                        Box(Modifier.fillMaxSize().background(Color(theme.checkColor).copy(alpha = 0.6f)))
+                                        val borderColor = Color(theme.accentColor)
                                         Box(Modifier.fillMaxSize().border(4.dp, borderColor))
                                     }
                                     if (isCheckingPiece) {
-                                        Box(Modifier.fillMaxSize().background(ColorCrimsonSoft.copy(alpha = 0.8f)))
-                                        val borderColor = if (currentPiece?.color == userColor) ColorEmeraldLight else ColorGoldAmber
+                                        Box(Modifier.fillMaxSize().background(Color(theme.checkColor).copy(alpha = 0.8f)))
+                                        val borderColor = Color(theme.accentColor)
                                         Box(Modifier.fillMaxSize().border(4.dp, borderColor))
                                     }
-                                    if (isSelected) Box(Modifier.fillMaxSize().background(Color(0x8816A34A)))
-                                    if (isAiLastMove) Box(Modifier.fillMaxSize().background(Color(0x66F59E0B)))
+                                    if (isSelected) Box(Modifier.fillMaxSize().background(Color(theme.selectedSquareColor).copy(alpha = 0.5f)))
+                                    if (isAiLastMove) Box(Modifier.fillMaxSize().background(Color(theme.lastMoveColor).copy(alpha = 0.4f)))
                                     if (isMoveHintsEnabled && isLegalTarget) {
                                         if (isCastling) {
                                             // Special Blue highlight for Castling target
                                             Box(
                                                 modifier = Modifier
                                                     .size(squareSize * 0.45f)
-                                                    .background(ColorSkyBlue, CircleShape)
+                                                    .background(Color(theme.legalMoveColor), CircleShape)
                                                     .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape)
                                             )
                                             Text("🛡️", fontSize = 10.sp)
                                         } else if (isCapture) {
-                                            Box(modifier = Modifier.fillMaxSize().border(3.dp, Color.Red))
+                                            Box(modifier = Modifier.fillMaxSize().border(3.dp, Color(theme.captureColor)))
                                         } else {
-                                            Box(modifier = Modifier.size(squareSize * 0.3f).background(Color(0xAA22C55E), CircleShape))
+                                            Box(modifier = Modifier.size(squareSize * 0.3f).background(Color(theme.legalMoveColor), CircleShape))
                                         }
                                     }
-                                    if (isHint) Box(Modifier.fillMaxSize().border(3.dp, Color.Yellow))
+                                    if (isHint) Box(Modifier.fillMaxSize().border(3.dp, Color(theme.accentColor)))
                                 }
                             }
                         }

@@ -40,6 +40,7 @@ fun GeneralSettingsDialog(
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
+    val accentColor = MaterialTheme.colorScheme.tertiary
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -65,10 +66,10 @@ fun GeneralSettingsDialog(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(2.dp, MedievalGold, RoundedCornerShape(16.dp))
+                        .border(2.dp, accentColor, RoundedCornerShape(16.dp))
                         .testTag("general_settings_dialog"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = ColorDarkDeep)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier
@@ -84,7 +85,7 @@ fun GeneralSettingsDialog(
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = null,
-                                tint = MedievalGold,
+                                tint = accentColor,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -92,7 +93,7 @@ fun GeneralSettingsDialog(
                                 text = "CÀI ĐẶT CHUNG",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MedievalGoldLight
+                                color = Color.White
                             )
                         }
 
@@ -150,14 +151,14 @@ fun GeneralSettingsDialog(
                     modifier = Modifier
                         .offset(x = 10.dp, y = (-10).dp)
                         .size(34.dp)
-                        .background(ColorWoodMid, CircleShape)
-                        .border(2.dp, MedievalGold, CircleShape)
+                        .background(Color.Black.copy(alpha = 0.8f), CircleShape)
+                        .border(2.dp, accentColor, CircleShape)
                         .shadow(4.dp, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Đóng",
-                        tint = MedievalGoldLight,
+                        tint = accentColor,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -173,11 +174,12 @@ private fun SettingsRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val accentColor = MaterialTheme.colorScheme.tertiary
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF22140A), RoundedCornerShape(8.dp))
-            .border(1.dp, Color(0x33D4AF37), RoundedCornerShape(8.dp))
+            .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -186,13 +188,13 @@ private fun SettingsRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MedievalGoldLight,
+                tint = accentColor,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = label,
-                color = MedievalParchment,
+                color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -202,10 +204,10 @@ private fun SettingsRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = MedievalGold,
-                checkedTrackColor = MedievalGold.copy(alpha = 0.4f),
+                checkedThumbColor = Color.White,
+                checkedTrackColor = accentColor,
                 uncheckedThumbColor = Color.Gray,
-                uncheckedTrackColor = Color.DarkGray
+                uncheckedTrackColor = Color.Black.copy(alpha = 0.4f)
             )
         )
     }

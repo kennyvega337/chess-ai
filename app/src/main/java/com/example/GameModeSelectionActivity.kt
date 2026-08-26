@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
+import com.example.chess.ui.ChessThemeDialog
 import com.example.chess.ui.GameHistoryDialog
 import com.example.chess.ui.GameModeSelectionScreen
 import com.example.chess.ui.GeneralSettingsDialog
@@ -24,11 +25,14 @@ class GameModeSelectionActivity : ComponentActivity() {
         hideSystemNavigationBars()
 
         val themeManager = com.example.chess.data.ChessThemeManager(this)
+        val currentTheme = themeManager.getSelectedTheme()
 
         setContent {
-            MyApplicationTheme {
+            var currentThemeState by remember { mutableStateOf(currentTheme) }
+            MyApplicationTheme(selectedTheme = currentThemeState) {
                 var showHistory by remember { mutableStateOf(false) }
                 var showSettings by remember { mutableStateOf(false) }
+                var showTheme by remember { mutableStateOf(false) }
                 
                 // Get current game status from intent if returning from game
                 val isGameInProgress = intent.getBooleanExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, false)
@@ -43,6 +47,9 @@ class GameModeSelectionActivity : ComponentActivity() {
                     onOpenSettings = {
                         showSettings = true
                     },
+                    onOpenTheme = {
+                        showTheme = true
+                    },
                     gameStatus = if (isGameInProgress) GameStatus.IN_PROGRESS else GameStatus.NOT_STARTED,
                     onReturnToCurrentGame = {
                         val intent = Intent(this@GameModeSelectionActivity, MainActivity::class.java).apply {
@@ -54,12 +61,29 @@ class GameModeSelectionActivity : ComponentActivity() {
                     hasPersistedGame = themeManager.getPersistedGameState() != null,
                     onLoadPersistedGame = {
                         launchPersistedGame()
-                    }
+                    },
+                    selectedTheme = currentThemeState
                 )
 
                 if (showHistory) {
                     GameHistoryDialog(
                         onDismiss = { showHistory = false }
+                    )
+                }
+
+                if (showTheme) {
+                    ChessThemeDialog(
+                        selectedTheme = currentThemeState,
+                        viewMode = themeManager.getSelectedViewMode(),
+                        gameMode = GameMode.VS_AI, // Default for menu
+                        onThemeSelect = { theme ->
+                            themeManager.saveTheme(theme.name)
+                            currentThemeState = theme
+                        },
+                        onViewModeChange = { mode ->
+                            themeManager.saveViewMode(mode)
+                        },
+                        onDismiss = { showTheme = false }
                     )
                 }
 

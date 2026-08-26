@@ -118,7 +118,7 @@ fun ChessBoardView3DPreview() {
             isCheck = false,
             currentTurn = PieceColor.WHITE,
             onSquareClick = {},
-            theme = ChessTheme.ROYAL,
+            theme = ChessTheme.CLASSIC,
             viewMode = BoardViewMode.VIEW_3D,
             modifier = Modifier.fillMaxSize()
         )
