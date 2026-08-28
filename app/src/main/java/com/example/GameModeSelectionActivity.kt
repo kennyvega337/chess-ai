@@ -15,16 +15,18 @@ import com.example.chess.ui.ChessThemeDialog
 import com.example.chess.ui.GameHistoryDialog
 import com.example.chess.ui.GameModeSelectionScreen
 import com.example.chess.ui.GeneralSettingsDialog
+import com.example.chess.ui.isThemeLight
 import com.example.ui.theme.MyApplicationTheme
 
 class GameModeSelectionActivity : ComponentActivity() {
 
+    private lateinit var themeManager: com.example.chess.data.ChessThemeManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        themeManager = com.example.chess.data.ChessThemeManager(this)
         hideSystemNavigationBars()
-
-        val themeManager = com.example.chess.data.ChessThemeManager(this)
         val currentTheme = themeManager.getSelectedTheme()
 
         setContent {
@@ -67,7 +69,8 @@ class GameModeSelectionActivity : ComponentActivity() {
 
                 if (showHistory) {
                     GameHistoryDialog(
-                        onDismiss = { showHistory = false }
+                        onDismiss = { showHistory = false },
+                        selectedTheme = currentThemeState
                     )
                 }
 
@@ -108,7 +111,8 @@ class GameModeSelectionActivity : ComponentActivity() {
                             themeManager.saveGamePersistenceEnabled(it)
                             save = it
                         },
-                        onDismiss = { showSettings = false }
+                        onDismiss = { showSettings = false },
+                        selectedTheme = currentThemeState
                     )
                 }
             }
@@ -137,9 +141,12 @@ class GameModeSelectionActivity : ComponentActivity() {
 
     private fun hideSystemNavigationBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
+            val currentTheme = themeManager.getSelectedTheme()
+            isAppearanceLightStatusBars = isThemeLight(currentTheme)
+            isAppearanceLightNavigationBars = isThemeLight(currentTheme)
             show(WindowInsetsCompat.Type.statusBars())
             hide(WindowInsetsCompat.Type.navigationBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

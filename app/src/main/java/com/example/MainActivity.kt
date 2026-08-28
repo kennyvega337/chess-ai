@@ -18,6 +18,7 @@ import com.example.chess.model.PieceType
 import com.example.chess.model.SideOption
 import com.example.chess.ui.ChessScreen
 import com.example.chess.ui.ChessViewModel
+import com.example.chess.ui.isThemeLight
 import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -121,6 +122,7 @@ class MainActivity : ComponentActivity() {
 
     private fun hideSystemNavigationBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
 
         @Suppress("DEPRECATION")
@@ -132,10 +134,11 @@ class MainActivity : ComponentActivity() {
         )
 
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false // White status bar icons
-            isAppearanceLightNavigationBars = false
-            show(WindowInsetsCompat.Type.statusBars()) // Keep status bar visible
-            hide(WindowInsetsCompat.Type.navigationBars()) // Hide navigation bar completely
+            val currentTheme = viewModel.uiState.value.selectedTheme
+            isAppearanceLightStatusBars = isThemeLight(currentTheme)
+            isAppearanceLightNavigationBars = isThemeLight(currentTheme)
+            show(WindowInsetsCompat.Type.statusBars())
+            hide(WindowInsetsCompat.Type.navigationBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }

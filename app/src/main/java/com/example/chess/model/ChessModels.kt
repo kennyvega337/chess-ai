@@ -171,26 +171,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFEBE3D5,
             darkSquareColor = 0xFF6B8A5E,
 
-            // 🔥 Đã chỉnh: Từ tối sang sáng ấm
-            backgroundColors = listOf(0xFFE8DDD0, 0xFFD5C8B8),  // Từ #3A3530
-            surfaceColor = 0xFFF0E8DC,                           // Từ #4A4540
+            backgroundColors = listOf(0xFFE8DDD0, 0xFFD5C8B8),
+            surfaceColor = 0xFFF0E8DC,
             accentColor = 0xFF7CAE5A,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF2C2824,          // Đổi từ trắng sang đen
-            secondaryTextColor = 0xFF6A655E,  // Đổi từ xám nhạt sang xám đậm
+            textColor = 0xFF2C2824,
+            secondaryTextColor = 0xFF6A655E,
 
-            borderColor = 0xFFC8BDB0,        // Từ #5A5550
-            dividerColor = 0xFFD5C8BC,        // Từ #4A4540
+            borderColor = 0xFFC8BDB0,
+            dividerColor = 0xFFD5C8BC,
 
             iconColor = 0xFF6A655E,
             iconActiveColor = 0xFF7CAE5A,
 
-            selectedSquareColor = 0x60C7D96C,
-            lastMoveColor = 0x50F5F682,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCE74C3C,
+            // 🔥 Đã chỉnh: Tăng độ tương phản, không trùng màu bàn cờ
+            selectedSquareColor = 0x60FFD54F,    // Vàng sáng
+            lastMoveColor = 0x50FFAB91,          // Cam nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng trong suốt
+            captureColor = 0x40FF5252,           // Đỏ tươi
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF7CAE5A,
             buttonPressedColor = 0xFF5E8A42
@@ -205,26 +205,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFA8BCC4,
             darkSquareColor = 0xFF5A7A8A,
 
-            // 🔥 Đã chỉnh: Từ đen sang xám sáng
-            backgroundColors = listOf(0xFFD5D8DC, 0xFFC4C8CC),  // Từ #2A2E32
-            surfaceColor = 0xFFE0E4E8,                           // Từ #363A3E
+            backgroundColors = listOf(0xFFD5D8DC, 0xFFC4C8CC),
+            surfaceColor = 0xFFE0E4E8,
             accentColor = 0xFF5A9AD9,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF1C2024,          // Đổi sang đen
-            secondaryTextColor = 0xFF5A646E,  // Đổi sang xám đậm
+            textColor = 0xFF1C2024,
+            secondaryTextColor = 0xFF5A646E,
 
-            borderColor = 0xFFB0B8C0,        // Từ #4A5058
-            dividerColor = 0xFFC0C8D0,        // Từ #3A4048
+            borderColor = 0xFFB0B8C0,
+            dividerColor = 0xFFC0C8D0,
 
             iconColor = 0xFF5A646E,
             iconActiveColor = 0xFF5A9AD9,
 
-            selectedSquareColor = 0x607AA9E6,
-            lastMoveColor = 0x505A9AE6,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCE05050,
+            // 🔥 Đã chỉnh: Dùng cam/vàng để tương phản với xanh
+            selectedSquareColor = 0x60FFD740,    // Vàng
+            lastMoveColor = 0x50FFAB91,          // Cam nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF4A90C9,
             buttonPressedColor = 0xFF3A80B5
@@ -239,26 +239,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFD8CCE6,
             darkSquareColor = 0xFF7A5A9A,
 
-            // 🔥 Đã chỉnh: Từ tím đậm sang tím pastel
-            backgroundColors = listOf(0xFFE8DCF0, 0xFFDCCCE6),  // Từ #2A2238
-            surfaceColor = 0xFFF0E8F8,                           // Từ #3A304A
+            backgroundColors = listOf(0xFFE8DCF0, 0xFFDCCCE6),
+            surfaceColor = 0xFFF0E8F8,
             accentColor = 0xFF9A7AD6,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF1C1428,          // Đổi sang đen
-            secondaryTextColor = 0xFF6A5A7A,  // Đổi sang tím đậm
+            textColor = 0xFF1C1428,
+            secondaryTextColor = 0xFF6A5A7A,
 
-            borderColor = 0xFFD0C0DE,        // Từ #4A3A60
-            dividerColor = 0xFFDCCCE6,        // Từ #3A2E4A
+            borderColor = 0xFFD0C0DE,
+            dividerColor = 0xFFDCCCE6,
 
             iconColor = 0xFF6A5A7A,
             iconActiveColor = 0xFF9A7AD6,
 
-            selectedSquareColor = 0x60B08CE6,
-            lastMoveColor = 0x50C89AE6,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCE05060,
+            // 🔥 Đã chỉnh: Dùng vàng/trắng cho tương phản với tím
+            selectedSquareColor = 0x60FFD740,    // Vàng
+            lastMoveColor = 0x50FFE082,          // Vàng nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF9A7AD6,
             buttonPressedColor = 0xFF7A5AB5
@@ -273,26 +273,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFEAD0C8,
             darkSquareColor = 0xFF9A4A3E,
 
-            // 🔥 Đã chỉnh: Từ đỏ đậm sang kem ấm
-            backgroundColors = listOf(0xFFF0E0D8, 0xFFE8D0C8),  // Từ #2A1A18
-            surfaceColor = 0xFFF8ECE4,                           // Từ #3A2622
+            backgroundColors = listOf(0xFFF0E0D8, 0xFFE8D0C8),
+            surfaceColor = 0xFFF8ECE4,
             accentColor = 0xFFD05A4A,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF1C0E0C,          // Đổi sang đen
-            secondaryTextColor = 0xFF6A4A42,  // Đổi sang nâu đỏ
+            textColor = 0xFF1C0E0C,
+            secondaryTextColor = 0xFF6A4A42,
 
-            borderColor = 0xFFDCC0B8,        // Từ #54322C
-            dividerColor = 0xFFE8D0C8,        // Từ #442622
+            borderColor = 0xFFDCC0B8,
+            dividerColor = 0xFFE8D0C8,
 
             iconColor = 0xFF6A4A42,
             iconActiveColor = 0xFFD05A4A,
 
-            selectedSquareColor = 0x60E86A5A,
-            lastMoveColor = 0x50E88A5A,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xFFFF3333,
+            // 🔥 Đã chỉnh: Dùng xanh/xanh dương để tương phản với đỏ
+            selectedSquareColor = 0x6044D4A0,    // Xanh ngọc
+            lastMoveColor = 0x504AD4D4,          // Xanh cyan
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF1744,           // Đỏ hồng
+            checkColor = 0xCCD50000,             // Đỏ
 
             buttonColor = 0xFFD05A4A,
             buttonPressedColor = 0xFFB03A2E
@@ -307,26 +307,26 @@ data class ChessTheme(
             lightSquareColor = 0xFF9AB4C8,
             darkSquareColor = 0xFF2A4A62,
 
-            // 🔥 Đã chỉnh: Từ xanh đậm sang xanh dương sáng
-            backgroundColors = listOf(0xFFD8E8F0, 0xFFC8D8E4),  // Từ #141C24
-            surfaceColor = 0xFFE4F0F8,                           // Từ #1E2A36
+            backgroundColors = listOf(0xFFD8E8F0, 0xFFC8D8E4),
+            surfaceColor = 0xFFE4F0F8,
             accentColor = 0xFF2AC8D8,
             onAccentColor = 0xFF0A1A22,
 
-            textColor = 0xFF0C1420,          // Đổi sang đen
-            secondaryTextColor = 0xFF4A6278,  // Đổi sang xanh đậm
+            textColor = 0xFF0C1420,
+            secondaryTextColor = 0xFF4A6278,
 
-            borderColor = 0xFFB0C8D8,        // Từ #1A4260
-            dividerColor = 0xFFC4D8E8,        // Từ #123048
+            borderColor = 0xFFB0C8D8,
+            dividerColor = 0xFFC4D8E8,
 
             iconColor = 0xFF4A6278,
             iconActiveColor = 0xFF2AC8D8,
 
-            selectedSquareColor = 0x602AC8D8,
-            lastMoveColor = 0x502AB0C0,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x402AC8D8,
-            checkColor = 0xCCFF2266,
+            // 🔥 Đã chỉnh: Dùng cam/vàng cho nổi bật
+            selectedSquareColor = 0x60FFAB00,    // Cam đậm
+            lastMoveColor = 0x50FFD740,          // Vàng
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCE84A40,             // Cam đỏ
 
             buttonColor = 0xFF22B0C0,
             buttonPressedColor = 0xFF1A90A0
@@ -341,26 +341,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFE0E8CC,
             darkSquareColor = 0xFF628A56,
 
-            // 🔥 Đã chỉnh: Từ xanh rêu đậm sang xanh lá sáng
-            backgroundColors = listOf(0xFFE4ECD8, 0xFFD4DEC8),  // Từ #1E281C
-            surfaceColor = 0xFFEFF4E4,                           // Từ #2A3826
+            backgroundColors = listOf(0xFFE4ECD8, 0xFFD4DEC8),
+            surfaceColor = 0xFFEFF4E4,
             accentColor = 0xFF66AA54,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF141A10,          // Đổi sang đen
-            secondaryTextColor = 0xFF4A6240,  // Đổi sang xanh đậm
+            textColor = 0xFF141A10,
+            secondaryTextColor = 0xFF4A6240,
 
-            borderColor = 0xFFC4D0B8,        // Từ #38503C
-            dividerColor = 0xFFD4DEC8,        // Từ #2A3D2E
+            borderColor = 0xFFC4D0B8,
+            dividerColor = 0xFFD4DEC8,
 
             iconColor = 0xFF4A6240,
             iconActiveColor = 0xFF66AA54,
 
-            selectedSquareColor = 0x6090BC70,
-            lastMoveColor = 0x50C8D84A,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCD84A4A,
+            // 🔥 Đã chỉnh: Dùng vàng cam tương phản với xanh lá
+            selectedSquareColor = 0x60FFD740,    // Vàng
+            lastMoveColor = 0x50FFAB91,          // Cam nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF66AA54,
             buttonPressedColor = 0xFF4A8A3A
@@ -375,26 +375,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFD8EEE8,
             darkSquareColor = 0xFF468A96,
 
-            // 🔥 Đã chỉnh: Từ xanh đậm sang xanh ngọc sáng
-            backgroundColors = listOf(0xFFE0F0EC, 0xFFD0E4E0),  // Từ #162A30
-            surfaceColor = 0xFFECF8F4,                           // Từ #1E3840
+            backgroundColors = listOf(0xFFE0F0EC, 0xFFD0E4E0),
+            surfaceColor = 0xFFECF8F4,
             accentColor = 0xFF26B8A8,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF0E1C20,          // Đổi sang đen
-            secondaryTextColor = 0xFF3A6A72,  // Đổi sang xanh đậm
+            textColor = 0xFF0E1C20,
+            secondaryTextColor = 0xFF3A6A72,
 
-            borderColor = 0xFFB8D0CC,        // Từ #285862
-            dividerColor = 0xFFC8DCD8,        // Từ #1A424A
+            borderColor = 0xFFB8D0CC,
+            dividerColor = 0xFFC8DCD8,
 
             iconColor = 0xFF3A6A72,
             iconActiveColor = 0xFF26B8A8,
 
-            selectedSquareColor = 0x6038CCBC,
-            lastMoveColor = 0x503AB0EA,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCE86A7A,
+            // 🔥 Đã chỉnh: Dùng cam/đào tương phản với xanh ngọc
+            selectedSquareColor = 0x60FFAB91,    // Cam nhạt
+            lastMoveColor = 0x50FFCCBC,          // Hồng đào
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF26B8A8,
             buttonPressedColor = 0xFF1A8A7E
@@ -409,26 +409,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFC8D4EA,
             darkSquareColor = 0xFF50608A,
 
-            // 🔥 Đã chỉnh: Từ xanh đậm sang tím xanh sáng
-            backgroundColors = listOf(0xFFE0E4F4, 0xFFD0D4E8),  // Từ #181C2E
-            surfaceColor = 0xFFECE8F8,                           // Từ #222842
+            backgroundColors = listOf(0xFFE0E4F4, 0xFFD0D4E8),
+            surfaceColor = 0xFFECE8F8,
             accentColor = 0xFF6A6EE6,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF0C1020,          // Đổi sang đen
-            secondaryTextColor = 0xFF484C72,  // Đổi sang tím đậm
+            textColor = 0xFF0C1020,
+            secondaryTextColor = 0xFF484C72,
 
-            borderColor = 0xFFC0C8DE,        // Từ #304066
-            dividerColor = 0xFFD0D4E8,        // Từ #222A4E
+            borderColor = 0xFFC0C8DE,
+            dividerColor = 0xFFD0D4E8,
 
             iconColor = 0xFF484C72,
             iconActiveColor = 0xFF6A6EE6,
 
-            selectedSquareColor = 0x607A82F0,
-            lastMoveColor = 0x509AA8F0,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCE84A5E,
+            // 🔥 Đã chỉnh: Dùng vàng/cam tương phản với tím xanh
+            selectedSquareColor = 0x60FFD740,    // Vàng
+            lastMoveColor = 0x50FFE082,          // Vàng nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF6A6EE6,
             buttonPressedColor = 0xFF4A4ECC
@@ -443,26 +443,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFEADCC8,
             darkSquareColor = 0xFFB08860,
 
-            // 🔥 Đã chỉnh: Từ nâu đậm sang vàng cát
-            backgroundColors = listOf(0xFFECE0D0, 0xFFE0D0BC),  // Từ #302620
-            surfaceColor = 0xFFF4E8D8,                           // Từ #42342A
+            backgroundColors = listOf(0xFFECE0D0, 0xFFE0D0BC),
+            surfaceColor = 0xFFF4E8D8,
             accentColor = 0xFFCC8844,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF1A1410,          // Đổi sang đen
-            secondaryTextColor = 0xFF6A5A44,  // Đổi sang nâu
+            textColor = 0xFF1A1410,
+            secondaryTextColor = 0xFF6A5A44,
 
-            borderColor = 0xFFD4C0B0,        // Từ #544438
-            dividerColor = 0xFFE0D0BC,        // Từ #42342A
+            borderColor = 0xFFD4C0B0,
+            dividerColor = 0xFFE0D0BC,
 
             iconColor = 0xFF6A5A44,
             iconActiveColor = 0xFFCC8844,
 
-            selectedSquareColor = 0x60D09468,
-            lastMoveColor = 0x50E09452,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCD84A4A,
+            // 🔥 Đã chỉnh: Dùng xanh dương tương phản với vàng
+            selectedSquareColor = 0x604490D4,    // Xanh dương
+            lastMoveColor = 0x505A9AD4,          // Xanh dương nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFFCC8844,
             buttonPressedColor = 0xFFB07034
@@ -477,26 +477,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFE8F0F2,
             darkSquareColor = 0xFF7A9AAA,
 
-            // 🔥 Đã chỉnh: Từ xanh đậm sang trắng xanh
-            backgroundColors = listOf(0xFFE8F0F4, 0xFFD8E4E8),  // Từ #1A2630
-            surfaceColor = 0xFFF0F8FC,                           // Từ #243846
+            backgroundColors = listOf(0xFFE8F0F4, 0xFFD8E4E8),
+            surfaceColor = 0xFFF0F8FC,
             accentColor = 0xFF3AB8E6,
             onAccentColor = 0xFF0A2E48,
 
-            textColor = 0xFF0A1A22,          // Đổi sang đen
-            secondaryTextColor = 0xFF4A6A78,  // Đổi sang xanh
+            textColor = 0xFF0A1A22,
+            secondaryTextColor = 0xFF4A6A78,
 
-            borderColor = 0xFFC0D0D8,        // Từ #2A4A58
-            dividerColor = 0xFFD0DCE0,        // Từ #1E3A44
+            borderColor = 0xFFC0D0D8,
+            dividerColor = 0xFFD0DCE0,
 
             iconColor = 0xFF4A6A78,
             iconActiveColor = 0xFF3AB8E6,
 
-            selectedSquareColor = 0x606AC8F0,
-            lastMoveColor = 0x50AAD8F0,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCE86A7A,
+            // 🔥 Đã chỉnh: Dùng cam/đào tạo ấm áp giữa băng giá
+            selectedSquareColor = 0x60FFAB91,    // Cam nhạt
+            lastMoveColor = 0x50FFCCBC,          // Hồng đào
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF3AB8E6,
             buttonPressedColor = 0xFF1A90C8
@@ -511,26 +511,26 @@ data class ChessTheme(
             lightSquareColor = 0xFFF8E4E8,
             darkSquareColor = 0xFFB07A88,
 
-            // 🔥 Đã chỉnh: Từ hồng đậm sang hồng pastel
-            backgroundColors = listOf(0xFFF8E8EC, 0xFFF0DCE0),  // Từ #2A1C20
-            surfaceColor = 0xFFFCF0F4,                           // Từ #3A2630
+            backgroundColors = listOf(0xFFF8E8EC, 0xFFF0DCE0),
+            surfaceColor = 0xFFFCF0F4,
             accentColor = 0xFFE8708E,
             onAccentColor = 0xFFFFFFFF,
 
-            textColor = 0xFF1A0E12,          // Đổi sang đen
-            secondaryTextColor = 0xFF6A4A54,  // Đổi sang hồng đậm
+            textColor = 0xFF1A0E12,
+            secondaryTextColor = 0xFF6A4A54,
 
-            borderColor = 0xFFE0C8D0,        // Từ #4E3640
-            dividerColor = 0xFFE8D4DC,        // Từ #3E2A32
+            borderColor = 0xFFE0C8D0,
+            dividerColor = 0xFFE8D4DC,
 
             iconColor = 0xFF6A4A54,
             iconActiveColor = 0xFFE8708E,
 
-            selectedSquareColor = 0x60E884A4,
-            lastMoveColor = 0x50F0A0BA,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCD84A5A,
+            // 🔥 Đã chỉnh: Dùng xanh mint tương phản với hồng
+            selectedSquareColor = 0x6044D4A0,    // Xanh ngọc
+            lastMoveColor = 0x504AD4D4,          // Xanh cyan
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF4081,           // Hồng đậm
+            checkColor = 0xCCC2185B,             // Hồng tím
 
             buttonColor = 0xFFE8708E,
             buttonPressedColor = 0xFFCC4A6A
@@ -545,48 +545,45 @@ data class ChessTheme(
             lightSquareColor = 0xFFB8BCC0,
             darkSquareColor = 0xFF4A4E52,
 
-            // 🔥 Đã chỉnh: Từ đen sang xám sáng
-            backgroundColors = listOf(0xFFD0D2D4, 0xFFC0C2C4),  // Từ #1C1C1E
-            surfaceColor = 0xFFDCDEDE,                           // Từ #28282A
+            backgroundColors = listOf(0xFFD0D2D4, 0xFFC0C2C4),
+            surfaceColor = 0xFFDCDEDE,
             accentColor = 0xFFC8A838,
             onAccentColor = 0xFF1A1608,
 
-            textColor = 0xFF0A0A0C,          // Đổi sang đen
-            secondaryTextColor = 0xFF505054,  // Đổi sang xám đậm
+            textColor = 0xFF0A0A0C,
+            secondaryTextColor = 0xFF505054,
 
-            borderColor = 0xFFB0B2B4,        // Từ #3A3A3E
-            dividerColor = 0xFFC0C2C4,        // Từ #2C2C2E
+            borderColor = 0xFFB0B2B4,
+            dividerColor = 0xFFC0C2C4,
 
             iconColor = 0xFF505054,
             iconActiveColor = 0xFFC8A838,
 
-            selectedSquareColor = 0x60D0B048,
-            lastMoveColor = 0x50C0A838,
-            legalMoveColor = 0x28000000,
-            captureColor = 0x40000000,
-            checkColor = 0xCCE04848,
+            // 🔥 Đã chỉnh: Dùng xanh dương tương phản với vàng
+            selectedSquareColor = 0x604A90D4,    // Xanh dương
+            lastMoveColor = 0x506AAAD4,          // Xanh dương nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFFC8A838,
             buttonPressedColor = 0xFFA88828
         )
 
+        // ============================================================
+        // 13. NIGHT - ĐÊM THANH BÌNH
+        // ============================================================
         val NIGHT = ChessTheme(
             name = "Night",
             displayName = "Đêm thanh bình",
+            lightSquareColor = 0xFFB8C4D0,
+            darkSquareColor = 0xFF3A5068,
 
-            // Bàn cờ: Tối vừa, không bị lóa
-            lightSquareColor = 0xFFB8C4D0,    // Xám xanh sáng
-            darkSquareColor = 0xFF3A5068,      // Xanh đậm vừa
-
-            // Background: Tối ấm, không bị đen tuyền
             backgroundColors = listOf(0xFF1E242B, 0xFF14191F),
             surfaceColor = 0xFF2A323C,
-
-            // Accent: Xanh dương dịu, không chói
             accentColor = 0xFF4A90D9,
             onAccentColor = 0xFFFFFFFF,
 
-            // Text: Trắng ngà, dễ đọc
             textColor = 0xFFE8ECF0,
             secondaryTextColor = 0xFF8A949E,
 
@@ -596,12 +593,12 @@ data class ChessTheme(
             iconColor = 0xFF8A949E,
             iconActiveColor = 0xFF4A90D9,
 
-            // Highlight: Rõ ràng nhưng không gắt
-            selectedSquareColor = 0x607AA9E6,  // 38%
-            lastMoveColor = 0x505A9AE6,        // 31%
-            legalMoveColor = 0x28FFFFFF,       // White dot
-            captureColor = 0x40FF6B6B,         // Đỏ nhạt
-            checkColor = 0xCCFF4444,
+            // 🔥 Đã chỉnh: Dùng vàng/cam tạo điểm nhấn
+            selectedSquareColor = 0x60FFD740,    // Vàng
+            lastMoveColor = 0x50FFAB91,          // Cam nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF4A90D9,
             buttonPressedColor = 0xFF3A7AC9
@@ -613,16 +610,11 @@ data class ChessTheme(
         val AMBER = ChessTheme(
             name = "Amber",
             displayName = "Hổ phách",
+            lightSquareColor = 0xFFD4C4A8,
+            darkSquareColor = 0xFF7A6548,
 
-            // Bàn cờ: Vàng nâu ấm áp
-            lightSquareColor = 0xFFD4C4A8,    // Vàng kem
-            darkSquareColor = 0xFF7A6548,      // Nâu vàng
-
-            // Background: Nâu tối ấm
             backgroundColors = listOf(0xFF241E18, 0xFF181410),
             surfaceColor = 0xFF342A20,
-
-            // Accent: Vàng cam nhẹ
             accentColor = 0xFFD4A048,
             onAccentColor = 0xFFFFFFFF,
 
@@ -635,11 +627,12 @@ data class ChessTheme(
             iconColor = 0xFFA89880,
             iconActiveColor = 0xFFD4A048,
 
-            selectedSquareColor = 0x60D4A048,
-            lastMoveColor = 0x50D4A048,
-            legalMoveColor = 0x28FFFFFF,
-            captureColor = 0x40FF6B4A,
-            checkColor = 0xCCFF4444,
+            // 🔥 Đã chỉnh: Dùng xanh dương tương phản với vàng
+            selectedSquareColor = 0x604A90D4,    // Xanh dương
+            lastMoveColor = 0x506AAAD4,          // Xanh dương nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFFD4A048,
             buttonPressedColor = 0xFFB88838
@@ -651,16 +644,11 @@ data class ChessTheme(
         val GRAPHITE = ChessTheme(
             name = "Graphite",
             displayName = "Than chì",
+            lightSquareColor = 0xFFB8C0C8,
+            darkSquareColor = 0xFF4A525A,
 
-            // Bàn cờ: Xám thanh lịch
-            lightSquareColor = 0xFFB8C0C8,    // Xám sáng
-            darkSquareColor = 0xFF4A525A,      // Xám đậm
-
-            // Background: Xám tối, không đen
             backgroundColors = listOf(0xFF22262A, 0xFF181C20),
             surfaceColor = 0xFF2E3238,
-
-            // Accent: Xám xanh hiện đại
             accentColor = 0xFF6A8A9E,
             onAccentColor = 0xFFFFFFFF,
 
@@ -673,11 +661,12 @@ data class ChessTheme(
             iconColor = 0xFF88929C,
             iconActiveColor = 0xFF6A8A9E,
 
-            selectedSquareColor = 0x607A9AAE,
-            lastMoveColor = 0x506A8A9E,
-            legalMoveColor = 0x28FFFFFF,
-            captureColor = 0x40FF6B6B,
-            checkColor = 0xCCFF4444,
+            // 🔥 Đã chỉnh: Dùng vàng/cam tạo điểm nhấn
+            selectedSquareColor = 0x60FFD740,    // Vàng
+            lastMoveColor = 0x50FFAB91,          // Cam nhạt
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF6A8A9E,
             buttonPressedColor = 0xFF5A7A8E
@@ -689,16 +678,11 @@ data class ChessTheme(
         val BURGUNDY = ChessTheme(
             name = "Burgundy",
             displayName = "Bordeaux",
+            lightSquareColor = 0xFFE0C8C8,
+            darkSquareColor = 0xFF7A4A50,
 
-            // Bàn cờ: Hồng đỏ quý phái
-            lightSquareColor = 0xFFE0C8C8,    // Hồng nhạt
-            darkSquareColor = 0xFF7A4A50,      // Đỏ burgundy
-
-            // Background: Đỏ đậm sang trọng
             backgroundColors = listOf(0xFF22161A, 0xFF180E12),
             surfaceColor = 0xFF322026,
-
-            // Accent: Vàng hồng
             accentColor = 0xFFD48A7A,
             onAccentColor = 0xFFFFFFFF,
 
@@ -711,27 +695,28 @@ data class ChessTheme(
             iconColor = 0xFFA88882,
             iconActiveColor = 0xFFD48A7A,
 
-            selectedSquareColor = 0x60D48A7A,
-            lastMoveColor = 0x50D48A7A,
-            legalMoveColor = 0x28FFFFFF,
-            captureColor = 0x40FF6B6B,
-            checkColor = 0xCCFF3333,
+            // 🔥 Đã chỉnh: Dùng xanh/vàng tương phản với đỏ
+            selectedSquareColor = 0x6044D4A0,    // Xanh ngọc
+            lastMoveColor = 0x504AD4D4,          // Xanh cyan
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFFD48A7A,
             buttonPressedColor = 0xFFB86A5A
         )
 
+        // ============================================================
+        // 17. MIDNIGHT - NỬA ĐÊM
+        // ============================================================
         val MIDNIGHT = ChessTheme(
             name = "Midnight",
             displayName = "Nửa đêm",
-
-            // Bàn cờ: Xanh đêm huyền ảo
-            lightSquareColor = 0xFFA8BED4,    // Xanh nhạt
-            darkSquareColor = 0xFF2A4A6A,      // Xanh đêm
+            lightSquareColor = 0xFFA8BED4,
+            darkSquareColor = 0xFF2A4A6A,
 
             backgroundColors = listOf(0xFF121C2A, 0xFF0A121C),
             surfaceColor = 0xFF1C2A3A,
-
             accentColor = 0xFF3A9AD4,
             onAccentColor = 0xFFFFFFFF,
 
@@ -744,35 +729,20 @@ data class ChessTheme(
             iconColor = 0xFF7A92AA,
             iconActiveColor = 0xFF3A9AD4,
 
-            selectedSquareColor = 0x605AAAD4,
-            lastMoveColor = 0x503A9AD4,
-            legalMoveColor = 0x28FFFFFF,
-            captureColor = 0x40FF6B8A,
-            checkColor = 0xCCFF4466,
+            // 🔥 Đã chỉnh: Dùng cam/vàng tương phản với xanh đêm
+            selectedSquareColor = 0x60FFAB00,    // Cam đậm
+            lastMoveColor = 0x50FFD740,          // Vàng
+            legalMoveColor = 0x28FFFFFF,         // Trắng
+            captureColor = 0x40FF5252,           // Đỏ
+            checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF3A9AD4,
             buttonPressedColor = 0xFF2A80B8
         )
 
         val themes = listOf(
-            // Theme sáng
-            CLASSIC,
-            DARK,
-            MYSTIC,
-            FIRE,
-            CYBER,
-            FOREST,
-            OCEAN,
-            COSMIC,
-            DESERT,
-            ARCTIC,
-            SAKURA,
-            NIGHT,
-            AMBER,
-            GRAPHITE,
-            BURGUNDY,
-            MIDNIGHT,
-            OBSIDIAN
+            CLASSIC, DARK, MYSTIC, FIRE, CYBER, FOREST, OCEAN, COSMIC,
+            DESERT, ARCTIC, SAKURA, NIGHT, AMBER, GRAPHITE, BURGUNDY, MIDNIGHT, OBSIDIAN
         )
 
         fun fromName(name: String): ChessTheme {

@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
+import com.example.chess.model.ChessTheme
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
@@ -65,6 +66,7 @@ fun PlayerCard(
     title: String? = null,
     timeMillis: Long = 0,
     timerOption: GameTimerOption = GameTimerOption.NONE,
+    selectedTheme: ChessTheme? = null,
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -94,15 +96,19 @@ fun PlayerCard(
             .clip(RoundedCornerShape(12.dp))
     }
 
-    val accentColor = MaterialTheme.colorScheme.tertiary
+    val accentColor = selectedTheme?.let { Color(it.accentColor) } ?: MaterialTheme.colorScheme.tertiary
+    val surfaceColor = selectedTheme?.let { Color(it.surfaceColor) } ?: (if (isCurrentTurn) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+    val textColor = selectedTheme?.let { Color(it.textColor) } ?: Color.White
+    val borderColor = selectedTheme?.let { Color(it.borderColor) } ?: accentColor.copy(alpha = 0.3f)
+
     Surface(
         modifier = surfaceModifier
             .border(
                 width = if (isCurrentTurn) 2.dp else 1.dp,
-                color = if (isCurrentTurn) accentColor else accentColor.copy(alpha = 0.3f),
+                color = if (isCurrentTurn) accentColor else borderColor,
                 shape = RoundedCornerShape(12.dp)
             ),
-        color = if (isCurrentTurn) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+        color = if (selectedTheme != null) surfaceColor.copy(alpha = 0.9f) else surfaceColor
     ) {
         Row(
             modifier = Modifier
@@ -193,7 +199,7 @@ fun PlayerCard(
 
                             Text(
                                 text = titleText,
-                                color = Color.White,
+                                color = textColor,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
@@ -220,7 +226,7 @@ fun PlayerCard(
 
             // Captured pieces list - Only show in Portrait
             if (!isLandscape) {
-                CapturedPiecesRow(capturedPieces = capturedPieces, pieceColor = playerColor.opposite)
+                CapturedPiecesRow(capturedPieces = capturedPieces, pieceColor = playerColor.opposite, textColor = textColor)
             }
         }
     }
@@ -256,7 +262,8 @@ fun PlayerCardWinnerPreview() {
 @Composable
 fun CapturedPiecesRow(
     capturedPieces: List<PieceType>,
-    pieceColor: PieceColor
+    pieceColor: PieceColor,
+    textColor: Color = Color.White
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy((-4).dp),
@@ -268,7 +275,7 @@ fun CapturedPiecesRow(
             Text(
                 text = symbol,
                 fontSize = 18.sp,
-                color = if (pieceColor == PieceColor.WHITE) Color.White else ColorGreyWarm
+                color = if (pieceColor == PieceColor.WHITE) textColor else ColorGreyWarm
             )
         }
     }

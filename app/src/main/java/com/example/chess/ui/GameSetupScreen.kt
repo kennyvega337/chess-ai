@@ -515,6 +515,7 @@ fun GameSetupScreen(
 @Composable
 fun SetupHeader(isLandscape: Boolean = false, selectedTheme: ChessTheme = ChessTheme.CLASSIC) {
     val accentColor = Color(selectedTheme.accentColor)
+    val iconActiveColor = Color(selectedTheme.iconActiveColor)
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -534,7 +535,7 @@ fun SetupHeader(isLandscape: Boolean = false, selectedTheme: ChessTheme = ChessT
             Icon(
                 imageVector = Icons.Default.Shield,
                 contentDescription = null,
-                tint = accentColor,
+                tint = iconActiveColor,
                 modifier = Modifier.size(if (isLandscape) 22.dp else 30.dp)
             )
         }
@@ -589,9 +590,9 @@ private fun DifficultySectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, borderColor.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.9f))
+        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.8f))
     ) {
         Column(
             modifier = Modifier
@@ -602,7 +603,7 @@ private fun DifficultySectionCard(
                 Icon(
                     imageVector = Icons.Default.Psychology,
                     contentDescription = null,
-                    tint = accentColor,
+                    tint = Color(selectedTheme.iconActiveColor),
                     modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -695,9 +696,9 @@ private fun SideSelectionCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = if (isLandscape) 4.dp else 0.dp)
-            .border(1.dp, borderColor.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.9f))
+        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.8f))
     ) {
         Column(
             modifier = Modifier
@@ -708,7 +709,7 @@ private fun SideSelectionCard(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = accentColor,
+                    tint = Color(selectedTheme.iconActiveColor),
                     modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -791,9 +792,9 @@ private fun TwoPlayersInfoCard(isLandscape: Boolean = false, selectedTheme: Ches
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = if (isLandscape) 4.dp else 0.dp)
-            .border(1.dp, borderColor.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.9f))
+        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.8f))
     ) {
         Column(
             modifier = Modifier
@@ -804,7 +805,7 @@ private fun TwoPlayersInfoCard(isLandscape: Boolean = false, selectedTheme: Ches
                 Icon(
                     imageVector = Icons.Default.People,
                     contentDescription = null,
-                    tint = accentColor,
+                    tint = Color(selectedTheme.iconActiveColor),
                     modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -822,8 +823,8 @@ private fun TwoPlayersInfoCard(isLandscape: Boolean = false, selectedTheme: Ches
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp)),
-                color = Color(selectedTheme.surfaceColor).copy(alpha = 0.3f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, borderColor.copy(alpha = 0.2f))
+                color = Color(selectedTheme.surfaceColor).copy(alpha = 0.4f),
+                border = androidx.compose.foundation.BorderStroke(1.2.dp, borderColor.copy(alpha = 0.3f))
             ) {
                 Column(modifier = Modifier.padding(if (isLandscape) 8.dp else 12.dp)) {
                     Text(
@@ -856,9 +857,9 @@ private fun TutorialPieceSelectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.5.dp, borderColor, RoundedCornerShape(14.dp)),
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.9f))
+        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.8f))
     ) {
         Column(
             modifier = Modifier
@@ -869,7 +870,7 @@ private fun TutorialPieceSelectionCard(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = accentColor,
+                    tint = Color(selectedTheme.iconActiveColor),
                     modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -918,8 +919,8 @@ private fun TutorialPieceSelectionCard(
                                 modifier = Modifier
                                     .size(if (isLandscape) 28.dp else 34.dp)
                                     .clip(CircleShape)
-                                    .background(accentColor.copy(alpha = 0.2f))
-                                    .border(1.dp, accentColor, CircleShape),
+                                    .background(Color(selectedTheme.iconActiveColor).copy(alpha = 0.2f))
+                                    .border(1.dp, Color(selectedTheme.iconActiveColor), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -978,9 +979,9 @@ private fun SpecialMovesSelectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.5.dp, borderColor, RoundedCornerShape(14.dp)),
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.9f))
+        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.8f))
     ) {
         Column(
             modifier = Modifier
@@ -991,7 +992,7 @@ private fun SpecialMovesSelectionCard(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = accentColor,
+                    tint = Color(selectedTheme.iconActiveColor),
                     modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -1037,8 +1038,8 @@ private fun SpecialMovesSelectionCard(
                                 modifier = Modifier
                                     .size(if (isLandscape) 28.dp else 34.dp)
                                     .clip(CircleShape)
-                                    .background(accentColor.copy(alpha = 0.2f))
-                                    .border(1.dp, accentColor, CircleShape),
+                                    .background(Color(selectedTheme.iconActiveColor).copy(alpha = 0.2f))
+                                    .border(1.dp, Color(selectedTheme.iconActiveColor), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -1338,9 +1339,9 @@ private fun TimerSelectionCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = if (isLandscape) 4.dp else 0.dp)
-            .border(1.dp, borderColor.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.9f))
+        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.8f))
     ) {
         Column(
             modifier = Modifier
@@ -1351,7 +1352,7 @@ private fun TimerSelectionCard(
                 Icon(
                     imageVector = Icons.Default.FlashOn,
                     contentDescription = null,
-                    tint = accentColor,
+                    tint = Color(selectedTheme.iconActiveColor),
                     modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -1618,9 +1619,9 @@ private fun PuzzleSelectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.5.dp, borderColor, RoundedCornerShape(14.dp)),
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = surfaceColor.copy(alpha = 0.9f))
+        colors = CardDefaults.cardColors(containerColor = surfaceColor.copy(alpha = 0.8f))
     ) {
         Column(
             modifier = Modifier
@@ -1631,7 +1632,7 @@ private fun PuzzleSelectionCard(
                 Icon(
                     imageVector = if (gameMode == GameMode.ONE_MOVE) Icons.Default.FlashOn else Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = accentColor,
+                    tint = Color(selectedTheme.iconActiveColor),
                     modifier = Modifier.size(if (isLandscape) 20.dp else 24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))

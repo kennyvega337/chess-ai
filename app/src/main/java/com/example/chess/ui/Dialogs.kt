@@ -63,28 +63,20 @@ import com.example.chess.data.*
 import com.example.ui.theme.*
 
 @Composable
-fun HideSystemBarsInDialog() {
+fun HideSystemBarsInDialog(useDarkIcons: Boolean = false, statusBarColor: Int = android.graphics.Color.TRANSPARENT) {
     val view = LocalView.current
-    SideEffect {
-        fun applyHide(win: android.view.Window, isDialog: Boolean) {
-            WindowCompat.setDecorFitsSystemWindows(win, false)
-            win.navigationBarColor = android.graphics.Color.TRANSPARENT
-            
-            if (isDialog) {
-                win.setLayout(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            }
+    DisposableEffect(view, useDarkIcons, statusBarColor) {
+        val activity = view.context as? android.app.Activity
+        val activityWindow = activity?.window
+        val origStatusBarColor = activityWindow?.statusBarColor
+        val origNavBarColor = activityWindow?.navigationBarColor
 
-            WindowCompat.getInsetsController(win, win.decorView).apply {
-                isAppearanceLightStatusBars = false
-                isAppearanceLightNavigationBars = false
-                hide(WindowInsetsCompat.Type.navigationBars())
-                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        }
+        // Dim the activity window behind the dialog
+        val dimColor = 0x80000000.toInt()
+        activityWindow?.statusBarColor = dimColor
+        activityWindow?.navigationBarColor = dimColor
 
+        // Find the dialog window
         var parentView: android.view.ViewParent? = view.parent
         var dialogWindow: android.view.Window? = null
         while (parentView != null) {
@@ -95,12 +87,47 @@ fun HideSystemBarsInDialog() {
             parentView = parentView.parent
         }
 
-        if (dialogWindow != null) {
-            applyHide(dialogWindow!!, isDialog = true)
-        } else {
-            (view.context as? Activity)?.window?.let { applyHide(it, isDialog = false) }
+        dialogWindow?.let { win ->
+            WindowCompat.setDecorFitsSystemWindows(win, false)
+            win.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+
+            win.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
+                or android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            )
+
+            val dimmedStatusBar = (statusBarColor and 0x00FFFFFF) or 0x80000000.toInt()
+            val dimmedNavBar = (statusBarColor and 0x00FFFFFF) or 0x80000000.toInt()
+            win.statusBarColor = dimmedStatusBar
+            win.navigationBarColor = dimmedNavBar
+
+            win.setLayout(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+            )
+
+            WindowCompat.getInsetsController(win, win.decorView).apply {
+                isAppearanceLightStatusBars = useDarkIcons
+                isAppearanceLightNavigationBars = useDarkIcons
+                hide(WindowInsetsCompat.Type.navigationBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        }
+
+        onDispose {
+            origStatusBarColor?.let { activityWindow?.statusBarColor = it }
+            origNavBarColor?.let { activityWindow?.navigationBarColor = it }
         }
     }
+}
+
+fun isThemeLight(theme: ChessTheme): Boolean {
+    val color = theme.lightSquareColor // Use the light square color of the board as a reference for theme brightness
+    val r = (color shr 16 and 0xFF).toFloat() / 255f
+    val g = (color shr 8 and 0xFF).toFloat() / 255f
+    val b = (color and 0xFF).toFloat() / 255f
+    val luminance = 0.2126f * r + 0.7152f * g + 0.0722f * b
+    return luminance > 0.5f // If background is light -> useDarkIcons = true
 }
 
 @Composable
@@ -110,31 +137,38 @@ fun SideSelectionDialog(
     selectedTheme: ChessTheme = ChessTheme.CLASSIC
 ) {
     val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
     val surfaceColor = Color(selectedTheme.surfaceColor)
-    HideSystemBarsInDialog()
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
-        HideSystemBarsInDialog()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f)),
+                .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center
         ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
                     .widthIn(max = 400.dp)
-                    .wrapContentHeight(),
+                    .wrapContentHeight()
+                    .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
                 shape = RoundedCornerShape(24.dp),
-                color = surfaceColor,
+                color = bgColors.first(),
                 border = androidx.compose.foundation.BorderStroke(3.dp, accentColor),
                 shadowElevation = 16.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier
+                        .background(Brush.verticalGradient(bgColors))
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -157,8 +191,12 @@ fun SideSelectionDialog(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    TextButton(onClick = onDismiss) {
-                        Text("ĐÓNG", color = accentColor, fontWeight = FontWeight.Bold)
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = surfaceColor),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("ĐÓNG", color = textColor, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -175,8 +213,11 @@ private fun SideSelectionItem(
     selectedTheme: ChessTheme
 ) {
     val accentColor = Color(selectedTheme.accentColor)
-    val bgColor = if (color == PieceColor.WHITE) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.2f)
-    val textColor = if (color == PieceColor.WHITE) Color.White else Color.Black
+    val textColor = Color(selectedTheme.textColor)
+    val surfaceColor = Color(selectedTheme.surfaceColor)
+    
+    val bgColor = if (color == PieceColor.WHITE) textColor.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.2f)
+    val itemIconColor = if (color == PieceColor.WHITE) Color.White else Color.Black
     
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -188,7 +229,7 @@ private fun SideSelectionItem(
             .padding(16.dp)
             .width(100.dp)
     ) {
-        Text(text = icon, fontSize = 48.sp, color = textColor)
+        Text(text = icon, fontSize = 48.sp, color = itemIconColor)
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = label, fontWeight = FontWeight.Bold, color = accentColor)
     }
@@ -202,8 +243,12 @@ fun PawnPromotionDialog(
     selectedTheme: ChessTheme = ChessTheme.CLASSIC
 ) {
     val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
     val surfaceColor = Color(selectedTheme.surfaceColor)
-    HideSystemBarsInDialog()
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+
     val choices = listOf(
         PieceType.QUEEN to "Hậu",
         PieceType.ROOK to "Xe",
@@ -215,24 +260,26 @@ fun PawnPromotionDialog(
         onDismissRequest = { /* Force selection */ },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, dismissOnBackPress = false, dismissOnClickOutside = false)
     ) {
-        HideSystemBarsInDialog()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.7f)),
+                .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
                     .widthIn(max = 450.dp)
-                    .wrapContentHeight(),
+                    .wrapContentHeight()
+                    .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
                 shape = RoundedCornerShape(20.dp),
-                color = surfaceColor,
+                color = bgColors.first(),
                 border = androidx.compose.foundation.BorderStroke(2.dp, accentColor)
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier
+                        .background(Brush.verticalGradient(bgColors))
+                        .padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
@@ -257,7 +304,7 @@ fun PawnPromotionDialog(
                     Text(
                         text = "Chọn binh chủng thăng cấp cho Tốt:",
                         fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = textColor.copy(alpha = 0.7f)
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -278,7 +325,7 @@ fun PawnPromotionDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.Black.copy(alpha = 0.2f))
+                                    .background(surfaceColor.copy(alpha = 0.2f))
                                     .border(1.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                                     .clickable { onSelectPiece(type) }
                                     .padding(vertical = 12.dp)
@@ -293,7 +340,7 @@ fun PawnPromotionDialog(
                                     text = name, 
                                     fontSize = 10.sp, 
                                     fontWeight = FontWeight.Bold, 
-                                    color = Color.White,
+                                    color = textColor,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -383,7 +430,11 @@ fun GameOverDialog(
     selectedTheme: ChessTheme = ChessTheme.CLASSIC
 ) {
     val accentColorTheme = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
     val surfaceColor = Color(selectedTheme.surfaceColor)
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
+    val btnColor = Color(selectedTheme.lightSquareColor)
+
     val isWin = winner == userColor
     val isDraw = gameStatus == GameStatus.STALEMATE || gameStatus == GameStatus.DRAW
     val isResigned = gameStatus == GameStatus.RESIGNED
@@ -450,7 +501,7 @@ fun GameOverDialog(
             }
         }
         gameMode == GameMode.PUZZLE -> if (isWin) "Chiếu bí thần sầu! Cuối cùng thì nhà ngươi cũng đã chịu dùng tới bộ não của mình rồi đấy." else "Câu đố này có vẻ hơi 'quá tầm' với bộ óc của ngươi rồi. Thử lại hay đi ngủ cho đỡ nhức đầu?"
-        gameMode == GameMode.ONE_MOVE -> if (isWin) "Chỉ một nước mà cũng thắng? Chắc chắn là nhìn trộm đáp án ở đâu đó rồi chứ gì, đừng hòng lừa ta!" else "Có đúng một nước đi mà cũng làm không xong. Ngươi nên về tập đi quân Tốt cho vững trước khi mơ làm Đại kiện tướng!"
+        gameMode == GameMode.ONE_MOVE -> if (isWin) "Chắc chắn là nhìn trộm đáp án ở đâu đó rồi chứ gì, đừng hòng lừa ta!" else "Có đúng một nước đi mà cũng làm không xong. Ngươi nên về tập đi quân Tốt cho vững trước khi mơ làm Đại kiện tướng!"
         else -> when {
             isWin -> "Xuất sắc! Bằng mưu trí và chiến thuật kiệt xuất, bạn đã chiếu bí quân địch và giành toàn thắng."
             isDraw -> "Cả hai phe đã chiến đấu ngoan cường. Thế cờ hòa (Stalemate) không còn nước đi hợp lệ."
@@ -459,7 +510,7 @@ fun GameOverDialog(
         }
     }
 
-    val accentColor = if (gameMode == GameMode.TWO_PLAYERS) {
+    val statusIconColor = if (gameMode == GameMode.TWO_PLAYERS) {
         if (winner != null) ColorEmeraldLight else accentColorTheme
     } else {
         when {
@@ -473,50 +524,46 @@ fun GameOverDialog(
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
     val cardWidthAlpha = if (isLargeScreen) 0.65f else if (isLandscape) 0.55f else 0.9f
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
 
-    HideSystemBarsInDialog()
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            usePlatformDefaultWidth = false, 
+            usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         )
     ) {
-        HideSystemBarsInDialog()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(vertical = if (isLandscape) 4.dp else 12.dp),
+                .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(cardWidthAlpha)
                     .widthIn(max = if (isLandscape) 420.dp else 500.dp)
-                    .wrapContentHeight(),
+                    .wrapContentHeight()
+                    .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
                 contentAlignment = Alignment.TopEnd
             ) {
-                Card(
+                // Card bọc với nền clip chuẩn để không bị hở mép/tràn layer ở đáy
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(3.dp, accentColorTheme, RoundedCornerShape(18.dp))
-                        .shadow(24.dp, RoundedCornerShape(18.dp))
                         .testTag("game_over_dialog"),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = surfaceColor)
+                    border = androidx.compose.foundation.BorderStroke(3.dp, accentColorTheme),
+                    shadowElevation = 16.dp,
+                    color = bgColors.first()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(surfaceColor, Color.Black)
-                                )
-                            )
-                            .padding(if (isLandscape) 16.dp else 24.dp)
-                            .verticalScroll(rememberScrollState()),
+                            .background(Brush.verticalGradient(bgColors))
+                            .padding(if (isLandscape) 16.dp else 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
@@ -540,8 +587,8 @@ fun GameOverDialog(
                             modifier = Modifier
                                 .size(if (isLandscape) 56.dp else 72.dp)
                                 .clip(CircleShape)
-                                .background(accentColor.copy(alpha = 0.15f))
-                                .border(2.5.dp, accentColor, CircleShape),
+                                .background(statusIconColor.copy(alpha = 0.15f))
+                                .border(2.5.dp, statusIconColor, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -551,7 +598,7 @@ fun GameOverDialog(
                                     else -> Icons.Default.SentimentDissatisfied
                                 },
                                 contentDescription = null,
-                                tint = accentColor,
+                                tint = statusIconColor,
                                 modifier = Modifier.size(if (isLandscape) 30.dp else 40.dp)
                             )
                         }
@@ -562,7 +609,7 @@ fun GameOverDialog(
                             text = mainStatusText,
                             fontSize = if (isLandscape) 18.sp else 22.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
+                            color = textColor,
                             textAlign = TextAlign.Center
                         )
 
@@ -571,7 +618,7 @@ fun GameOverDialog(
                         Text(
                             text = bodyText,
                             fontSize = if (isLandscape) 12.sp else 14.sp,
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = textColor.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center,
                             lineHeight = if (isLandscape) 18.sp else 20.sp,
                             modifier = Modifier.padding(horizontal = 8.dp)
@@ -587,40 +634,40 @@ fun GameOverDialog(
                                     .height(if (isLandscape) 44.dp else 50.dp)
                                     .shadow(8.dp, RoundedCornerShape(12.dp))
                                     .testTag("next_puzzle_button"),
-                                colors = ButtonDefaults.buttonColors(containerColor = ColorEmeraldLight),
+                                colors = ButtonDefaults.buttonColors(containerColor = surfaceColor),
                                 shape = RoundedCornerShape(12.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColorTheme)
                             ) {
-                                Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(if (isLandscape) 18.dp else 24.dp))
+                                Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, tint = textColor, modifier = Modifier.size(if (isLandscape) 18.dp else 24.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "VÁN TIẾP THEO",
-                                    color = Color.White,
+                                    color = textColor,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = if (isLandscape) 12.sp else 14.sp,
                                     letterSpacing = 1.sp
                                 )
                             }
-                            
+
                             Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 12.dp))
                         }
 
                         Button(
                             onClick = onRestart,
                             modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(if (isLandscape) 44.dp else 50.dp)
-                                    .shadow(8.dp, RoundedCornerShape(12.dp))
-                                    .testTag("restart_game_button"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.5f)),
+                                .fillMaxWidth()
+                                .height(if (isLandscape) 44.dp else 50.dp)
+                                .shadow(8.dp, RoundedCornerShape(12.dp))
+                                .testTag("restart_game_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = surfaceColor),
                             shape = RoundedCornerShape(12.dp),
                             border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColorTheme)
                         ) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(if (isLandscape) 18.dp else 24.dp))
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = textColor, modifier = Modifier.size(if (isLandscape) 18.dp else 24.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "CHƠI LẠI",
-                                color = Color.White,
+                                color = textColor,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = if (isLandscape) 12.sp else 14.sp,
                                 letterSpacing = 1.sp
@@ -643,13 +690,13 @@ fun GameOverDialog(
                             Icon(
                                 imageVector = if (gameMode == GameMode.PUZZLE || gameMode == GameMode.ONE_MOVE) Icons.Default.Extension else Icons.Default.Refresh,
                                 contentDescription = null,
-                                tint = accentColorTheme,
+                                tint = textColor,
                                 modifier = Modifier.size(if (isLandscape) 18.dp else 24.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (gameMode == GameMode.PUZZLE || gameMode == GameMode.ONE_MOVE) "ĐỔI CHẾ ĐỘ" else "CHƠI VÁN MỚI",
-                                color = accentColorTheme,
+                                color = textColor,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = if (isLandscape) 12.sp else 14.sp,
                                 letterSpacing = 1.sp
@@ -658,14 +705,14 @@ fun GameOverDialog(
                     }
                 }
 
+                // Nút đóng ở góc trên bên phải
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier
-                        .offset(x = 10.dp, y = (-10).dp)
-                        .size(34.dp)
-                        .background(Color.Black.copy(alpha = 0.8f), CircleShape)
+                        .offset(x = 5.dp, y = (-5).dp)
+                        .size(28.dp)
+                        .background(btnColor, CircleShape)
                         .border(2.dp, accentColorTheme, CircleShape)
-                        .shadow(12.dp, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -678,7 +725,6 @@ fun GameOverDialog(
         }
     }
 }
-
 @Composable
 fun RestartConfirmationDialog(
     onConfirmRestart: () -> Unit,
@@ -686,22 +732,25 @@ fun RestartConfirmationDialog(
     selectedTheme: ChessTheme = ChessTheme.CLASSIC
 ) {
     val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
     val surfaceColor = Color(selectedTheme.surfaceColor)
-    HideSystemBarsInDialog()
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+
     Dialog(
         onDismissRequest = onCancel,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
-        HideSystemBarsInDialog()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .clickable(onClick = onCancel),
             contentAlignment = Alignment.Center
         ) {
             Box(
-                modifier = Modifier.fillMaxWidth(0.88f).wrapContentHeight(),
+                modifier = Modifier.fillMaxWidth(0.88f).wrapContentHeight().clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
                 contentAlignment = Alignment.TopEnd
             ) {
                 Card(
@@ -711,11 +760,12 @@ fun RestartConfirmationDialog(
                         .shadow(16.dp, RoundedCornerShape(16.dp))
                         .testTag("restart_confirmation_dialog"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = surfaceColor)
+                    colors = CardDefaults.cardColors(containerColor = bgColors.first())
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(Brush.verticalGradient(bgColors))
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -749,7 +799,7 @@ fun RestartConfirmationDialog(
                         Text(
                             text = "Bạn có chắc chắn muốn làm mới ván cờ này không? Tiến độ hiện tại sẽ bị hủy bỏ.",
                             fontSize = 14.sp,
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = textColor.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center,
                             lineHeight = 20.sp
                         )
@@ -760,16 +810,16 @@ fun RestartConfirmationDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            OutlinedButton(
+                            Button(
                                 onClick = onCancel,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor.copy(alpha = 0.5f)),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor)
+                                colors = ButtonDefaults.buttonColors(containerColor = surfaceColor.copy(alpha = 0.4f)),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor.copy(alpha = 0.5f))
                             ) {
-                                Text("HỦY", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("HỦY", color = textColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
 
                             Button(
@@ -778,9 +828,10 @@ fun RestartConfirmationDialog(
                                     .weight(1f)
                                     .height(48.dp),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = accentColor)
+                                colors = ButtonDefaults.buttonColors(containerColor = surfaceColor),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor)
                             ) {
-                                Text("ĐỒNG Ý", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Color.White)
+                                Text("ĐỒNG Ý", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = textColor)
                             }
                         }
                     }
@@ -797,22 +848,26 @@ fun ResignConfirmationDialog(
     selectedTheme: ChessTheme = ChessTheme.CLASSIC
 ) {
     val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
     val surfaceColor = Color(selectedTheme.surfaceColor)
-    HideSystemBarsInDialog()
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+    val btnColor = Color(selectedTheme.lightSquareColor);
+
     Dialog(
         onDismissRequest = onCancel,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
-        HideSystemBarsInDialog()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .clickable(onClick = onCancel),
             contentAlignment = Alignment.Center
         ) {
             Box(
-                modifier = Modifier.fillMaxWidth(0.88f).wrapContentHeight(),
+                modifier = Modifier.fillMaxWidth(0.88f).wrapContentHeight().clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
                 contentAlignment = Alignment.TopEnd
             ) {
                 Card(
@@ -822,15 +877,11 @@ fun ResignConfirmationDialog(
                         .shadow(16.dp, RoundedCornerShape(16.dp))
                         .testTag("resign_confirmation_dialog"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = surfaceColor)
+                    colors = CardDefaults.cardColors(containerColor = bgColors.first())
                 ) {
                     Column(
                         modifier = Modifier
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(surfaceColor, Color.Black)
-                                )
-                            )
+                            .background(Brush.verticalGradient(bgColors))
                             .padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -866,7 +917,7 @@ fun ResignConfirmationDialog(
                         Text(
                             text = "Bạn có chắc chắn muốn giơ cờ trắng chịu thua ván đấu này không?",
                             fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = textColor.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp
                         )
@@ -877,18 +928,19 @@ fun ResignConfirmationDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            OutlinedButton(
+                            Button(
                                 onClick = onCancel,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(46.dp)
                                     .testTag("cancel_resign_button"),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor)
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor),
+                                colors = ButtonDefaults.buttonColors(containerColor = surfaceColor.copy(alpha = 0.4f))
                             ) {
                                 Text(
                                     text = "Đánh Tiếp",
-                                    color = accentColor,
+                                    color = textColor,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp
                                 )
@@ -918,11 +970,10 @@ fun ResignConfirmationDialog(
                 IconButton(
                     onClick = onCancel,
                     modifier = Modifier
-                        .offset(x = 10.dp, y = (-10).dp)
-                        .size(34.dp)
-                        .background(Color.Black.copy(alpha = 0.8f), CircleShape)
-                        .border(2.2.dp, accentColor, CircleShape)
-                        .shadow(8.dp, CircleShape)
+                        .offset(x = 5.dp, y = (-5).dp)
+                        .size(24.dp)
+                        .background(btnColor, CircleShape)
+                        .border(2.dp, accentColor, CircleShape)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = accentColor, modifier = Modifier.size(18.dp))
                 }
@@ -936,8 +987,11 @@ fun CapturedPiecesDialog(
     state: ChessUiState,
     onDismiss: () -> Unit
 ) {
-    val accentColor = MaterialTheme.colorScheme.tertiary
-    HideSystemBarsInDialog()
+    val selectedTheme = state.selectedTheme
+    val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
+    val surfaceColor = Color(selectedTheme.surfaceColor)
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
     val userColor = state.userColor
     val opponentColor = state.userColor.opposite
     val isTwoPlayers = state.gameMode == GameMode.TWO_PLAYERS
@@ -953,8 +1007,10 @@ fun CapturedPiecesDialog(
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
     val cardWidthAlpha = if (isLargeScreen) 0.7f else if (isLandscape) 0.7f else 0.9f
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+    val btnColor = Color(selectedTheme.lightSquareColor);
 
-    HideSystemBarsInDialog()
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -962,20 +1018,19 @@ fun CapturedPiecesDialog(
             decorFitsSystemWindows = false
         )
     ) {
-        HideSystemBarsInDialog()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(vertical = 12.dp),
+                .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(cardWidthAlpha)
                     .widthIn(max = 520.dp)
-                    .wrapContentHeight(),
+                    .wrapContentHeight()
+                    .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
                 contentAlignment = Alignment.TopEnd
             ) {
                 Card(
@@ -985,17 +1040,13 @@ fun CapturedPiecesDialog(
                         .shadow(16.dp, RoundedCornerShape(16.dp))
                         .testTag("captured_pieces_dialog"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    colors = CardDefaults.cardColors(containerColor = bgColors.first())
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .fillMaxHeight(if (isLandscape) 0.9f else 0.85f)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(MaterialTheme.colorScheme.surface, Color.Black)
-                                )
-                            )
+                            .background(Brush.verticalGradient(bgColors))
                             .padding(16.dp)
                             .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -1035,7 +1086,7 @@ fun CapturedPiecesDialog(
                         Text(
                             text = "Thống kê lực lượng bị tiêu diệt & điểm số trận đấu",
                             fontSize = 11.sp,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = textColor.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center
                         )
 
@@ -1044,7 +1095,7 @@ fun CapturedPiecesDialog(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            color = Color.Black.copy(alpha = 0.3f),
+                            color = accentColor.copy(alpha = 0.15f),
                             border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.6f))
                         ) {
                             Row(
@@ -1059,7 +1110,7 @@ fun CapturedPiecesDialog(
                                 }
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = when { netDiff > 0 -> ColorEmeraldDark.copy(alpha = 0.3f); netDiff < 0 -> ColorCrimsonMuted.copy(alpha = 0.3f); else -> Color.Gray.copy(alpha = 0.3f) },
+                                    color = when { netDiff > 0 -> accentColor.copy(alpha = 0.3f); netDiff < 0 -> ColorCrimsonMuted.copy(alpha = 0.3f); else -> Color.Gray.copy(alpha = 0.3f) },
                                     border = androidx.compose.foundation.BorderStroke(1.dp, when { netDiff > 0 -> ColorEmeraldLight; netDiff < 0 -> ColorCrimsonSoft; else -> accentColor })
                                 ) {
                                     Text(
@@ -1081,19 +1132,19 @@ fun CapturedPiecesDialog(
                             val colorName = if (userColor == PieceColor.WHITE) "Trắng" else "Đen"
                             "🗡️ Quân Người chơi 1 ($colorName) đã ăn:"
                         } else "🗡️ Quân người chơi đã ăn (của Máy):"
-                        CapturedPieceSection(p1Title, capturedByP1, if (isTwoPlayers) userColor.opposite else opponentColor, pieceOrder, ColorEmeraldDark.copy(alpha = 0.2f), ColorEmeraldLight)
+                        CapturedPieceSection(p1Title, capturedByP1, if (isTwoPlayers) userColor.opposite else opponentColor, pieceOrder, accentColor.copy(alpha = 0.2f), ColorEmeraldLight, selectedTheme)
                         
                         Spacer(modifier = Modifier.height(12.dp))
                         val p2Title = if (isTwoPlayers) {
                             val colorName = if (userColor == PieceColor.WHITE) "Đen" else "Trắng"
                             "🛡️ Quân Người chơi 2 ($colorName) đã ăn:"
                         } else "🛡️ Quân máy đã ăn (của Người chơi):"
-                        CapturedPieceSection(p2Title, capturedByP2, if (isTwoPlayers) userColor else userColor, pieceOrder, ColorCrimsonMuted.copy(alpha = 0.2f), ColorCrimsonSoft)
+                        CapturedPieceSection(p2Title, capturedByP2, if (isTwoPlayers) userColor else userColor, pieceOrder, ColorCrimsonMuted.copy(alpha = 0.2f), ColorCrimsonSoft, selectedTheme)
                         Spacer(modifier = Modifier.height(14.dp))
-                        Text("Quy đổi điểm: Tốt = 1đ | Mã = 3đ | Tượng = 3đ | Xe = 5đ | Hậu = 9đ", fontSize = 10.sp, color = Color.White.copy(alpha = 0.5f), textAlign = TextAlign.Center)
+                        Text("Quy đổi điểm: Tốt = 1đ | Mã = 3đ | Tượng = 3đ | Xe = 5đ | Hậu = 9đ", fontSize = 10.sp, color = textColor.copy(alpha = 0.5f), textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(0.6f).height(44.dp).testTag("close_captured_dialog_button"), colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.5f)), shape = RoundedCornerShape(10.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor)) {
-                            Text("Đóng", color = accentColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(0.6f).height(44.dp).testTag("close_captured_dialog_button"), colors = ButtonDefaults.buttonColors(containerColor = surfaceColor), shape = RoundedCornerShape(10.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor)) {
+                            Text("Đóng", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
                 }
@@ -1101,11 +1152,10 @@ fun CapturedPiecesDialog(
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier
-                        .offset(x = 10.dp, y = (-10).dp)
-                        .size(34.dp)
-                        .background(Color.Black.copy(alpha = 0.8f), CircleShape)
-                        .border(2.2.dp, accentColor, CircleShape)
-                        .shadow(4.dp, CircleShape)
+                        .offset(x = 5.dp, y = (-5).dp)
+                        .size(24.dp)
+                        .background(btnColor, CircleShape)
+                        .border(2.dp, accentColor, CircleShape)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = accentColor, modifier = Modifier.size(18.dp))
                 }
@@ -1115,15 +1165,18 @@ fun CapturedPiecesDialog(
 }
 
 @Composable
-private fun CapturedPieceSection(title: String, capturedList: List<PieceType>, opponentColor: PieceColor, pieceOrder: List<PieceType>, badgeColor: Color, borderColor: Color) {
-    Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(alpha = 0.2f)).border(1.dp, borderColor.copy(alpha = 0.5f), RoundedCornerShape(10.dp)).padding(10.dp)) {
+private fun CapturedPieceSection(title: String, capturedList: List<PieceType>, opponentColor: PieceColor, pieceOrder: List<PieceType>, badgeColor: Color, borderColor: Color, selectedTheme: ChessTheme) {
+    val textColor = Color(selectedTheme.textColor)
+    val accentColor = Color(selectedTheme.accentColor)
+    
+    Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(accentColor.copy(alpha = 0.1f)).border(1.dp, borderColor.copy(alpha = 0.5f), RoundedCornerShape(10.dp)).padding(10.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("Tổng: ${capturedList.sumOf { it.pointValue }}đ", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = borderColor, maxLines = 1)
         }
         Spacer(modifier = Modifier.height(6.dp))
         if (capturedList.isEmpty()) {
-            Text("Chưa ăn được quân cờ nào.", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(vertical = 4.dp))
+            Text("Chưa ăn được quân cờ nào.", fontSize = 11.sp, color = textColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
         } else {
             val counts = pieceOrder.mapNotNull { type -> val count = capturedList.count { it == type }; if (count > 0) Triple(type, count, count * type.pointValue) else null }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1131,9 +1184,13 @@ private fun CapturedPieceSection(title: String, capturedList: List<PieceType>, o
                     val symbol = if (opponentColor == PieceColor.WHITE) type.symbolWhite else type.symbolBlack
                     Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(badgeColor).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Text(symbol, fontSize = 20.sp, color = if (opponentColor == PieceColor.WHITE) Color.White else Color(0xFFD4D4D4))
+                            Text(
+                                symbol, 
+                                fontSize = 20.sp, 
+                                color = if (opponentColor == PieceColor.WHITE) Color.White else textColor.copy(alpha = 0.8f)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("${type.displayNameVi} (${type.pointValue}đ)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("${type.displayNameVi} (${type.pointValue}đ)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         Text("x${count} = +${subtotal}đ", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = borderColor, maxLines = 1)
                     }
@@ -1150,8 +1207,12 @@ fun SaveGameConfirmationDialog(
     selectedTheme: ChessTheme = ChessTheme.CLASSIC
 ) {
     val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
     val surfaceColor = Color(selectedTheme.surfaceColor)
-    HideSystemBarsInDialog()
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+
     Dialog(
         onDismissRequest = onCancel,
         properties = DialogProperties(
@@ -1161,11 +1222,10 @@ fun SaveGameConfirmationDialog(
             decorFitsSystemWindows = false
         )
     ) {
-        HideSystemBarsInDialog()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -1173,13 +1233,16 @@ fun SaveGameConfirmationDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 400.dp)
-                    .wrapContentHeight(),
+                    .wrapContentHeight()
+                    .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
                 shape = RoundedCornerShape(16.dp),
-                color = surfaceColor,
+                color = bgColors.first(),
                 border = androidx.compose.foundation.BorderStroke(2.dp, accentColor)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier
+                        .background(Brush.verticalGradient(bgColors))
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
@@ -1203,7 +1266,7 @@ fun SaveGameConfirmationDialog(
                     Text(
                         text = "Bạn có muốn lưu lại ván cờ hiện tại để tiếp tục vào lần sau không?",
                         textAlign = TextAlign.Center,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = textColor.copy(alpha = 0.8f),
                         fontSize = 15.sp,
                         lineHeight = 22.sp
                     )
@@ -1226,17 +1289,22 @@ fun SaveGameConfirmationDialog(
                         Button(
                             onClick = { onConfirm(true) },
                             modifier = Modifier.weight(1f).height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ColorEmeraldLight),
+                            colors = ButtonDefaults.buttonColors(containerColor = surfaceColor),
                             shape = RoundedCornerShape(10.dp),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
                         ) {
-                            Text("ĐỒNG Ý LƯU", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("ĐỒNG Ý LƯU", color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    TextButton(onClick = onCancel) {
+                    Button(
+                        onClick = onCancel,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
                         Text("QUAY LẠI", color = accentColor, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -1251,6 +1319,11 @@ fun CheckPopupDialog(
     selectedTheme: ChessTheme = ChessTheme.CLASSIC
 ) {
     val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
+    val surfaceColor = Color(selectedTheme.surfaceColor)
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(700)
         onDismiss()
@@ -1267,7 +1340,6 @@ fun CheckPopupDialog(
         label = "glow_alpha"
     )
 
-    HideSystemBarsInDialog()
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -1275,84 +1347,99 @@ fun CheckPopupDialog(
             decorFitsSystemWindows = false
         )
     ) {
-        HideSystemBarsInDialog()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            Box(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { onDismiss() }
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                ColorCrimsonRich,
-                                Color(0xFF1E0505)
-                            )
-                        )
-                    )
-                    .border(
-                        3.dp,
-                        ColorCrimsonSoft.copy(alpha = glowAlpha),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .border(
-                        1.dp,
-                        accentColor.copy(alpha = 0.8f),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .shadow(24.dp, RoundedCornerShape(20.dp))
-                    .padding(20.dp),
-                contentAlignment = Alignment.Center
+                    .widthIn(max = 400.dp)
+                    .wrapContentHeight()
+                    .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
+                shape = RoundedCornerShape(24.dp),
+                color = surfaceColor,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    accentColor.copy(alpha = 0.5f)
+                )
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                Box(
+                    modifier = Modifier
+                        .border(
+                            3.dp,
+                            ColorCrimsonSoft.copy(alpha = glowAlpha),
+                            RoundedCornerShape(24.dp)
+                        )
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(ColorCrimsonDeep.copy(alpha = 0.4f))
-                            .border(2.2.dp, accentColor, CircleShape),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.FlashOn,
-                            contentDescription = "Chiếu Tướng",
-                            tint = accentColor,
-                            modifier = Modifier.size(36.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(accentColor.copy(alpha = 0.15f))
+                                .border(2.5.dp, accentColor, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FlashOn,
+                                contentDescription = "Chiếu Tướng",
+                                tint = accentColor,
+                                modifier = Modifier.size(38.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "⚔️ CHIẾU TƯỚNG! ⚔️",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = accentColor,
+                            letterSpacing = 2.sp,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Vua đang nằm trong tầm ngắm!",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textColor.copy(alpha = 0.9f),
+                            textAlign = TextAlign.Center
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = "⚔️ CHIẾU TƯỚNG! ⚔️",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = accentColor,
-                        letterSpacing = 2.sp,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Vua đang nằm trong tầm ngắm!",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
         }
     }
 }
 
+
+@Preview(showBackground = true)
+@Composable
+fun SideSelectionDialogPreview() {
+    MyApplicationTheme {
+        SideSelectionDialog(onDismiss = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PawnPromotionDialogPreview() {
+    MyApplicationTheme {
+        PawnPromotionDialog(color = PieceColor.WHITE, onSelectPiece = {})
+    }
+}
 
 @Preview(showBackground = true)
 @Composable
@@ -1386,7 +1473,7 @@ fun GameOverDialogWinPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = false)
 @Composable
 fun GameOverDialogLossPreview() {
     MyApplicationTheme {
@@ -1418,6 +1505,22 @@ fun GameOverDialogDrawPreview() {
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun RestartConfirmationDialogPreview() {
+    MyApplicationTheme {
+        RestartConfirmationDialog(onConfirmRestart = {}, onCancel = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ResignConfirmationDialogPreview() {
+    MyApplicationTheme {
+        ResignConfirmationDialog(onConfirmResign = {}, onCancel = {})
+    }
+}
+
 @Preview(showBackground = true, widthDp = 384, heightDp = 854)
 @Composable
 fun CapturedPiecesDialogLandscapePreview() {
@@ -1429,5 +1532,21 @@ fun CapturedPiecesDialogLandscapePreview() {
             ),
             onDismiss = {}
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SaveGameConfirmationDialogPreview() {
+    MyApplicationTheme {
+        SaveGameConfirmationDialog(onConfirm = {}, onCancel = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun CheckPopupDialogPreview() {
+    MyApplicationTheme {
+        CheckPopupDialog(onDismiss = {})
     }
 }

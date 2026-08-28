@@ -15,17 +15,19 @@ import com.example.chess.model.GameTimerOption
 import com.example.chess.model.PieceType
 import com.example.chess.model.SideOption
 import com.example.chess.model.SpecialTutorialType
-import com.example.ui.theme.MyApplicationTheme
 import com.example.chess.ui.GameSetupScreen
+import com.example.chess.ui.isThemeLight
+import com.example.ui.theme.MyApplicationTheme
 
 class GameSetupActivity : ComponentActivity() {
+
+    private lateinit var themeManager: com.example.chess.data.ChessThemeManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        themeManager = com.example.chess.data.ChessThemeManager(this)
         hideSystemNavigationBars()
-
-        val themeManager = com.example.chess.data.ChessThemeManager(this)
 
         val modeStr = intent.getStringExtra(MainActivity.EXTRA_GAME_MODE) ?: themeManager.getSelectedGameMode().name
         val selectedGameMode = try { GameMode.valueOf(modeStr) } catch (e: Exception) { GameMode.VS_AI }
@@ -127,9 +129,12 @@ class GameSetupActivity : ComponentActivity() {
 
     private fun hideSystemNavigationBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
+            val currentTheme = themeManager.getSelectedTheme()
+            isAppearanceLightStatusBars = isThemeLight(currentTheme)
+            isAppearanceLightNavigationBars = isThemeLight(currentTheme)
             show(WindowInsetsCompat.Type.statusBars())
             hide(WindowInsetsCompat.Type.navigationBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
