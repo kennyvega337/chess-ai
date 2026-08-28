@@ -152,7 +152,7 @@ private fun GameModeSelectionBox(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(if (isLandscape) 10.dp else 20.dp)
+                .padding(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -188,7 +188,7 @@ private fun GameModeSelectionBox(
                             modifier = Modifier.size(if (isLandscape) 22.dp else 26.dp)
                         )
                     }
-                    
+
                     IconButton(
                         onClick = onOpenHistory,
                         modifier = Modifier.size(if (isLandscape) 30.dp else 36.dp)
@@ -405,7 +405,7 @@ private fun SettingsButton(isLandscape: Boolean, onClick: () -> Unit, accentColo
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 384, heightDp = 830)
 @Composable
 fun GameModeSelectionScreenPreview() {
     MyApplicationTheme {

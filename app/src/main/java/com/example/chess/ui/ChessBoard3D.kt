@@ -88,15 +88,19 @@ fun ChessBoard3D(
 
     val animProgress = remember { Animatable(1f) }
     val currentMove = aiLastMove ?: playerLastMove
+    var lastSnappedMove by remember { mutableStateOf<Move?>(null) }
 
     LaunchedEffect(currentMove) {
         if (currentMove != null) {
             animProgress.snapTo(0f)
+            lastSnappedMove = currentMove
             animProgress.animateTo(1f, animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing))
         }
     }
 
-    val progress = animProgress.value
+    // Fix lỗi chớp: Nếu currentMove mới vừa được set nhưng animation chưa kịp snap về 0 (đang ở frame đầu tiên)
+    // thì ta ép progress = 0f để ẩn quân cờ ở ô đích và hiện ở ô xuất phát ngay lập tức.
+    val progress = if (currentMove != null && currentMove != lastSnappedMove) 0f else animProgress.value
 
     val configuration = LocalConfiguration.current
     val isLargeScreen = configuration.smallestScreenWidthDp >= 600
@@ -277,48 +281,45 @@ fun ChessBoard3D(
                         .padding(boardBorderSize)
                         .zIndex(10f) // Gán zIndex cao hẳn cho lớp quân cờ
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        for (vr in 0..7) {
-                            val r = rows[vr]
-                            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                                for (vc in 0..7) {
-                                    val c = if (userColor == PieceColor.WHITE) vc else 7 - vc
-                                    val pos = Position(r, c)
-                                    val piece = board.getPiece(pos)
+                    // Vẽ tất cả quân cờ (cả tĩnh và động) trong cùng một Box để điều khiển zIndex dựa trên vị trí hàng (vr)
+                    // Hàng có vr lớn hơn (phía dưới màn hình) sẽ có zIndex cao hơn để che các hàng phía trên.
 
-                                    Box(
-                                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (piece != null) {
-                                            val isAtDestination = currentMove != null && pos == currentMove.to && progress < 1f
-                                            val isAtDestinationSource = currentMove != null && pos == currentMove.from && progress < 1f
-                                            
-                                            if (!isAtDestination && !isAtDestinationSource) {
-                                                val resId = getPieceDrawable3D(piece, userColor)
-                                                val pieceScale = get3DPieceScale(piece.type, piece.color, userColor)
+                    // 4a. Các quân cờ tĩnh
+                    for (vr in 0..7) {
+                        val r = rows[vr]
+                        for (vc in 0..7) {
+                            val c = if (userColor == PieceColor.WHITE) vc else 7 - vc
+                            val pos = Position(r, c)
+                            val piece = board.getPiece(pos)
 
-                                                Image(
-                                                    painter = painterResource(id = resId),
-                                                    contentDescription = null,
-                                                    modifier = Modifier
-                                                        .fillMaxSize(1f)
-                                                        .padding(bottom = 6.dp)
-                                                        .graphicsLayer {
-                                                            scaleX = pieceScale
-                                                            scaleY = pieceScale
-                                                            transformOrigin = TransformOrigin(0.5f, 1f)
-                                                        }
-                                                )
+                            if (piece != null) {
+                                val isAtDestination = currentMove != null && pos == currentMove.to && progress < 1f
+                                val isAtDestinationSource = currentMove != null && pos == currentMove.from && progress < 1f
+                                
+                                if (!isAtDestination && !isAtDestinationSource) {
+                                    val resId = getPieceDrawable3D(piece, userColor)
+                                    val pieceScale = get3DPieceScale(piece.type, piece.color, userColor)
+
+                                    Image(
+                                        painter = painterResource(id = resId),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(squareSize)
+                                            .offset(x = squareSize * vc, y = squareSize * vr)
+                                            .zIndex(vr.toFloat()) // Vị trí càng thấp trên màn hình (vr lớn) zIndex càng cao
+                                            .graphicsLayer {
+                                                scaleX = pieceScale
+                                                scaleY = pieceScale
+                                                transformOrigin = TransformOrigin(0.5f, 1f)
                                             }
-                                        }
-                                    }
+                                            .padding(bottom = 6.dp)
+                                    )
                                 }
                             }
                         }
                     }
 
-                    // 4. LỚP QUÂN CỜ DI CHUYỂN (Nằm trên cùng)
+                    // 4b. Quân cờ đang di chuyển và quân bị bắt
                     if (currentMove != null && progress < 1f) {
                         val density = LocalDensity.current
                         val squareSizePx = with(density) { squareSize.toPx() }
@@ -355,6 +356,7 @@ fun ChessBoard3D(
                                 modifier = Modifier
                                     .size(squareSize)
                                     .offset(x = squareSize * vc, y = squareSize * vr)
+                                    .zIndex(vr.toFloat()) // Giữ zIndex tại ô bị bắt
                                     .graphicsLayer {
                                         val s = get3DPieceScale(capturedPiece.type, capturedPiece.color, userColor)
                                         scaleX = s * animScale
@@ -377,6 +379,9 @@ fun ChessBoard3D(
                         val animScale = 1f + 0.1f * kotlin.math.sin(progress * kotlin.math.PI).toFloat()
                         val offsetX = (toVc - fromVc) * squareSizePx * progress
                         val offsetY = (toVr - fromVr) * squareSizePx * progress
+                        
+                        // Tính toán zIndex động dựa trên vị trí hàng hiện tại (nội suy giữa hàng đi và hàng đến)
+                        val currentVr = fromVr + (toVr - fromVr) * progress
 
                         Image(
                             painter = painterResource(id = getPieceDrawable3D(movingPiece, userColor)),
@@ -384,6 +389,7 @@ fun ChessBoard3D(
                             modifier = Modifier
                                 .size(squareSize)
                                 .offset(x = squareSize * fromVc, y = squareSize * fromVr)
+                                .zIndex(currentVr) // zIndex thay đổi mượt mà theo vị trí hàng khi di chuyển
                                 .graphicsLayer {
                                     val s = get3DPieceScale(movingPiece.type, movingPiece.color, userColor)
                                     scaleX = s * animScale
@@ -392,6 +398,7 @@ fun ChessBoard3D(
                                     translationY = offsetY
                                     transformOrigin = TransformOrigin(0.5f, 1f)
                                 }
+                                .padding(bottom = 6.dp)
                         )
                     }
                 }
