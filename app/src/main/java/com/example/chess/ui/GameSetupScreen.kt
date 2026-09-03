@@ -112,7 +112,10 @@ fun GameSetupScreen(
     initialGameMode: GameMode = GameMode.VS_AI,
     initialTimerOption: GameTimerOption = GameTimerOption.NONE,
     initialCustomMinutes: Int = 10,
+    initialScoringPiece: PieceType = PieceType.QUEEN,
+    initialScoringSeconds: Int = 30,
     onStartGame: (SideOption, DifficultyLevel, GameMode, GameTimerOption, Int?) -> Unit,
+    onStartScoring: ((SideOption, PieceType, Int) -> Unit)? = null,
     onStartTutorialPiece: ((PieceType) -> Unit)? = null,
     onStartSpecialMove: ((SpecialTutorialType) -> Unit)? = null,
     onStartPuzzle: ((String, String, Int) -> Unit)? = null,
@@ -128,6 +131,8 @@ fun GameSetupScreen(
     var selectedTimerOption by rememberSaveable { mutableStateOf(initialTimerOption) }
     var customMinutes by rememberSaveable { mutableStateOf(initialCustomMinutes) }
     var showCustomTimerDialog by remember { mutableStateOf(false) }
+    var selectedScoringPiece by rememberSaveable { mutableStateOf(initialScoringPiece) }
+    var selectedScoringSeconds by rememberSaveable { mutableStateOf(initialScoringSeconds) }
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -169,7 +174,7 @@ fun GameSetupScreen(
                         BackHomeButton(onBack, isLandscape = true, selectedTheme = selectedTheme)
                     }
 
-                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE && selectedGameMode != GameMode.SPECIAL_MOVE) {
+                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE && selectedGameMode != GameMode.SPECIAL_MOVE && selectedGameMode != GameMode.SCORING) {
                         MatchPreviewCard(
                             selectedSide,
                             selectedDifficulty,
@@ -198,6 +203,35 @@ fun GameSetupScreen(
                                         selectedTimerOption,
                                         customMinutes
                                     )
+                                },
+                                isLandscape = true,
+                                modifier = Modifier.weight(0.85f),
+                                selectedTheme = selectedTheme
+                            )
+                        }
+                    }
+
+                    if (selectedGameMode == GameMode.SCORING) {
+                        MatchPreviewCardScoring(
+                            selectedSide,
+                            selectedScoringPiece,
+                            selectedScoringSeconds,
+                            isLandscape = true,
+                            selectedTheme = selectedTheme
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            BackHomeButton(onBack, modifier = Modifier.weight(0.15f), isLandscape = true, showText = false, selectedTheme = selectedTheme)
+                            StartGameButton(
+                                gameMode = selectedGameMode,
+                                onClick = {
+                                    onStartScoring?.invoke(selectedSide, selectedScoringPiece, selectedScoringSeconds)
                                 },
                                 isLandscape = true,
                                 modifier = Modifier.weight(0.85f),
@@ -310,6 +344,29 @@ fun GameSetupScreen(
                                 isLandscape = true,
                                 lastPuzzleCategory = lastPuzzleCategory,
                                 lastPuzzleLevel = lastPuzzleLevel,
+                                selectedTheme = selectedTheme
+                            )
+                        }
+                        GameMode.SCORING -> {
+                            SideSelectionCard(
+                                selectedSide = selectedSide,
+                                onSelectSide = { selectedSide = it },
+                                title = "1. CHỌN PHE QUÂN CỦA BẠN",
+                                isLandscape = true,
+                                selectedTheme = selectedTheme
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            ScoringPieceSelectionCard(
+                                selectedPiece = selectedScoringPiece,
+                                onSelectPiece = { selectedScoringPiece = it },
+                                isLandscape = true,
+                                selectedTheme = selectedTheme
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            ScoringTimerSelectionCard(
+                                selectedSeconds = selectedScoringSeconds,
+                                onSelectSeconds = { selectedScoringSeconds = it },
+                                isLandscape = true,
                                 selectedTheme = selectedTheme
                             )
                         }
@@ -452,15 +509,52 @@ fun GameSetupScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
                         }
+                        GameMode.SCORING -> {
+                            SideSelectionCard(
+                                selectedSide = selectedSide,
+                                onSelectSide = { selectedSide = it },
+                                title = "1. CHỌN PHE QUÂN CỦA BẠN",
+                                selectedTheme = selectedTheme
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            ScoringPieceSelectionCard(
+                                selectedPiece = selectedScoringPiece,
+                                onSelectPiece = { selectedScoringPiece = it },
+                                selectedTheme = selectedTheme
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            ScoringTimerSelectionCard(
+                                selectedSeconds = selectedScoringSeconds,
+                                onSelectSeconds = { selectedScoringSeconds = it },
+                                selectedTheme = selectedTheme
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
                     }
 
-                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE && selectedGameMode != GameMode.SPECIAL_MOVE) {
+                    if (selectedGameMode != GameMode.PUZZLE && selectedGameMode != GameMode.TUTORIAL && selectedGameMode != GameMode.ONE_MOVE && selectedGameMode != GameMode.SPECIAL_MOVE && selectedGameMode != GameMode.SCORING) {
                         MatchPreviewCard(
                             selectedSide,
                             selectedDifficulty,
                             selectedGameMode,
                             selectedTimerOption,
                             customMinutes,
+                            selectedTheme = selectedTheme
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+
+                    if (selectedGameMode == GameMode.SCORING) {
+                        MatchPreviewCardScoring(
+                            selectedSide,
+                            selectedScoringPiece,
+                            selectedScoringSeconds,
                             selectedTheme = selectedTheme
                         )
 
@@ -478,13 +572,17 @@ fun GameSetupScreen(
                         StartGameButton(
                             gameMode = selectedGameMode,
                             onClick = {
-                                onStartGame(
-                                    selectedSide,
-                                    selectedDifficulty,
-                                    selectedGameMode,
-                                    selectedTimerOption,
-                                    customMinutes
-                                )
+                                if (selectedGameMode == GameMode.SCORING) {
+                                    onStartScoring?.invoke(selectedSide, selectedScoringPiece, selectedScoringSeconds)
+                                } else {
+                                    onStartGame(
+                                        selectedSide,
+                                        selectedDifficulty,
+                                        selectedGameMode,
+                                        selectedTimerOption,
+                                        customMinutes
+                                    )
+                                }
                             },
                             modifier = Modifier.weight(0.85f),
                             selectedTheme = selectedTheme
@@ -1291,6 +1389,7 @@ private fun StartGameButton(
             val text = when (gameMode) {
                 GameMode.TUTORIAL -> "📖 BẮT ĐẦU HƯỚNG DẪN 📖"
                 GameMode.PUZZLE -> "🧩 BẮT ĐẦU GIẢI ĐỐ 🧩"
+                GameMode.SCORING -> "🏆 BẮT ĐẦU THỬ THÁCH 🏆"
                 else -> "⚔️ BẮT ĐẦU CHƠI ⚔️"
             }
             Text(
@@ -1838,6 +1937,282 @@ private fun PuzzleSelectionPlaceholderCard(selectedTheme: ChessTheme = ChessThem
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
             )
+        }
+    }
+}
+
+@Composable
+private fun ScoringPieceSelectionCard(
+    selectedPiece: PieceType,
+    onSelectPiece: (PieceType) -> Unit,
+    isLandscape: Boolean = false,
+    selectedTheme: ChessTheme = ChessTheme.CLASSIC
+) {
+    val accentColor = Color(selectedTheme.accentColor)
+    val borderColor = Color(selectedTheme.borderColor)
+    val textColor = Color(selectedTheme.textColor)
+    val secondaryTextColor = Color(selectedTheme.secondaryTextColor)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.8f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (isLandscape) 10.dp else 14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = Color(selectedTheme.iconActiveColor),
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "2. CHỌN QUÂN CỜ THỬ THÁCH",
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor
+                )
+            }
+
+            Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 10.dp))
+
+            val pieces = listOf(
+                PieceType.KNIGHT, PieceType.BISHOP,
+                PieceType.ROOK, PieceType.QUEEN
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                pieces.forEach { pieceType ->
+                    val isSelected = selectedPiece == pieceType
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onSelectPiece(pieceType) }
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) accentColor else borderColor.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(10.dp)
+                            ),
+                        color = if (isSelected) accentColor.copy(alpha = 0.2f) else Color(selectedTheme.surfaceColor).copy(alpha = 0.4f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = if (isLandscape) 4.dp else 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = when (pieceType) {
+                                    PieceType.PAWN -> "♟"
+                                    PieceType.KNIGHT -> "♞"
+                                    PieceType.BISHOP -> "♝"
+                                    PieceType.ROOK -> "♜"
+                                    PieceType.QUEEN -> "♛"
+                                    PieceType.KING -> "♚"
+                                },
+                                fontSize = if (isLandscape) 18.sp else 22.sp,
+                                color = if (isSelected) textColor else secondaryTextColor
+                            )
+                            Text(
+                                text = when (pieceType) {
+                                    PieceType.PAWN -> "Tốt"
+                                    PieceType.KNIGHT -> "Mã"
+                                    PieceType.BISHOP -> "Tượng"
+                                    PieceType.ROOK -> "Xe"
+                                    PieceType.QUEEN -> "Hậu"
+                                    PieceType.KING -> "Vua"
+                                },
+                                fontSize = if (isLandscape) 10.sp else 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) textColor else secondaryTextColor
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MatchPreviewCardScoring(
+    selectedSide: SideOption,
+    selectedPiece: PieceType,
+    selectedSeconds: Int = 30,
+    isLandscape: Boolean = false,
+    selectedTheme: ChessTheme = ChessTheme.CLASSIC
+) {
+    val accentColor = Color(selectedTheme.accentColor)
+    val borderColor = Color(selectedTheme.borderColor)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, borderColor.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+        color = Color(selectedTheme.surfaceColor).copy(alpha = 0.7f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (isLandscape) 6.dp else 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "BẠN CẦM QUÂN",
+                    fontSize = if (isLandscape) 8.5.sp else 9.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = selectedSide.displayNameVi,
+                    fontSize = if (isLandscape) 11.sp else 12.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(selectedTheme.textColor),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            ) {
+                Text(
+                    text = "🏆",
+                    fontSize = if (isLandscape) 14.sp else 18.sp
+                )
+                val label = if (selectedSeconds >= 60 && selectedSeconds % 60 == 0) "${selectedSeconds / 60}p" else "${selectedSeconds}s"
+                Text(
+                    text = label,
+                    fontSize = if (isLandscape) 10.sp else 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "QUÂN CỜ THỬ THÁCH",
+                    fontSize = if (isLandscape) 8.5.sp else 9.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = when (selectedPiece) {
+                        PieceType.PAWN -> "Quân Tốt"
+                        PieceType.KNIGHT -> "Quân Mã"
+                        PieceType.BISHOP -> "Quân Tượng"
+                        PieceType.ROOK -> "Quân Xe"
+                        PieceType.QUEEN -> "Quân Hậu"
+                        else -> ""
+                    },
+                    fontSize = if (isLandscape) 11.sp else 12.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(selectedTheme.textColor),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScoringTimerSelectionCard(
+    selectedSeconds: Int,
+    onSelectSeconds: (Int) -> Unit,
+    isLandscape: Boolean = false,
+    selectedTheme: ChessTheme = ChessTheme.CLASSIC
+) {
+    val accentColor = Color(selectedTheme.accentColor)
+    val borderColor = Color(selectedTheme.borderColor)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.2.dp, borderColor, RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(selectedTheme.surfaceColor).copy(alpha = 0.8f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (isLandscape) 10.dp else 14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.FlashOn,
+                    contentDescription = null,
+                    tint = Color(selectedTheme.iconActiveColor),
+                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "3. THỜI GIAN THỬ THÁCH",
+                    style = if (isLandscape) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor
+                )
+            }
+
+            Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                com.example.chess.model.ChessScoreMode.modes.forEach { mode ->
+                    val isSelected = selectedSeconds == mode.time.toInt()
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onSelectSeconds(mode.time.toInt()) }
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) accentColor else borderColor.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(10.dp)
+                            ),
+                        color = if (isSelected) accentColor.copy(alpha = 0.2f) else Color(selectedTheme.surfaceColor).copy(alpha = 0.4f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = if (isLandscape) 4.dp else 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = mode.name,
+                                fontSize = if (isLandscape) 11.sp else 12.sp,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                                color = if (isSelected) Color(selectedTheme.textColor) else Color(selectedTheme.secondaryTextColor)
+                            )
+                            Text(
+                                text = "${mode.score}đ",
+                                fontSize = if (isLandscape) 9.sp else 10.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = if (isSelected) accentColor else Color(selectedTheme.secondaryTextColor).copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

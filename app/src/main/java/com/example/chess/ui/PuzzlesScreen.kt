@@ -580,6 +580,7 @@ fun PuzzlesScreen(
                 gameMode = state.gameMode,
                 difficulty = state.difficulty,
                 timestamp = state.matchEndTimestamp,
+                scoringScore = state.scoringScore,
                 onPlayAgain = onNavigateToSetup, // "Đổi chế độ"
                 onRestart = onRestartGame,        // "Chơi lại"
                 onDismiss = onCloseGameOverModal,

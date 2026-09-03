@@ -72,6 +72,8 @@ class MainActivity : ComponentActivity() {
         val sideOptionStr = intent.getStringExtra(EXTRA_SIDE_OPTION)
         val difficultyStr = intent.getStringExtra(EXTRA_DIFFICULTY)
         val tutorialPieceStr = intent.getStringExtra(EXTRA_TUTORIAL_PIECE)
+        val scoringPieceStr = intent.getStringExtra("EXTRA_SCORING_PIECE")
+        val scoringSeconds = intent.getIntExtra(EXTRA_SCORING_SECONDS, 30)
         val specialMoveTypeStr = intent.getStringExtra("EXTRA_SPECIAL_MOVE_TYPE")
         val timerOptionStr = intent.getStringExtra(EXTRA_TIMER_OPTION)
         val customMinutes = if (intent.hasExtra(EXTRA_CUSTOM_MINUTES)) intent.getIntExtra(EXTRA_CUSTOM_MINUTES, 10) else null
@@ -84,6 +86,9 @@ class MainActivity : ComponentActivity() {
 
             if ((gameMode == GameMode.PUZZLE || gameMode == GameMode.ONE_MOVE) && puzzleFen != null) {
                 viewModel.startPuzzleMode(puzzleFen, puzzleCategory, if (puzzleLevel != -1) puzzleLevel else null, gameMode)
+            } else if (gameMode == GameMode.SCORING) {
+                val pieceType = try { PieceType.valueOf(scoringPieceStr ?: "QUEEN") } catch (e: Exception) { PieceType.QUEEN }
+                viewModel.startScoringMode(sideOption, pieceType, scoringSeconds)
             } else if (gameMode == GameMode.TUTORIAL && tutorialPieceStr != null) {
                 val pieceType = try { PieceType.valueOf(tutorialPieceStr) } catch (e: Exception) { PieceType.ROOK }
                 viewModel.startTutorialMode(pieceType)
@@ -150,6 +155,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_TUTORIAL_PIECE = "extra_tutorial_piece"
         const val EXTRA_TIMER_OPTION = "extra_timer_option"
         const val EXTRA_CUSTOM_MINUTES = "extra_custom_minutes"
+        const val EXTRA_SCORING_SECONDS = "extra_scoring_seconds"
         const val EXTRA_IS_GAME_IN_PROGRESS = "extra_is_game_in_progress"
     }
 }

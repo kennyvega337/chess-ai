@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.runtime.*
+import com.example.chess.model.ChessTheme
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
@@ -22,11 +24,13 @@ import com.example.ui.theme.MyApplicationTheme
 class GameSetupActivity : ComponentActivity() {
 
     private lateinit var themeManager: com.example.chess.data.ChessThemeManager
+    private val currentThemeState = mutableStateOf(ChessTheme.CLASSIC)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         themeManager = com.example.chess.data.ChessThemeManager(this)
+        currentThemeState.value = themeManager.getSelectedTheme()
         hideSystemNavigationBars()
 
         val modeStr = intent.getStringExtra(MainActivity.EXTRA_GAME_MODE) ?: themeManager.getSelectedGameMode().name
@@ -36,16 +40,29 @@ class GameSetupActivity : ComponentActivity() {
         val initialDifficulty = themeManager.getSelectedDifficulty()
         val initialTimer = themeManager.getSelectedTimerOption()
         val initialCustomMinutes = themeManager.getSelectedCustomMinutes()
-        val currentTheme = themeManager.getSelectedTheme()
+        val initialScoringSide = themeManager.getScoringSideOption()
+        val initialScoringPiece = themeManager.getScoringPieceType()
+        val initialScoringSeconds = themeManager.getScoringSeconds()
 
         setContent {
+            val currentTheme by currentThemeState
+
+            SideEffect {
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = isThemeLight(currentTheme)
+                    isAppearanceLightNavigationBars = isThemeLight(currentTheme)
+                }
+            }
+
             MyApplicationTheme(selectedTheme = currentTheme) {
                 GameSetupScreen(
-                    initialSideOption = initialSide,
+                    initialSideOption = if (selectedGameMode == GameMode.SCORING) initialScoringSide else initialSide,
                     initialDifficulty = initialDifficulty,
                     initialGameMode = selectedGameMode,
                     initialTimerOption = initialTimer,
                     initialCustomMinutes = initialCustomMinutes,
+                    initialScoringPiece = initialScoringPiece,
+                    initialScoringSeconds = initialScoringSeconds,
                     selectedTheme = currentTheme,
                     completedPuzzles = themeManager.getCompletedPuzzles(selectedGameMode),
                     onStartGame = { sideOption, difficulty, gameMode, timerOption, customMinutes ->
@@ -57,6 +74,13 @@ class GameSetupActivity : ComponentActivity() {
                             themeManager.saveCustomMinutes(customMinutes)
                         }
                         launchGame(sideOption, difficulty, gameMode, timerOption, customMinutes, null)
+                    },
+                    onStartScoring = { side, piece, seconds ->
+                        themeManager.saveScoringSideOption(side)
+                        themeManager.saveScoringPieceType(piece)
+                        themeManager.saveScoringSeconds(seconds)
+                        themeManager.saveGameMode(GameMode.SCORING)
+                        launchScoring(side, piece, seconds)
                     },
                     onStartTutorialPiece = { pieceType ->
                         launchGame(SideOption.WHITE, DifficultyLevel.LEVEL_1, GameMode.TUTORIAL, GameTimerOption.NONE, null, pieceType)
@@ -81,6 +105,18 @@ class GameSetupActivity : ComponentActivity() {
             putExtra("PUZZLE_CATEGORY", category)
             putExtra("PUZZLE_LEVEL", level)
             putExtra(MainActivity.EXTRA_GAME_MODE, mode.name)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    private fun launchScoring(side: SideOption, piece: PieceType, seconds: Int) {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            putExtra(MainActivity.EXTRA_GAME_MODE, GameMode.SCORING.name)
+            putExtra(MainActivity.EXTRA_SIDE_OPTION, side.name)
+            putExtra("EXTRA_SCORING_PIECE", piece.name)
+            putExtra(MainActivity.EXTRA_SCORING_SECONDS, seconds)
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         startActivity(intent)
@@ -124,6 +160,7 @@ class GameSetupActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        currentThemeState.value = themeManager.getSelectedTheme()
         hideSystemNavigationBars()
     }
 

@@ -504,6 +504,19 @@ class ChessBoard(initialize: Boolean = true) {
         return checkingPieces
     }
 
+    fun getPieces(color: PieceColor): List<Pair<Position, Piece>> {
+        val pieces = mutableListOf<Pair<Position, Piece>>()
+        for (r in 0..7) {
+            for (c in 0..7) {
+                val p = board[r][c]
+                if (p != null && p.color == color) {
+                    pieces.add(Position(r, c) to p)
+                }
+            }
+        }
+        return pieces
+    }
+
     fun getLegalMoves(color: PieceColor): List<Move> {
         val allLegal = mutableListOf<Move>()
         for (r in 0..7) {

@@ -111,9 +111,13 @@ class ChessAI(private val aiColor: PieceColor, private val context: Context? = n
         intArrayOf(-50,-30,-30,-30,-30,-30,-30,-50)
     )
 
-    fun chooseMove(board: ChessBoard, difficulty: DifficultyLevel = DifficultyLevel.LEVEL_2): Move? {
+    fun chooseMove(board: ChessBoard, difficulty: DifficultyLevel = DifficultyLevel.LEVEL_2, isScoringMode: Boolean = false): Move? {
         val legalMoves = board.getLegalMoves(aiColor)
         if (legalMoves.isEmpty()) return null
+
+        if (isScoringMode) {
+            return chooseScoringMove(board, legalMoves)
+        }
 
         // Cấp độ 7 sử dụng Stockfish (không NNUE) nếu có context
         if (difficulty == DifficultyLevel.LEVEL_7 && context != null) {
@@ -131,6 +135,167 @@ class ChessAI(private val aiColor: PieceColor, private val context: Context? = n
             DifficultyLevel.LEVEL_2 -> chooseMediumMove(board, legalMoves)
             else -> chooseHardMove(board, legalMoves, maxTargetDepth = difficulty.level)
         }
+    }
+
+    private fun chooseScoringMove(board: ChessBoard, legalMoves: List<Move>): Move {
+        val userColor = aiColor.opposite
+
+        // Tìm TẤT CẢ quân người chơi (không phải Vua) để tính khoảng cách
+        val userPiecePositions = findAllUserPieces(board, userColor)
+        if (userPiecePositions.isEmpty()) return legalMoves.random()
+
+        // 1. Luôn ưu tiên ăn quân người chơi nếu có thể (ăn quân gần nhất trước)
+        val sortedByCapture = legalMoves
+            .filter { it.capturedPiece != null }
+            .sortedBy { move -> userPiecePositions.minOf { getManhattanDistance(move.to, it) } }
+        if (sortedByCapture.isNotEmpty()) return sortedByCapture.first()
+
+        val aiPieces = board.getPieces(aiColor)
+        val isMultiPieceSquad = aiPieces.size >= 4
+
+        // Nếu máy có ít hơn 4 quân: Giữ thuật toán tiến lại gần cơ bản
+        if (!isMultiPieceSquad) {
+            val minDistPerMove = legalMoves.associateWith { move ->
+                userPiecePositions.minOf { getManhattanDistance(move.to, it) }
+            }
+            val minDist = minDistPerMove.values.min()
+            val candidates = legalMoves.filter { minDistPerMove[it] == minDist }
+            return candidates.random()
+        }
+
+        // =========================================================================
+        // KHI CÓ TỪ 4 QUÂN TRỞ LÊN:
+        // Thuật toán: "Săn bầy đàn & Áp sát có sơ hở (Hunter-Pack & Vulnerability Window)"
+        // Mục tiêu: Áp sát mãnh liệt, tăng độ khó và đe dọa, nhưng tuyệt đối không trốn tìm,
+        // luôn mở ra khoảng trống để người chơi có cơ hội ăn quân ghi điểm.
+        // =========================================================================
+
+        // Xác định vị trí quân tiên phong (quân AI gần người chơi nhất hiện tại)
+        val vanguardPos = aiPieces.minByOrNull { (pos, _) ->
+            userPiecePositions.minOf { userPos -> getManhattanDistance(pos, userPos) }
+        }?.first
+
+        var bestScore = -999999
+        val candidateMoves = mutableListOf<Move>()
+
+        for (move in legalMoves) {
+            val targetUserPos = userPiecePositions.minByOrNull { getManhattanDistance(move.to, it) } ?: userPiecePositions.first()
+            val newDist = getManhattanDistance(move.to, targetUserPos)
+            val oldDist = getManhattanDistance(move.from, targetUserPos)
+
+            // 1. Chặn hành vi chạy trốn (Anti-Coward Constraint)
+            // Không cho phép máy tháo chạy xa khỏi người chơi (>= 4 ô) khi có từ 4 quân
+            if (newDist > oldDist && newDist >= 4) {
+                continue
+            }
+
+            val nextBoard = board.copy()
+            nextBoard.applyMove(move)
+
+            var score = 0
+
+            // 2. Thưởng áp sát cự ly gần (Proximity Bonus)
+            when (newDist) {
+                1 -> score += 600
+                2 -> score += 400
+                3 -> score += 200
+                else -> score += (8 - newDist) * 30
+            }
+
+            // 3. Thưởng tạo thế đe dọa thật sự (Threat Bonus):
+            // Nước đi này có thể ăn quân của người chơi ở lượt sau không?
+            val threatensAnyUserPiece = userPiecePositions.any { nextBoard.isSquareAttacked(it, aiColor) }
+            if (threatensAnyUserPiece) {
+                score += 1000 // Tăng độ khó: Buộc người chơi phải chú ý né hoặc ăn lại ngay!
+            }
+
+            // 4. Cơ chế tạo khoảng trống (Vulnerability & Tactical Bait):
+            // Quân người chơi có thể ăn được quân AI ở ô đích không?
+            val isExposedToUser = nextBoard.isSquareAttacked(move.to, userColor)
+            val isProtectedByOtherAi = board.isSquareAttacked(move.to, aiColor)
+
+            if (isExposedToUser) {
+                if (isProtectedByOtherAi) {
+                    // Bẫy đổi quân: Người chơi ăn được, nhưng quân máy khác bảo kê
+                    score += 450
+                } else {
+                    // Nếu là quân tiên phong: Rất khuyến khích lao vào áp sát làm mồi nhử!
+                    if (move.from == vanguardPos) {
+                        score += 500 // Tạo khoảng trống ăn điểm rõ ràng cho người chơi
+                    } else {
+                        score += 150
+                    }
+                }
+            }
+
+            // 5. Thưởng siết vòng vây / khóa ô thoát (Mobility restriction)
+            val userLegalMovesCount = nextBoard.getLegalMoves(userColor).size
+            score += (25 - userLegalMovesCount).coerceAtLeast(0) * 15
+
+            // 6. Yếu tố ngẫu nhiên nhỏ để các quân không di chuyển rập khuôn
+            score += Random.nextInt(0, 50)
+
+            if (score > bestScore) {
+                bestScore = score
+                candidateMoves.clear()
+                candidateMoves.add(move)
+            } else if (score == bestScore) {
+                candidateMoves.add(move)
+            }
+        }
+
+        return if (candidateMoves.isNotEmpty()) {
+            candidateMoves.random()
+        } else {
+            legalMoves.minByOrNull { move ->
+                userPiecePositions.minOf { getManhattanDistance(move.to, it) }
+            } ?: legalMoves.random()
+        }
+    }
+
+    private fun getManhattanDistance(p1: Position, p2: Position): Int {
+        return kotlin.math.abs(p1.row - p2.row) + kotlin.math.abs(p1.col - p2.col)
+    }
+
+    private fun findUserPiece(board: ChessBoard, color: PieceColor): Position? {
+        for (r in 0..7) {
+            for (c in 0..7) {
+                val p = board.getPiece(r, c)
+                if (p != null && p.color == color && p.type != PieceType.KING) {
+                    return Position(r, c)
+                }
+            }
+        }
+        for (r in 0..7) {
+            for (c in 0..7) {
+                val p = board.getPiece(r, c)
+                if (p != null && p.color == color) return Position(r, c)
+            }
+        }
+        return null
+    }
+
+    private fun findAllUserPieces(board: ChessBoard, color: PieceColor): List<Position> {
+        val positions = mutableListOf<Position>()
+        for (r in 0..7) {
+            for (c in 0..7) {
+                val p = board.getPiece(r, c)
+                if (p != null && p.color == color && p.type != PieceType.KING) {
+                    positions.add(Position(r, c))
+                }
+            }
+        }
+        if (positions.isEmpty()) {
+            for (r in 0..7) {
+                for (c in 0..7) {
+                    val p = board.getPiece(r, c)
+                    if (p != null && p.color == color) {
+                        positions.add(Position(r, c))
+                    }
+                }
+            }
+        }
+        return positions
     }
 
     private fun chooseEasyMove(board: ChessBoard, legalMoves: List<Move>): Move {

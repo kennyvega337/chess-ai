@@ -243,9 +243,13 @@ private fun GameModeSelectionBox(
                         ModeButton(mode = GameMode.TUTORIAL, isLandscape = true, onClick = { onSelectMode(GameMode.TUTORIAL) }, accentColor = accentColor, selectedTheme = selectedTheme)
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsButton(isLandscape = true, onClick = onOpenSettings, accentColor = accentColor, selectedTheme = selectedTheme)
+                        ModeButton(mode = GameMode.SCORING, isLandscape = true, onClick = { onSelectMode(GameMode.SCORING) }, accentColor = accentColor, selectedTheme = selectedTheme)
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Row 4
+                SettingsButton(isLandscape = true, onClick = onOpenSettings, accentColor = accentColor, selectedTheme = selectedTheme)
             } else {
                 if (gameStatus == GameStatus.IN_PROGRESS) {
                     ResumeButton(label = "TIẾP TỤC TRẬN ĐẤU", isLandscape = false, onClick = onReturnToCurrentGame, selectedTheme = selectedTheme)
@@ -255,7 +259,15 @@ private fun GameModeSelectionBox(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                GameMode.values().filter { it != GameMode.SPECIAL_MOVE }.forEach { mode ->
+                val sortedModes = listOf(
+                    GameMode.VS_AI,
+                    GameMode.TWO_PLAYERS,
+                    GameMode.PUZZLE,
+                    GameMode.ONE_MOVE,
+                    GameMode.SCORING,
+                    GameMode.TUTORIAL
+                )
+                sortedModes.forEach { mode ->
                     ModeButton(mode = mode, isLandscape = false, onClick = { onSelectMode(mode) }, accentColor = accentColor, selectedTheme = selectedTheme)
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -329,6 +341,7 @@ private fun ModeButton(
         GameMode.PUZZLE -> "GIẢI ĐỐ CỜ VUA" to "🧩"
         GameMode.ONE_MOVE -> "THỬ THÁCH 1 NƯỚC" to "🎯"
         GameMode.TUTORIAL -> "HƯỚNG DẪN QUÂN CỜ" to "📖"
+        GameMode.SCORING -> "THỬ THÁCH GHI ĐIỂM" to "🏆"
         else -> "" to "" // GameMode.SPECIAL_MOVE handled by filter
     }
 

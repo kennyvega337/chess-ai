@@ -23,12 +23,16 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SentimentDissatisfied
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -122,12 +127,7 @@ fun HideSystemBarsInDialog(useDarkIcons: Boolean = false, statusBarColor: Int = 
 }
 
 fun isThemeLight(theme: ChessTheme): Boolean {
-    val color = theme.lightSquareColor // Use the light square color of the board as a reference for theme brightness
-    val r = (color shr 16 and 0xFF).toFloat() / 255f
-    val g = (color shr 8 and 0xFF).toFloat() / 255f
-    val b = (color and 0xFF).toFloat() / 255f
-    val luminance = 0.2126f * r + 0.7152f * g + 0.0722f * b
-    return luminance > 0.5f // If background is light -> useDarkIcons = true
+    return theme.isDarkStatusBarIcons
 }
 
 @Composable
@@ -423,6 +423,7 @@ fun GameOverDialog(
     gameMode: GameMode = GameMode.VS_AI,
     difficulty: DifficultyLevel = DifficultyLevel.LEVEL_2,
     timestamp: Long = 0,
+    scoringScore: Int = 0,
     onPlayAgain: () -> Unit,
     onRestart: () -> Unit,
     onDismiss: () -> Unit,
@@ -461,6 +462,7 @@ fun GameOverDialog(
         gameMode == GameMode.TWO_PLAYERS -> if (winner != null) "👑 THÔNG BÁO KẾT QUẢ 👑" else "⚖️ HÒA CỜ TRUNG CỔ ⚖️"
         gameMode == GameMode.PUZZLE -> if (isWin) "👑 THIÊN TÀI (HAY MAY MẮN?) 👑" else "💀 QUÁ SỨC RỒI SAO? 💀"
         gameMode == GameMode.ONE_MOVE -> if (isWin) "🎯 ĐOÁN MÒ THÀNH CÔNG 🎯" else "🤡 BÓ TAY TOÀN TẬP 🤡"
+        gameMode == GameMode.SCORING -> "🏆 KẾT QUẢ THỬ THÁCH 🏆"
         else -> when {
             isWin -> "👑 THÔNG BÁO CHIẾN THẮNG 👑"
             isDraw -> "⚖️ HÒA CỜ TRUNG CỔ ⚖️"
@@ -482,6 +484,7 @@ fun GameOverDialog(
         randomEntry != null -> if (isWin) "CHIẾN THẮNG!" else if (isDraw) "HÒA CỜ!" else "BẠN ĐÃ THẤT THỦ!"
         gameMode == GameMode.PUZZLE -> if (isWin) "TRÌNH ĐỘ... CŨNG TẠM!" else "NÃO ĐANG 'LOAD' SAO?"
         gameMode == GameMode.ONE_MOVE -> if (isWin) "CHẮC LÀ ĂN MAY THÔI!" else "THUA TRONG TỨC TƯỞI!"
+        gameMode == GameMode.SCORING -> "HẾT GIỜ THỬ THÁCH!"
         else -> when {
             isWin -> "BẠN ĐÃ CHIẾN THẮNG!"
             isDraw -> "TRẬN ĐẤU BẤT PHÂN THẮNG BẠI!"
@@ -491,6 +494,8 @@ fun GameOverDialog(
     }
 
     val bodyText = randomEntry?.Message ?: when {
+        gameMode == GameMode.SCORING -> "Bạn đã nỗ lực hết mình! Tổng số điểm đạt được trong 1 phút vừa qua là: $scoringScore điểm."
+        gameMode == GameMode.SPECIAL_MOVE -> "Chúc mừng! Bạn đã hoàn thành bài học về nước đi đặc biệt với số điểm: $scoringScore."
         gameMode == GameMode.TWO_PLAYERS -> {
             val p1ColorVi = if (userColor == PieceColor.WHITE) "Quân Trắng" else "Quân Đen"
             val p2ColorVi = if (userColor == PieceColor.WHITE) "Quân Đen" else "Quân Trắng"
@@ -604,6 +609,39 @@ fun GameOverDialog(
                         }
 
                         Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 16.dp))
+
+                        if (gameMode == GameMode.SCORING || gameMode == GameMode.SPECIAL_MOVE) {
+                            val stars = when {
+                                scoringScore >= 30 -> 3
+                                scoringScore > 15 -> 2
+                                scoringScore > 0 -> 1
+                                else -> 0
+                            }
+                            
+                            Row(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                repeat(3) { index ->
+                                    Icon(
+                                        imageVector = if (index < stars) Icons.Default.Star else Icons.Default.StarBorder,
+                                        contentDescription = null,
+                                        tint = if (index < stars) Color(0xFFFFD700) else textColor.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(if (isLandscape) 32.dp else 40.dp)
+                                    )
+                                }
+                            }
+                            
+                            Text(
+                                text = "Đánh giá: $stars sao",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = accentColorTheme
+                            )
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
 
                         Text(
                             text = mainStatusText,
@@ -1425,39 +1463,412 @@ fun CheckPopupDialog(
 }
 
 
-@Preview(showBackground = true)
 @Composable
-fun SideSelectionDialogPreview() {
-    MyApplicationTheme {
-        SideSelectionDialog(onDismiss = {})
+fun ChallengeResultDialog(
+    score: Int,
+    gameMode: GameMode,
+    selectedTheme: ChessTheme = ChessTheme.CLASSIC,
+    scoringMode: ChessScoreMode? = null,
+    onRestart: () -> Unit,
+    onHome: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
+    val btnColor = Color(selectedTheme.lightSquareColor)
+
+    val stars = if (gameMode == GameMode.SCORING && scoringMode != null) {
+        when {
+            score >= scoringMode.score2Start -> 3
+            score > scoringMode.score1Start -> 2
+            score > 0 -> 1
+            else -> 0
+        }
+    } else {
+        when {
+            score >= 30 -> 3
+            score > 15 -> 2
+            score > 0 -> 1
+            else -> 0
+        }
+    }
+
+    // Star animations
+    val starStates = List(3) { remember { androidx.compose.animation.core.Animatable(0f) } }
+    var showButtons by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(stars) {
+        if (stars > 0) {
+            for (i in 0 until stars) {
+                kotlinx.coroutines.delay(150) // Reduced delay between each star
+                starStates[i].animateTo(
+                    targetValue = 1f,
+                    animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                        stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+                    )
+                )
+            }
+        } else {
+            kotlinx.coroutines.delay(400) // Small pause before showing buttons if no stars
+        }
+        showButtons = true
+    }
+
+    val resultTitle = when (stars) {
+        3 -> "👑 TUYỆT VỜI! 👑"
+        2 -> "✨ KHÁ TỐT! ✨"
+        1 -> "🥉 CỐ GẮNG LÊN! 🥉"
+        else -> "💀 THẤT BẠI! 💀"
+    }
+
+    val resultMessage = when (gameMode) {
+        GameMode.SCORING -> when (stars) {
+            3 -> "Bạn là một bậc thầy săn đuổi! Điểm số $score thật ấn tượng."
+            2 -> "Kỹ năng của bạn rất ổn định. $score điểm là một kết quả tốt."
+            1 -> "Bạn đã bắt đầu quen tay rồi đấy. Hãy thử lại để đạt điểm cao hơn $score."
+            else -> "Có vẻ như quân cờ của bạn đang bị 'lạc đường'. Hãy tập trung hơn!"
+        }
+        GameMode.SPECIAL_MOVE -> if (stars >= 1) {
+            "Chúc mừng bạn đã hoàn thành bài học về nước đi đặc biệt!"
+        } else {
+            "Bạn chưa hoàn thành yêu cầu của bài học. Hãy thử lại nhé!"
+        }
+        else -> ""
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        val useDarkIcons = isThemeLight(selectedTheme)
+        val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .widthIn(max = 400.dp)
+                    .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
+                contentAlignment = Alignment.TopEnd
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                    color = bgColors.first(),
+                    border = androidx.compose.foundation.BorderStroke(3.dp, accentColor),
+                    shadowElevation = 20.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .background(Brush.verticalGradient(bgColors))
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = resultTitle,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = accentColor,
+                            letterSpacing = 1.5.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Stars Row
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(3) { index ->
+                                val isFilled = index < stars
+                                val animValue = starStates[index].value
+                                
+                                Box(
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    // Background Frame (Star Border)
+                                    Icon(
+                                        imageVector = Icons.Default.StarBorder,
+                                        contentDescription = null,
+                                        tint = textColor.copy(alpha = 0.15f),
+                                        modifier = Modifier.size(56.dp)
+                                    )
+
+                                    // Animated Filled Star
+                                    if (isFilled) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFD700),
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .graphicsLayer {
+                                                    scaleX = animValue
+                                                    scaleY = animValue
+                                                    translationY = (1f - animValue) * -50f
+                                                    alpha = animValue.coerceIn(0f, 1f)
+                                                }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Score Display
+                        Surface(
+                            color = accentColor.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.3f))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 30.dp, vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "TỔNG ĐIỂM",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = accentColor.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    text = "$score",
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = textColor
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Text(
+                            text = resultMessage,
+                            fontSize = 15.sp,
+                            color = textColor.copy(alpha = 0.9f),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 22.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // Buttons (Animated appearance after stars)
+                        AnimatedVisibility(
+                            visible = showButtons,
+                            enter = fadeIn() + androidx.compose.animation.expandVertically()
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Button(
+                                    onClick = onRestart,
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = accentColor)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(22.dp), tint = Color.Black)
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("CHƠI LẠI", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                                }
+
+                                OutlinedButton(
+                                    onClick = onHome,
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    border = androidx.compose.foundation.BorderStroke(2.dp, accentColor.copy(alpha = 0.8f))
+                                ) {
+                                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(22.dp), tint = textColor)
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("ĐỔI CHẾ ĐỘ", color = textColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Nút đóng ở góc trên bên phải
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .offset(x = 5.dp, y = (-5).dp)
+                        .size(32.dp)
+                        .background(btnColor, CircleShape)
+                        .border(2.dp, accentColor, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Đóng",
+                        tint = accentColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SpecialMoveResultDialog(
+    isSuccess: Boolean,
+    message: String,
+    selectedTheme: ChessTheme,
+    onRestart: () -> Unit,
+    onHome: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val accentColor = Color(selectedTheme.accentColor)
+    val textColor = Color(selectedTheme.textColor)
+    val surfaceColor = Color(selectedTheme.surfaceColor)
+    val bgColors = selectedTheme.backgroundColors.map { Color(it) }
+    val useDarkIcons = isThemeLight(selectedTheme)
+    val statusBarColorInt = selectedTheme.backgroundColors.first().toInt()
+    val btnColor = Color(selectedTheme.lightSquareColor)
+
+    val statusColor = if (isSuccess) Color(0xFF10B981) else Color(0xFFEF4444)
+    val statusIcon = if (isSuccess) Icons.Default.EmojiEvents else Icons.Default.Close
+    val bannerTitle = if (isSuccess) "HOÀN THÀNH!" else "THẤT BẠI!"
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        HideSystemBarsInDialog(useDarkIcons, statusBarColorInt)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(0.88f).wrapContentHeight().clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
+                contentAlignment = Alignment.TopEnd
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(2.dp, accentColor, RoundedCornerShape(16.dp))
+                        .shadow(16.dp, RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = bgColors.first())
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Brush.verticalGradient(bgColors))
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(statusColor.copy(alpha = 0.2f), CircleShape)
+                                .border(2.2.dp, statusColor, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = statusIcon,
+                                contentDescription = null,
+                                tint = statusColor,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Text(
+                            text = bannerTitle,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = accentColor,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = message,
+                            fontSize = 14.sp,
+                            color = textColor.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 20.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        Button(
+                            onClick = onRestart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = surfaceColor),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("THỬ LẠI", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = textColor)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Button(
+                            onClick = onHome,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = surfaceColor.copy(alpha = 0.4f)),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("TRANG CHỦ", color = textColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .offset(x = 5.dp, y = (-5).dp)
+                        .size(24.dp)
+                        .background(btnColor, CircleShape)
+                        .border(2.dp, accentColor, CircleShape)
+                ) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = accentColor, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun PawnPromotionDialogPreview() {
+fun ChallengeResultDialogPreview() {
     MyApplicationTheme {
-        PawnPromotionDialog(color = PieceColor.WHITE, onSelectPiece = {})
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GameOverDialogTwoPlayersPreview() {
-    MyApplicationTheme {
-        GameOverDialog(
-            gameStatus = GameStatus.CHECKMATE,
-            winner = PieceColor.BLACK,
-            userColor = PieceColor.BLACK,
-            gameMode = GameMode.TWO_PLAYERS,
-            onPlayAgain = {},
+        ChallengeResultDialog(
+            score = 25,
+            gameMode = GameMode.SCORING,
             onRestart = {},
+            onHome = {},
             onDismiss = {}
         )
     }
 }
 
-@Preview(showBackground = true)
 @Composable
 fun GameOverDialogWinPreview() {
     MyApplicationTheme {

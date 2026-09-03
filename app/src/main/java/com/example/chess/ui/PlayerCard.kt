@@ -141,11 +141,15 @@ fun PlayerCard(
                     val isGameOver = gameStatus != GameStatus.IN_PROGRESS && gameStatus != GameStatus.NOT_STARTED
                     val statusText = when {
                         isGameOver -> {
-                            when {
-                                winner == playerColor -> "Chiến thắng"
-                                winner != null -> "Thua cuộc"
-                                gameStatus == GameStatus.DRAW || gameStatus == GameStatus.STALEMATE -> "Hòa cờ"
-                                else -> "Kết thúc"
+                            if (gameMode == GameMode.SCORING) {
+                                "Kết thúc"
+                            } else {
+                                when {
+                                    winner == playerColor -> "Chiến thắng"
+                                    winner != null -> "Thua cuộc"
+                                    gameStatus == GameStatus.DRAW || gameStatus == GameStatus.STALEMATE -> "Hòa cờ"
+                                    else -> "Kết thúc"
+                                }
                             }
                         }
                         isAiThinking && isCurrentTurn -> if (isUser) "Đang tìm gợi ý..." else "Đang tính nước đi..."
@@ -170,6 +174,7 @@ fun PlayerCard(
                     }
 
                     val statusColor = when {
+                        isGameOver && gameMode == GameMode.SCORING -> Color.Gray
                         isGameOver && winner == playerColor -> ColorEmeraldLight // Green for win
                         isGameOver && winner != null -> ColorCrimsonSoft // Red for loss
                         isGameOver -> Color.Gray
@@ -224,8 +229,8 @@ fun PlayerCard(
                 }
             }
 
-            // Captured pieces list - Only show in Portrait
-            if (!isLandscape) {
+            // Captured pieces list - Only show in Portrait and not in SCORING mode
+            if (!isLandscape && gameMode != GameMode.SCORING) {
                 CapturedPiecesRow(capturedPieces = capturedPieces, pieceColor = playerColor.opposite, textColor = textColor)
             }
         }

@@ -482,8 +482,8 @@ private fun get3DPieceScale(type: PieceType, color: PieceColor, perspective: Pie
                 PieceType.PAWN -> 1.2f
             }
             PieceColor.BLACK -> when (type) {
-                PieceType.KING -> 1.5f
-                PieceType.QUEEN -> 1.5f
+                PieceType.KING -> 1.6f
+                PieceType.QUEEN -> 1.6f
                 PieceType.ROOK -> 1.5f
                 PieceType.BISHOP -> 1.5f
                 PieceType.KNIGHT -> 1.5f

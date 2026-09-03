@@ -67,7 +67,8 @@ enum class GameStatus {
 enum class AppScreen {
     SETUP,
     GAME,
-    PUZZLE
+    PUZZLE,
+    SCORING
 }
 
 enum class BoardViewMode {
@@ -86,7 +87,8 @@ enum class GameMode(val displayNameVi: String, val subtitleVi: String) {
     PUZZLE("Giải Đố", "Thử thách chiếu bí trong X nước"),
     ONE_MOVE("1 Nước Đi", "Thử thách chiếu bí trong 1 nước"),
     TUTORIAL("Hướng Dẫn", "Học cách đi cờ 6 quân"),
-    SPECIAL_MOVE("Nước Đi Đặc Biệt", "Học các quy tắc đặc biệt")
+    SPECIAL_MOVE("Nước Đi Đặc Biệt", "Học các quy tắc đặc biệt"),
+    SCORING("Ghi Điểm", "Thử thách ghi điểm tối đa")
 }
 
 enum class SpecialTutorialType(val displayNameVi: String, val description: String) {
@@ -158,7 +160,10 @@ data class ChessTheme(
 
     // Nút bấm
     val buttonColor: Long,
-    val buttonPressedColor: Long
+    val buttonPressedColor: Long,
+
+    val isDarkStatusBarIcons: Boolean
+
 ) {
     companion object {
 
@@ -193,7 +198,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF7CAE5A,
-            buttonPressedColor = 0xFF5E8A42
+            buttonPressedColor = 0xFF5E8A42,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -227,7 +233,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF4A90C9,
-            buttonPressedColor = 0xFF3A80B5
+            buttonPressedColor = 0xFF3A80B5,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -261,7 +268,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF9A7AD6,
-            buttonPressedColor = 0xFF7A5AB5
+            buttonPressedColor = 0xFF7A5AB5,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -295,7 +303,8 @@ data class ChessTheme(
             checkColor = 0xCCD50000,             // Đỏ
 
             buttonColor = 0xFFD05A4A,
-            buttonPressedColor = 0xFFB03A2E
+            buttonPressedColor = 0xFFB03A2E,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -329,7 +338,8 @@ data class ChessTheme(
             checkColor = 0xCCE84A40,             // Cam đỏ
 
             buttonColor = 0xFF22B0C0,
-            buttonPressedColor = 0xFF1A90A0
+            buttonPressedColor = 0xFF1A90A0,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -363,7 +373,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF66AA54,
-            buttonPressedColor = 0xFF4A8A3A
+            buttonPressedColor = 0xFF4A8A3A,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -397,7 +408,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF26B8A8,
-            buttonPressedColor = 0xFF1A8A7E
+            buttonPressedColor = 0xFF1A8A7E,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -431,7 +443,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF6A6EE6,
-            buttonPressedColor = 0xFF4A4ECC
+            buttonPressedColor = 0xFF4A4ECC,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -465,7 +478,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFFCC8844,
-            buttonPressedColor = 0xFFB07034
+            buttonPressedColor = 0xFFB07034,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -499,7 +513,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF3AB8E6,
-            buttonPressedColor = 0xFF1A90C8
+            buttonPressedColor = 0xFF1A90C8,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -533,7 +548,8 @@ data class ChessTheme(
             checkColor = 0xCCC2185B,             // Hồng tím
 
             buttonColor = 0xFFE8708E,
-            buttonPressedColor = 0xFFCC4A6A
+            buttonPressedColor = 0xFFCC4A6A,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -556,7 +572,7 @@ data class ChessTheme(
             borderColor = 0xFFB0B2B4,
             dividerColor = 0xFFC0C2C4,
 
-            iconColor = 0xFF505054,
+            iconColor = 0xFFFFFFFF,
             iconActiveColor = 0xFFC8A838,
 
             // 🔥 Đã chỉnh: Dùng xanh dương tương phản với vàng
@@ -567,7 +583,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFFC8A838,
-            buttonPressedColor = 0xFFA88828
+            buttonPressedColor = 0xFFA88828,
+            isDarkStatusBarIcons = true
         )
 
         // ============================================================
@@ -590,7 +607,7 @@ data class ChessTheme(
             borderColor = 0xFF3A4450,
             dividerColor = 0xFF2E3842,
 
-            iconColor = 0xFF8A949E,
+            iconColor = 0xFFFFFFFF,
             iconActiveColor = 0xFF4A90D9,
 
             // 🔥 Đã chỉnh: Dùng vàng/cam tạo điểm nhấn
@@ -601,7 +618,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF4A90D9,
-            buttonPressedColor = 0xFF3A7AC9
+            buttonPressedColor = 0xFF3A7AC9,
+            isDarkStatusBarIcons = false
         )
 
         // ============================================================
@@ -624,7 +642,7 @@ data class ChessTheme(
             borderColor = 0xFF4A3C30,
             dividerColor = 0xFF3A3026,
 
-            iconColor = 0xFFA89880,
+            iconColor = 0xFFFFFFFF,
             iconActiveColor = 0xFFD4A048,
 
             // 🔥 Đã chỉnh: Dùng xanh dương tương phản với vàng
@@ -635,7 +653,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFFD4A048,
-            buttonPressedColor = 0xFFB88838
+            buttonPressedColor = 0xFFB88838,
+            isDarkStatusBarIcons = false
         )
 
         // ============================================================
@@ -658,7 +677,7 @@ data class ChessTheme(
             borderColor = 0xFF3A4048,
             dividerColor = 0xFF2E343A,
 
-            iconColor = 0xFF88929C,
+            iconColor = 0xFFFFFFFF,
             iconActiveColor = 0xFF6A8A9E,
 
             // 🔥 Đã chỉnh: Dùng vàng/cam tạo điểm nhấn
@@ -669,7 +688,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF6A8A9E,
-            buttonPressedColor = 0xFF5A7A8E
+            buttonPressedColor = 0xFF5A7A8E,
+            isDarkStatusBarIcons = false
         )
 
         // ============================================================
@@ -692,7 +712,7 @@ data class ChessTheme(
             borderColor = 0xFF4A3238,
             dividerColor = 0xFF3A262A,
 
-            iconColor = 0xFFA88882,
+            iconColor = 0xFFFFFFFF,
             iconActiveColor = 0xFFD48A7A,
 
             // 🔥 Đã chỉnh: Dùng xanh/vàng tương phản với đỏ
@@ -703,7 +723,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFFD48A7A,
-            buttonPressedColor = 0xFFB86A5A
+            buttonPressedColor = 0xFFB86A5A,
+            isDarkStatusBarIcons = false
         )
 
         // ============================================================
@@ -737,7 +758,8 @@ data class ChessTheme(
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
             buttonColor = 0xFF3A9AD4,
-            buttonPressedColor = 0xFF2A80B8
+            buttonPressedColor = 0xFF2A80B8,
+            isDarkStatusBarIcons = false
         )
 
         val themes = listOf(
@@ -747,6 +769,29 @@ data class ChessTheme(
 
         fun fromName(name: String): ChessTheme {
             return themes.find { it.name.equals(name, ignoreCase = true) } ?: CLASSIC
+        }
+    }
+}
+
+data class ChessScoreMode(
+    val name: String,
+    val time: Long, // seconds
+    val score: Int, // target score for 3 stars
+    val score1Start: Int, // min score for 1 star
+    val score2Start: Int, // min score for 2 stars
+    val progressLevel: List<Int>
+) {
+    companion object {
+        val Score15s = ChessScoreMode("15s", 15, 20, 10, 20, listOf(5, 10, 15))
+        val Score30s = ChessScoreMode("30s", 30, 30, 15, 30, listOf(15,20, 25))
+        val Score45s = ChessScoreMode("45s", 45, 50, 25, 50, listOf(20, 30, 40))
+        val Score60s = ChessScoreMode("1m", 60, 60, 30, 60, listOf(20, 30,40, 50))
+        val Score300s = ChessScoreMode("5m", 300, 150, 50, 150, listOf(20, 50, 75, 100))
+
+        val modes = listOf(Score15s, Score30s, Score45s, Score60s, Score300s)
+        
+        fun fromTime(seconds: Int): ChessScoreMode {
+            return modes.find { it.time.toInt() == seconds } ?: Score30s
         }
     }
 }

@@ -101,6 +101,7 @@ import com.example.GameSetupActivity
 import com.example.chess.ui.GameHistoryDialog
 import com.example.chess.ui.ChessThemeDialog
 import com.example.chess.ui.GeneralSettingsDialog
+import com.example.chess.ui.ScoringScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,6 +135,9 @@ fun ChessScreen(
         state = state,
         onStartGame = { sideOption, difficulty, gameMode, timerOption, customMinutes ->
             viewModel.startNewGame(sideOption, difficulty, gameMode, timerOption, customMinutes)
+        },
+        onStartScoring = { side, piece, seconds ->
+            viewModel.startScoringMode(side, piece, seconds)
         },
         onStartTutorialPiece = { pieceType ->
             viewModel.startTutorialMode(pieceType)
@@ -173,6 +177,7 @@ fun ChessScreen(
         onCancelRestart = { viewModel.cancelRestart() },
         onDismissCheckPopup = { viewModel.dismissCheckPopup() },
         onCloseGameOverModal = { viewModel.closeGameOverModal() },
+        onCloseSpecialMoveResult = { viewModel.closeSpecialMoveResult() },
         onCompletePromotion = { type -> viewModel.completePromotion(type) },
         onOpenSetupActivity = { 
             viewModel.requestNavigation(com.example.chess.model.NavigationTarget.MENU)
@@ -192,6 +197,7 @@ fun ChessScreen(
 fun ChessScreenContent(
     state: ChessUiState,
     onStartGame: (SideOption, DifficultyLevel, GameMode, GameTimerOption, Int?) -> Unit,
+    onStartScoring: (SideOption, PieceType, Int) -> Unit,
     onStartTutorialPiece: (PieceType) -> Unit,
     onStartSpecialMove: (SpecialTutorialType) -> Unit,
     onStartPuzzle: (String, String, Int) -> Unit,
@@ -220,6 +226,7 @@ fun ChessScreenContent(
     onCancelRestart: () -> Unit,
     onDismissCheckPopup: () -> Unit,
     onCloseGameOverModal: () -> Unit,
+    onCloseSpecialMoveResult: () -> Unit,
     onCompletePromotion: (PieceType) -> Unit,
     onOpenSetupActivity: () -> Unit,
     onNavigateToSetup: () -> Unit,
@@ -229,6 +236,7 @@ fun ChessScreenContent(
     onLoadPersistedGame: () -> Unit,
     onShowMessage: (String) -> Unit
 ) {
+    val context = LocalContext.current
     when (state.currentScreen) {
         AppScreen.SETUP -> {
             GameSetupScreen(
@@ -237,7 +245,10 @@ fun ChessScreenContent(
                 initialGameMode = state.gameMode,
                 initialTimerOption = state.timerOption,
                 initialCustomMinutes = 10, // Default for in-app setup
+                initialScoringPiece = state.tutorialPiece ?: PieceType.QUEEN,
+                initialScoringSeconds = state.selectedScoringMode.time.toInt(),
                 onStartGame = onStartGame,
+                onStartScoring = onStartScoring,
                 onStartTutorialPiece = onStartTutorialPiece,
                 onStartSpecialMove = onStartSpecialMove,
                 onStartPuzzle = onStartPuzzle,
@@ -274,6 +285,7 @@ fun ChessScreenContent(
                 onCancelRestart = onCancelRestart,
                 onDismissCheckPopup = onDismissCheckPopup,
                 onCloseGameOverModal = onCloseGameOverModal,
+                onCloseSpecialMoveResult = onCloseSpecialMoveResult,
                 onCompletePromotion = onCompletePromotion,
                 onStartTutorialPiece = onStartTutorialPiece,
                 onStartSpecialMove = onStartSpecialMove,
@@ -312,6 +324,37 @@ fun ChessScreenContent(
                 onShowMessage = onShowMessage
             )
         }
+        AppScreen.SCORING -> {
+            ScoringScreen(
+                state = state,
+                onOpenCapturedPiecesModal = onOpenCapturedPiecesModal,
+                onShowHint = onShowHint,
+                onOpenThemeModal = onOpenThemeModal,
+                onOpenGeneralSettingsModal = onOpenGeneralSettingsModal,
+                onUndoMove = onUndoMove,
+                onRestartGame = onRestartGame,
+                onSquareClick = onSquareClick,
+                onSelectTheme = onSelectTheme,
+                onSetBoardViewMode = onSetBoardViewMode,
+                onSetSoundEnabled = onSetSoundEnabled,
+                onSetMoveHintsEnabled = onSetMoveHintsEnabled,
+                onSetSaveGameEnabled = onSetSaveGameEnabled,
+                onCloseThemeModal = onCloseThemeModal,
+                onCloseGeneralSettingsModal = onCloseGeneralSettingsModal,
+                onConfirmRestart = onConfirmRestart,
+                onCancelRestart = onCancelRestart,
+                onDismissCheckPopup = onDismissCheckPopup,
+                onCloseGameOverModal = onCloseGameOverModal,
+                onCompletePromotion = onCompletePromotion,
+                onNavigateToSetup = {
+                    navigateToSetupActivity(context, GameMode.SCORING)
+                },
+                onNavigateToMenu = {
+                    openSetupActivity(context, state)
+                },
+                onShowMessage = onShowMessage
+            )
+        }
     }
 }
 
@@ -342,6 +385,7 @@ fun ChessBoardScreenContent(
     onCancelRestart: () -> Unit,
     onDismissCheckPopup: () -> Unit,
     onCloseGameOverModal: () -> Unit,
+    onCloseSpecialMoveResult: () -> Unit,
     onCompletePromotion: (PieceType) -> Unit,
     onStartTutorialPiece: (PieceType) -> Unit,
     onStartSpecialMove: (SpecialTutorialType) -> Unit,
@@ -436,7 +480,7 @@ fun ChessBoardScreenContent(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                if (state.gameMode != GameMode.TUTORIAL) {
+                                if (state.gameMode != GameMode.TUTORIAL && state.gameMode != GameMode.SPECIAL_MOVE) {
                                     IconButton(
                                         onClick = { onOpenCapturedPiecesModal() },
                                         modifier = Modifier.size(36.dp).testTag("score_captured_button")
@@ -566,45 +610,47 @@ fun ChessBoardScreenContent(
                     Spacer(modifier = Modifier.weight(1f))
 
                     // Row 2: Player 1 Info & Score
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth(0.95f)
-                            .background(Color(state.selectedTheme.surfaceColor).copy(alpha = 0.8f), RoundedCornerShape(12.dp))
-                            .border(1.2.dp, Color(state.selectedTheme.borderColor), RoundedCornerShape(12.dp))
-                            .padding(6.dp)
-                    ) {
-                        val userScoreVal = if (state.userColor == PieceColor.WHITE)
-                            state.capturedBlackPieces.sumOf { it.pointValue }
-                        else
-                            state.capturedWhitePieces.sumOf { it.pointValue }
+                    if (state.gameMode != GameMode.TUTORIAL && state.gameMode != GameMode.SPECIAL_MOVE) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth(0.95f)
+                                .background(Color(state.selectedTheme.surfaceColor).copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                                .border(1.2.dp, Color(state.selectedTheme.borderColor), RoundedCornerShape(12.dp))
+                                .padding(6.dp)
+                        ) {
+                            val userScoreVal = if (state.userColor == PieceColor.WHITE)
+                                state.capturedBlackPieces.sumOf { it.pointValue }
+                            else
+                                state.capturedWhitePieces.sumOf { it.pointValue }
 
-                        val userLabel = if (state.gameMode == GameMode.TWO_PLAYERS) "N.CHƠI 1" else "BẠN"
+                            val userLabel = if (state.gameMode == GameMode.TWO_PLAYERS) "N.CHƠI 1" else "BẠN"
 
-                        Text(
-                            text = "$userLabel: ${userScoreVal}đ",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = accentColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        PlayerCard(
-                            isUser = true,
-                            playerColor = state.userColor,
-                            isCurrentTurn = state.currentTurn == state.userColor,
-                            isAiThinking = state.isAiThinking,
-                            capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedBlackPieces else state.capturedWhitePieces,
-                            gameMode = state.gameMode,
-                            gameStatus = state.gameStatus,
-                            winner = state.winner,
-                            title = if (state.gameMode == GameMode.TWO_PLAYERS) "NGƯỜI CHƠI 1" else null,
-                            timeMillis = if (state.userColor == PieceColor.WHITE) state.whiteTimeMillis else state.blackTimeMillis,
-                            timerOption = state.timerOption,
-                            selectedTheme = state.selectedTheme,
-                            onClick = { onOpenCapturedPiecesModal() }
-                        )
+                            Text(
+                                text = "$userLabel: ${userScoreVal}đ",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = accentColor
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            PlayerCard(
+                                isUser = true,
+                                playerColor = state.userColor,
+                                isCurrentTurn = state.currentTurn == state.userColor,
+                                isAiThinking = state.isAiThinking,
+                                capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedBlackPieces else state.capturedWhitePieces,
+                                gameMode = state.gameMode,
+                                gameStatus = state.gameStatus,
+                                winner = state.winner,
+                                title = if (state.gameMode == GameMode.TWO_PLAYERS) "NGƯỜI CHƠI 1" else null,
+                                timeMillis = if (state.userColor == PieceColor.WHITE) state.whiteTimeMillis else state.blackTimeMillis,
+                                timerOption = state.timerOption,
+                                selectedTheme = state.selectedTheme,
+                                onClick = if (state.gameMode != GameMode.SPECIAL_MOVE) {{ onOpenCapturedPiecesModal() }} else null
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 // COL 2: CHESSBOARD (Central Focus)
@@ -673,7 +719,7 @@ fun ChessBoardScreenContent(
                             icon = Icons.Default.EmojiEvents,
                             contentDesc = "Chiến tích",
                             isLandscape = true,
-                            onClick = { onOpenCapturedPiecesModal() },
+                            onClick = { if (state.gameMode != GameMode.SPECIAL_MOVE) onOpenCapturedPiecesModal() },
                             color = iconColor,
                             selectedTheme = state.selectedTheme
                         )
@@ -690,51 +736,53 @@ fun ChessBoardScreenContent(
                     Spacer(modifier = Modifier.weight(1f))
 
                     // Row 2: Player 2 Info & Score
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth(0.95f)
-                            .background(Color(state.selectedTheme.surfaceColor).copy(alpha = 0.8f), RoundedCornerShape(12.dp))
-                            .border(1.2.dp, Color(state.selectedTheme.borderColor), RoundedCornerShape(12.dp))
-                            .padding(6.dp)
-                    ) {
-                        val opponentScoreVal = if (state.userColor == PieceColor.WHITE)
-                            state.capturedWhitePieces.sumOf { it.pointValue }
-                        else
-                            state.capturedBlackPieces.sumOf { it.pointValue }
+                    if (state.gameMode != GameMode.TUTORIAL && state.gameMode != GameMode.SPECIAL_MOVE) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth(0.95f)
+                                .background(Color(state.selectedTheme.surfaceColor).copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                                .border(1.2.dp, Color(state.selectedTheme.borderColor), RoundedCornerShape(12.dp))
+                                .padding(6.dp)
+                        ) {
+                            val opponentScoreVal = if (state.userColor == PieceColor.WHITE)
+                                state.capturedWhitePieces.sumOf { it.pointValue }
+                            else
+                                state.capturedBlackPieces.sumOf { it.pointValue }
 
-                        val opponentLabel = when (state.gameMode) {
-                            GameMode.TWO_PLAYERS -> "N.CHƠI 2"
-                            GameMode.TUTORIAL -> "TUTORIAL"
-                            else -> "MÁY (${state.difficulty.displayNameVi})"
+                            val opponentLabel = when (state.gameMode) {
+                                GameMode.TWO_PLAYERS -> "N.CHƠI 2"
+                                GameMode.TUTORIAL -> "TUTORIAL"
+                                else -> "MÁY (${state.difficulty.displayNameVi})"
+                            }
+
+                            Text(
+                                text = "$opponentLabel: ${opponentScoreVal}đ",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White.copy(alpha = 0.8f),
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            PlayerCard(
+                                isUser = false,
+                                playerColor = state.userColor.opposite,
+                                isCurrentTurn = state.currentTurn == state.userColor.opposite,
+                                isAiThinking = state.isAiThinking,
+                                capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedWhitePieces else state.capturedBlackPieces,
+                                difficulty = state.difficulty,
+                                gameMode = state.gameMode,
+                                gameStatus = state.gameStatus,
+                                winner = state.winner,
+                                title = if (state.gameMode == GameMode.TWO_PLAYERS) "NGƯỜI CHƠI 2" else null,
+                                timeMillis = if (state.userColor == PieceColor.WHITE) state.blackTimeMillis else state.whiteTimeMillis,
+                                timerOption = state.timerOption,
+                                selectedTheme = state.selectedTheme,
+                                onClick = if (state.gameMode != GameMode.SPECIAL_MOVE) {{ onOpenCapturedPiecesModal() }} else null
+                            )
                         }
-
-                        Text(
-                            text = "$opponentLabel: ${opponentScoreVal}đ",
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White.copy(alpha = 0.8f),
-                            maxLines = 1
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        PlayerCard(
-                            isUser = false,
-                            playerColor = state.userColor.opposite,
-                            isCurrentTurn = state.currentTurn == state.userColor.opposite,
-                            isAiThinking = state.isAiThinking,
-                            capturedPieces = if (state.userColor == PieceColor.WHITE) state.capturedWhitePieces else state.capturedBlackPieces,
-                            difficulty = state.difficulty,
-                            gameMode = state.gameMode,
-                            gameStatus = state.gameStatus,
-                            winner = state.winner,
-                            title = if (state.gameMode == GameMode.TWO_PLAYERS) "NGƯỜI CHƠI 2" else null,
-                            timeMillis = if (state.userColor == PieceColor.WHITE) state.blackTimeMillis else state.whiteTimeMillis,
-                            timerOption = state.timerOption,
-                            selectedTheme = state.selectedTheme,
-                            onClick = { onOpenCapturedPiecesModal() }
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         } else {
@@ -761,12 +809,14 @@ fun ChessBoardScreenContent(
                     if (state.gameMode == GameMode.TUTORIAL) {
                         TutorialHeaderBar(
                             currentTutorialPiece = state.tutorialPiece,
-                            onSelectPiece = { pieceType -> onStartTutorialPiece(pieceType) }
+                            onSelectPiece = { pieceType -> onStartTutorialPiece(pieceType) },
+                            selectedTheme = state.selectedTheme
                         )
                     } else if (state.gameMode == GameMode.SPECIAL_MOVE) {
                         SpecialMoveHeaderBar(
                             currentType = state.specialTutorialType,
-                            onSelectType = { type -> onStartSpecialMove(type) }
+                            onSelectType = { type -> onStartSpecialMove(type) },
+                            selectedTheme = state.selectedTheme
                         )
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -784,7 +834,7 @@ fun ChessBoardScreenContent(
                                 timeMillis = if (state.userColor == PieceColor.WHITE) state.blackTimeMillis else state.whiteTimeMillis,
                                 timerOption = state.timerOption,
                                 selectedTheme = state.selectedTheme,
-                                onClick = { onOpenCapturedPiecesModal() }
+                                onClick = if (state.gameMode != GameMode.SPECIAL_MOVE) {{ onOpenCapturedPiecesModal() }} else null
                             )
 
                             // Opponent Score Badge - Sát Máy
@@ -857,7 +907,7 @@ fun ChessBoardScreenContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // --- 1. THẺ NGƯỜI CHƠI ---
-                    if (state.gameMode != GameMode.TUTORIAL) {
+                    if (state.gameMode != GameMode.TUTORIAL && state.gameMode != GameMode.SPECIAL_MOVE) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             // User Score Badge - Sát Bạn
                             Surface(
@@ -903,7 +953,7 @@ fun ChessBoardScreenContent(
                                 timeMillis = if (state.userColor == PieceColor.WHITE) state.whiteTimeMillis else state.blackTimeMillis,
                                 timerOption = state.timerOption,
                                 selectedTheme = state.selectedTheme,
-                                onClick = { onOpenCapturedPiecesModal() }
+                                onClick = if (state.gameMode != GameMode.SPECIAL_MOVE) {{ onOpenCapturedPiecesModal() }} else null
                             )
                         }
                     }
@@ -1054,7 +1104,7 @@ fun ChessBoardScreenContent(
             )
         }
 
-        if (state.showCapturedPiecesModal) {
+        if (state.showCapturedPiecesModal && state.gameMode != GameMode.SPECIAL_MOVE) {
             CapturedPiecesDialog(
                 state = state,
                 onDismiss = { onCloseCapturedPiecesModal() }
@@ -1102,17 +1152,42 @@ fun ChessBoardScreenContent(
 
         // Game Over Announcement Dialog
         if (state.showGameOverModal) {
-            GameOverDialog(
-                gameStatus = state.gameStatus,
-                winner = state.winner,
-                userColor = state.userColor,
-                gameMode = state.gameMode,
-                difficulty = state.difficulty,
-                timestamp = state.matchEndTimestamp,
-                onPlayAgain = { onNavigateToSetup() },
+            if (state.gameMode == GameMode.SCORING) {
+                ChallengeResultDialog(
+                    score = state.scoringScore,
+                    gameMode = state.gameMode,
+                    selectedTheme = state.selectedTheme,
+                    scoringMode = state.selectedScoringMode,
+                    onRestart = { onRestartGame() },
+                    onHome = { onNavigateToSetup() },
+                    onDismiss = { onCloseGameOverModal() }
+                )
+            } else {
+                GameOverDialog(
+                    gameStatus = state.gameStatus,
+                    winner = state.winner,
+                    userColor = state.userColor,
+                    gameMode = state.gameMode,
+                    difficulty = state.difficulty,
+                    timestamp = state.matchEndTimestamp,
+                    scoringScore = state.scoringScore,
+                    onPlayAgain = { onNavigateToSetup() },
+                    onRestart = { onRestartGame() },
+                    onDismiss = { onCloseGameOverModal() },
+                    selectedTheme = state.selectedTheme
+                )
+            }
+        }
+
+        // Special Move Result Dialog
+        if (state.showSpecialMoveResult) {
+            SpecialMoveResultDialog(
+                isSuccess = state.isSpecialMoveSuccess,
+                message = state.specialMoveResultMessage,
+                selectedTheme = state.selectedTheme,
                 onRestart = { onRestartGame() },
-                onDismiss = { onCloseGameOverModal() },
-                selectedTheme = state.selectedTheme
+                onHome = { onNavigateToSetup() },
+                onDismiss = { onCloseSpecialMoveResult() }
             )
         }
 
@@ -1142,6 +1217,7 @@ private fun TutorialHeaderBar(
 ) {
     val accentColor = Color(selectedTheme.accentColor)
     val surfaceColor = Color(selectedTheme.surfaceColor)
+    val textColor = Color(selectedTheme.textColor)
     
     val selectedPiece = currentTutorialPiece ?: PieceType.ROOK
     val pieces = listOf(
@@ -1189,7 +1265,7 @@ private fun TutorialHeaderBar(
                             text = label,
                             fontSize = 13.5.sp,
                             fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else Color(selectedTheme.textColor).copy(alpha = 0.7f),
+                            color = if (isSelected) textColor else textColor.copy(alpha = 0.7f),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
                         )
                     }
@@ -1219,7 +1295,7 @@ private fun TutorialHeaderBar(
                         text = ruleNote,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(selectedTheme.textColor),
+                        color = textColor,
                         lineHeight = 18.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1243,6 +1319,7 @@ private fun SpecialMoveHeaderBar(
 ) {
     val accentColor = Color(selectedTheme.accentColor)
     val surfaceColor = Color(selectedTheme.surfaceColor)
+    val textColor = Color(selectedTheme.textColor)
 
     val selectedType = currentType ?: SpecialTutorialType.CASTLING_KINGSIDE
     val types = SpecialTutorialType.entries
@@ -1283,7 +1360,7 @@ private fun SpecialMoveHeaderBar(
                             text = type.displayNameVi,
                             fontSize = 13.5.sp,
                             fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else Color(selectedTheme.textColor).copy(alpha = 0.7f),
+                            color = if (isSelected) textColor else textColor.copy(alpha = 0.7f),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
                         )
                     }
@@ -1304,7 +1381,7 @@ private fun SpecialMoveHeaderBar(
                         text = "⚡ " + selectedType.description,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(selectedTheme.textColor),
+                        color = textColor,
                         lineHeight = 18.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1362,26 +1439,40 @@ internal fun ActionIconButton(
 
 private fun openSetupActivity(context: Context, state: ChessUiState) {
     val intent = Intent(context, com.example.GameModeSelectionActivity::class.java).apply {
-        // A game is only "InProgress" for the Main Menu if it's VS_AI or TWO_PLAYERS
-        // and we don't care about persistence setting here because this is for the "Session Resume" (return to activity)
         val isEligibleMode = state.gameMode == GameMode.VS_AI || state.gameMode == GameMode.TWO_PLAYERS
         val isGameInProgress = state.gameStatus == GameStatus.IN_PROGRESS && isEligibleMode && state.moveHistory.isNotEmpty()
 
         putExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, isGameInProgress)
+        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
     }
     context.startActivity(intent)
+    val isEligibleMode = state.gameMode == GameMode.VS_AI || state.gameMode == GameMode.TWO_PLAYERS
+    val isGameInProgress = state.gameStatus == GameStatus.IN_PROGRESS && isEligibleMode && state.moveHistory.isNotEmpty()
+    if (!isGameInProgress) {
+        (context as? Activity)?.finish()
+    }
 }
 
-@Preview(showBackground = true, widthDp =  892, heightDp = 418)
+private fun navigateToSetupActivity(context: Context, gameMode: GameMode) {
+    val intent = Intent(context, com.example.GameSetupActivity::class.java).apply {
+        putExtra(MainActivity.EXTRA_GAME_MODE, gameMode.name)
+        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+    }
+    context.startActivity(intent)
+    (context as? Activity)?.finish()
+}
+
+@Preview(showBackground = true, widthDp =  418, heightDp = 892)
 @Composable
 fun ChessScreenPreview() {
     MyApplicationTheme {
         ChessScreenContent(
             state = ChessUiState(
                 currentScreen = AppScreen.GAME,
-                gameMode = GameMode.VS_AI
+                gameMode = GameMode.SPECIAL_MOVE
             ),
             onStartGame = { _, _, _, _, _ -> },
+            onStartScoring = { _, _, _ -> },
             onStartTutorialPiece = {},
             onStartSpecialMove = {},
             onStartPuzzle = { _, _, _ -> },
@@ -1410,6 +1501,7 @@ fun ChessScreenPreview() {
             onCancelRestart = {},
             onDismissCheckPopup = {},
             onCloseGameOverModal = {},
+            onCloseSpecialMoveResult = {},
             onCompletePromotion = {},
             onOpenSetupActivity = {},
             onNavigateToSetup = {},

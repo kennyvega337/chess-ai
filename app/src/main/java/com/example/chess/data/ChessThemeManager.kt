@@ -121,4 +121,39 @@ class ChessThemeManager(context: Context) {
         val key = if (mode == com.example.chess.model.GameMode.ONE_MOVE) "completed_one_move_puzzles" else "completed_puzzles"
         return prefs.getStringSet(key, emptySet()) ?: emptySet()
     }
+
+    // Scoring Mode Specific Persistence
+    fun saveScoringSideOption(option: com.example.chess.model.SideOption) {
+        prefs.edit().putString("scoring_side_option", option.name).apply()
+    }
+
+    fun getScoringSideOption(): com.example.chess.model.SideOption {
+        val name = prefs.getString("scoring_side_option", com.example.chess.model.SideOption.WHITE.name)
+        return try {
+            com.example.chess.model.SideOption.valueOf(name!!)
+        } catch (e: Exception) {
+            com.example.chess.model.SideOption.WHITE
+        }
+    }
+
+    fun saveScoringPieceType(type: com.example.chess.model.PieceType) {
+        prefs.edit().putString("scoring_piece_type", type.name).apply()
+    }
+
+    fun getScoringPieceType(): com.example.chess.model.PieceType {
+        val name = prefs.getString("scoring_piece_type", com.example.chess.model.PieceType.QUEEN.name)
+        return try {
+            com.example.chess.model.PieceType.valueOf(name!!)
+        } catch (e: Exception) {
+            com.example.chess.model.PieceType.QUEEN
+        }
+    }
+
+    fun saveScoringSeconds(seconds: Int) {
+        prefs.edit().putInt("scoring_seconds", seconds).apply()
+    }
+
+    fun getScoringSeconds(): Int {
+        return prefs.getInt("scoring_seconds", 30)
+    }
 }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.example.chess.model.ChessTheme
 import com.example.chess.model.GameMode
 import com.example.chess.model.GameStatus
 import com.example.chess.ui.ChessThemeDialog
@@ -21,23 +22,35 @@ import com.example.ui.theme.MyApplicationTheme
 class GameModeSelectionActivity : ComponentActivity() {
 
     private lateinit var themeManager: com.example.chess.data.ChessThemeManager
+    private val currentThemeState = mutableStateOf(ChessTheme.CLASSIC)
+    private val isGameInProgressState = mutableStateOf(false)
+    private val hasPersistedGameState = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         themeManager = com.example.chess.data.ChessThemeManager(this)
+        currentThemeState.value = themeManager.getSelectedTheme()
+        isGameInProgressState.value = intent.getBooleanExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, false)
+        hasPersistedGameState.value = themeManager.getPersistedGameState() != null
         hideSystemNavigationBars()
-        val currentTheme = themeManager.getSelectedTheme()
 
         setContent {
-            var currentThemeState by remember { mutableStateOf(currentTheme) }
-            MyApplicationTheme(selectedTheme = currentThemeState) {
+            val currentTheme by currentThemeState
+            val isGameInProgress by isGameInProgressState
+            val hasPersistedGame by hasPersistedGameState
+
+            SideEffect {
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = isThemeLight(currentTheme)
+                    isAppearanceLightNavigationBars = isThemeLight(currentTheme)
+                }
+            }
+
+            MyApplicationTheme(selectedTheme = currentTheme) {
                 var showHistory by remember { mutableStateOf(false) }
                 var showSettings by remember { mutableStateOf(false) }
                 var showTheme by remember { mutableStateOf(false) }
-                
-                // Get current game status from intent if returning from game
-                val isGameInProgress = intent.getBooleanExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, false)
 
                 GameModeSelectionScreen(
                     onSelectMode = { mode ->
@@ -60,28 +73,28 @@ class GameModeSelectionActivity : ComponentActivity() {
                         }
                         startActivity(intent)
                     },
-                    hasPersistedGame = themeManager.getPersistedGameState() != null,
+                    hasPersistedGame = hasPersistedGame,
                     onLoadPersistedGame = {
                         launchPersistedGame()
                     },
-                    selectedTheme = currentThemeState
+                    selectedTheme = currentTheme
                 )
 
                 if (showHistory) {
                     GameHistoryDialog(
                         onDismiss = { showHistory = false },
-                        selectedTheme = currentThemeState
+                        selectedTheme = currentTheme
                     )
                 }
 
                 if (showTheme) {
                     ChessThemeDialog(
-                        selectedTheme = currentThemeState,
+                        selectedTheme = currentTheme,
                         viewMode = themeManager.getSelectedViewMode(),
                         gameMode = GameMode.VS_AI, // Default for menu
                         onThemeSelect = { theme ->
                             themeManager.saveTheme(theme.name)
-                            currentThemeState = theme
+                            currentThemeState.value = theme
                         },
                         onViewModeChange = { mode ->
                             themeManager.saveViewMode(mode)
@@ -112,11 +125,19 @@ class GameModeSelectionActivity : ComponentActivity() {
                             save = it
                         },
                         onDismiss = { showSettings = false },
-                        selectedTheme = currentThemeState
+                        selectedTheme = currentTheme
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        currentThemeState.value = themeManager.getSelectedTheme()
+        isGameInProgressState.value = intent.getBooleanExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, false)
+        hasPersistedGameState.value = themeManager.getPersistedGameState() != null
     }
 
     private fun launchSetup(mode: GameMode) {
@@ -136,6 +157,8 @@ class GameModeSelectionActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        currentThemeState.value = themeManager.getSelectedTheme()
+        hasPersistedGameState.value = themeManager.getPersistedGameState() != null
         hideSystemNavigationBars()
     }
 
