@@ -65,6 +65,9 @@ data class ChessUiState(
     val isSoundEnabled: Boolean = true,
     val isMoveHintsEnabled: Boolean = true,
     val isSaveGameEnabled: Boolean = false,
+    val isHintEnabled: Boolean = true,
+    val isResignEnabled: Boolean = true,
+    val isUndoEnabled: Boolean = true,
     val showGeneralSettingsModal: Boolean = false,
     val hasPersistedGame: Boolean = false,
     val initialPuzzleFen: String? = null,
@@ -99,6 +102,9 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             isSoundEnabled = themeManager.isSoundEnabled(),
             isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
             isSaveGameEnabled = themeManager.isGamePersistenceEnabled(),
+            isHintEnabled = themeManager.isHintEnabled(),
+            isResignEnabled = themeManager.isResignEnabled(),
+            isUndoEnabled = themeManager.isUndoEnabled(),
             hasPersistedGame = themeManager.getPersistedGameState() != null,
             completedPuzzles = themeManager.getCompletedPuzzles(themeManager.getSelectedGameMode()),
             tutorialPiece = if (mode == GameMode.SCORING) themeManager.getScoringPieceType() else null,
@@ -247,7 +253,10 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             isTimerActive = timerOption != GameTimerOption.NONE,
             isSoundEnabled = themeManager.isSoundEnabled(),
             isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
-            isSaveGameEnabled = themeManager.isGamePersistenceEnabled()
+            isSaveGameEnabled = themeManager.isGamePersistenceEnabled(),
+            isHintEnabled = themeManager.isHintEnabled(),
+            isResignEnabled = themeManager.isResignEnabled(),
+            isUndoEnabled = themeManager.isUndoEnabled()
         )
 
         if (timerOption != GameTimerOption.NONE) {
@@ -305,6 +314,9 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             isSoundEnabled = themeManager.isSoundEnabled(),
             isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
             isSaveGameEnabled = false,
+            isHintEnabled = themeManager.isHintEnabled(),
+            isResignEnabled = themeManager.isResignEnabled(),
+            isUndoEnabled = themeManager.isUndoEnabled(),
             hasPersistedGame = themeManager.getPersistedGameState() != null,
             capturedWhitePieces = emptyList(),
             capturedBlackPieces = emptyList(),
@@ -390,6 +402,9 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             isSoundEnabled = themeManager.isSoundEnabled(),
             isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
             isSaveGameEnabled = false,
+            isHintEnabled = themeManager.isHintEnabled(),
+            isResignEnabled = themeManager.isResignEnabled(),
+            isUndoEnabled = themeManager.isUndoEnabled(),
             hasPersistedGame = themeManager.getPersistedGameState() != null,
             capturedWhitePieces = emptyList(),
             capturedBlackPieces = emptyList(),
@@ -596,6 +611,7 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         when (target) {
             NavigationTarget.SETUP -> navigateToSetup()
             NavigationTarget.MENU -> {
+                persistCurrentGame()
                 stopTimer()
                 _uiState.value = _uiState.value.copy(
                     navigateToMenuTrigger = true,
@@ -616,17 +632,51 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         val mode = _uiState.value.gameMode
         if (_uiState.value.gameStatus == GameStatus.IN_PROGRESS && (mode == GameMode.VS_AI || mode == GameMode.TWO_PLAYERS)) {
             syncTheme()
-            _uiState.value = _uiState.value.copy(currentScreen = AppScreen.GAME)
+            val shouldStartTimer = _uiState.value.timerOption != GameTimerOption.NONE
+            _uiState.value = _uiState.value.copy(
+                currentScreen = AppScreen.GAME,
+                isTimerActive = shouldStartTimer
+            )
+            if (shouldStartTimer) {
+                startTimer()
+            }
+            if (mode == GameMode.VS_AI && _uiState.value.currentTurn != _uiState.value.userColor && !_uiState.value.isAiThinking) {
+                triggerAiMove(_uiState.value.currentTurn)
+            }
+        } else if (themeManager.hasValidPersistedGame()) {
+            loadPersistedGame()
         }
     }
 
     fun syncTheme() {
         val savedTheme = themeManager.getSelectedTheme()
         val savedViewMode = themeManager.getSelectedViewMode()
-        if (_uiState.value.selectedTheme != savedTheme || _uiState.value.boardViewMode != savedViewMode) {
-            _uiState.value = _uiState.value.copy(
+        val sound = themeManager.isSoundEnabled()
+        val moveHints = themeManager.isMoveHintsEnabled()
+        val saveGame = themeManager.isGamePersistenceEnabled()
+        val hint = themeManager.isHintEnabled()
+        val resign = themeManager.isResignEnabled()
+        val undo = themeManager.isUndoEnabled()
+
+        val current = _uiState.value
+        if (current.selectedTheme != savedTheme ||
+            current.boardViewMode != savedViewMode ||
+            current.isSoundEnabled != sound ||
+            current.isMoveHintsEnabled != moveHints ||
+            current.isSaveGameEnabled != saveGame ||
+            current.isHintEnabled != hint ||
+            current.isResignEnabled != resign ||
+            current.isUndoEnabled != undo
+        ) {
+            _uiState.value = current.copy(
                 selectedTheme = savedTheme,
-                boardViewMode = savedViewMode
+                boardViewMode = savedViewMode,
+                isSoundEnabled = sound,
+                isMoveHintsEnabled = moveHints,
+                isSaveGameEnabled = saveGame,
+                isHintEnabled = hint,
+                isResignEnabled = resign,
+                isUndoEnabled = undo
             )
         }
     }
@@ -1550,6 +1600,7 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         val state = _uiState.value
         if (state.gameStatus != GameStatus.IN_PROGRESS || state.isAiThinking) return
         val winnerColor = state.currentTurn.opposite
+        themeManager.clearPersistedGameState()
         _uiState.value = state.copy(
             gameStatus = GameStatus.RESIGNED,
             winner = winnerColor,
@@ -1557,7 +1608,8 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             legalMovesForSelected = emptyList(),
             showResignConfirmationModal = false,
             showGameOverModal = true,
-            isGameEndControlsEnabled = true
+            isGameEndControlsEnabled = true,
+            hasPersistedGame = false
         )
         recordMatchHistory(
             isQuitOrAppClosed = false,
@@ -1622,7 +1674,15 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openGeneralSettingsModal() {
-        _uiState.value = _uiState.value.copy(showGeneralSettingsModal = true)
+        _uiState.value = _uiState.value.copy(
+            isSoundEnabled = themeManager.isSoundEnabled(),
+            isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
+            isSaveGameEnabled = themeManager.isGamePersistenceEnabled(),
+            isHintEnabled = themeManager.isHintEnabled(),
+            isResignEnabled = themeManager.isResignEnabled(),
+            isUndoEnabled = themeManager.isUndoEnabled(),
+            showGeneralSettingsModal = true
+        )
     }
 
     fun closeGeneralSettingsModal() {
@@ -1639,17 +1699,28 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(isMoveHintsEnabled = enabled)
     }
 
+    fun setHintEnabled(enabled: Boolean) {
+        themeManager.saveHintEnabled(enabled)
+        _uiState.value = _uiState.value.copy(isHintEnabled = enabled)
+    }
+
+    fun setResignEnabled(enabled: Boolean) {
+        themeManager.saveResignEnabled(enabled)
+        _uiState.value = _uiState.value.copy(isResignEnabled = enabled)
+    }
+
+    fun setUndoEnabled(enabled: Boolean) {
+        themeManager.saveUndoEnabled(enabled)
+        _uiState.value = _uiState.value.copy(isUndoEnabled = enabled)
+    }
+
     fun onGameFinished() {
         val state = _uiState.value
-        if (state.isSaveGameEnabled) {
-            themeManager.clearPersistedGameState()
-            _uiState.value = state.copy(
-                hasPersistedGame = false,
-                matchEndTimestamp = System.currentTimeMillis()
-            )
-        } else {
-            _uiState.value = state.copy(matchEndTimestamp = System.currentTimeMillis())
-        }
+        themeManager.clearPersistedGameState()
+        _uiState.value = state.copy(
+            hasPersistedGame = false,
+            matchEndTimestamp = System.currentTimeMillis()
+        )
     }
 
     fun setSaveGameEnabled(enabled: Boolean) {
@@ -1659,18 +1730,18 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         }
         _uiState.value = _uiState.value.copy(
             isSaveGameEnabled = enabled,
-            hasPersistedGame = if (!enabled) false else _uiState.value.hasPersistedGame
+            hasPersistedGame = if (!enabled) false else themeManager.hasValidPersistedGame()
         )
     }
 
     fun persistCurrentGame() {
         val state = _uiState.value
         if (state.isSaveGameEnabled && (state.gameMode == GameMode.VS_AI || state.gameMode == GameMode.TWO_PLAYERS)) {
-            if (state.gameStatus == GameStatus.IN_PROGRESS && state.moveHistory.isNotEmpty()) {
+            if (state.gameStatus == GameStatus.IN_PROGRESS) {
                 val json = serializeGameState(state)
                 themeManager.saveCurrentGameState(json)
                 _uiState.value = _uiState.value.copy(hasPersistedGame = true)
-            } else if (state.moveHistory.isEmpty()) {
+            } else {
                 themeManager.clearPersistedGameState()
                 _uiState.value = _uiState.value.copy(hasPersistedGame = false)
             }
@@ -1678,8 +1749,17 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadPersistedGame() {
-        val json = themeManager.getPersistedGameState() ?: return
-        val restoredState = deserializeGameState(json) ?: return
+        val json = themeManager.getPersistedGameState()
+        if (json == null) {
+            _uiState.value = _uiState.value.copy(hasPersistedGame = false)
+            return
+        }
+        val restoredState = deserializeGameState(json)
+        if (restoredState == null) {
+            themeManager.clearPersistedGameState()
+            _uiState.value = _uiState.value.copy(hasPersistedGame = false)
+            return
+        }
         
         stopTimer()
         
@@ -1832,6 +1912,9 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
                 isSoundEnabled = themeManager.isSoundEnabled(),
                 isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
                 isSaveGameEnabled = true,
+                isHintEnabled = themeManager.isHintEnabled(),
+                isResignEnabled = themeManager.isResignEnabled(),
+                isUndoEnabled = themeManager.isUndoEnabled(),
                 hasPersistedGame = true,
                 halfMoveClock = obj.optInt("hmc", 0),
                 boardSignatures = signatures,
@@ -1933,6 +2016,9 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             boardViewMode = themeManager.getSelectedViewMode(),
             isSoundEnabled = themeManager.isSoundEnabled(),
             isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
+            isHintEnabled = themeManager.isHintEnabled(),
+            isResignEnabled = themeManager.isResignEnabled(),
+            isUndoEnabled = themeManager.isUndoEnabled(),
             capturedWhitePieces = emptyList(),
             capturedBlackPieces = emptyList(),
             playerLastMove = null,
@@ -1995,7 +2081,10 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             selectedTheme = themeManager.getSelectedTheme(),
             boardViewMode = themeManager.getSelectedViewMode(),
             isSoundEnabled = themeManager.isSoundEnabled(),
-            isMoveHintsEnabled = themeManager.isMoveHintsEnabled()
+            isMoveHintsEnabled = themeManager.isMoveHintsEnabled(),
+            isHintEnabled = themeManager.isHintEnabled(),
+            isResignEnabled = themeManager.isResignEnabled(),
+            isUndoEnabled = themeManager.isUndoEnabled()
         )
 
         // If it's En Passant, trigger the black pawn move automatically

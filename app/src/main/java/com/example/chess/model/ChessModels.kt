@@ -193,7 +193,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Tăng độ tương phản, không trùng màu bàn cờ
             selectedSquareColor = 0x60FFD54F,    // Vàng sáng
             lastMoveColor = 0x50FFAB91,          // Cam nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng trong suốt
+            legalMoveColor = 0xFFFFFFFF,         // Trắng trong suốt
             captureColor = 0x40FF5252,           // Đỏ tươi
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -228,7 +228,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng cam/vàng để tương phản với xanh
             selectedSquareColor = 0x60FFD740,    // Vàng
             lastMoveColor = 0x50FFAB91,          // Cam nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -263,7 +263,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng vàng/trắng cho tương phản với tím
             selectedSquareColor = 0x60FFD740,    // Vàng
             lastMoveColor = 0x50FFE082,          // Vàng nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -298,7 +298,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng xanh/xanh dương để tương phản với đỏ
             selectedSquareColor = 0x6044D4A0,    // Xanh ngọc
             lastMoveColor = 0x504AD4D4,          // Xanh cyan
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF1744,           // Đỏ hồng
             checkColor = 0xCCD50000,             // Đỏ
 
@@ -333,7 +333,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng cam/vàng cho nổi bật
             selectedSquareColor = 0x60FFAB00,    // Cam đậm
             lastMoveColor = 0x50FFD740,          // Vàng
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCE84A40,             // Cam đỏ
 
@@ -368,7 +368,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng vàng cam tương phản với xanh lá
             selectedSquareColor = 0x60FFD740,    // Vàng
             lastMoveColor = 0x50FFAB91,          // Cam nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -403,7 +403,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng cam/đào tương phản với xanh ngọc
             selectedSquareColor = 0x60FFAB91,    // Cam nhạt
             lastMoveColor = 0x50FFCCBC,          // Hồng đào
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -438,7 +438,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng vàng/cam tương phản với tím xanh
             selectedSquareColor = 0x60FFD740,    // Vàng
             lastMoveColor = 0x50FFE082,          // Vàng nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -473,7 +473,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng xanh dương tương phản với vàng
             selectedSquareColor = 0x604490D4,    // Xanh dương
             lastMoveColor = 0x505A9AD4,          // Xanh dương nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -508,7 +508,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng cam/đào tạo ấm áp giữa băng giá
             selectedSquareColor = 0x60FFAB91,    // Cam nhạt
             lastMoveColor = 0x50FFCCBC,          // Hồng đào
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -543,7 +543,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng xanh mint tương phản với hồng
             selectedSquareColor = 0x6044D4A0,    // Xanh ngọc
             lastMoveColor = 0x504AD4D4,          // Xanh cyan
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF4081,           // Hồng đậm
             checkColor = 0xCCC2185B,             // Hồng tím
 
@@ -572,13 +572,13 @@ data class ChessTheme(
             borderColor = 0xFFB0B2B4,
             dividerColor = 0xFFC0C2C4,
 
-            iconColor = 0xFFFFFFFF,
+            iconColor = 0xFF000000,
             iconActiveColor = 0xFFC8A838,
 
             // 🔥 Đã chỉnh: Dùng xanh dương tương phản với vàng
             selectedSquareColor = 0x604A90D4,    // Xanh dương
             lastMoveColor = 0x506AAAD4,          // Xanh dương nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -613,7 +613,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng vàng/cam tạo điểm nhấn
             selectedSquareColor = 0x60FFD740,    // Vàng
             lastMoveColor = 0x50FFAB91,          // Cam nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -648,7 +648,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng xanh dương tương phản với vàng
             selectedSquareColor = 0x604A90D4,    // Xanh dương
             lastMoveColor = 0x506AAAD4,          // Xanh dương nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -683,7 +683,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng vàng/cam tạo điểm nhấn
             selectedSquareColor = 0x60FFD740,    // Vàng
             lastMoveColor = 0x50FFAB91,          // Cam nhạt
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -718,7 +718,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng xanh/vàng tương phản với đỏ
             selectedSquareColor = 0x6044D4A0,    // Xanh ngọc
             lastMoveColor = 0x504AD4D4,          // Xanh cyan
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 
@@ -753,7 +753,7 @@ data class ChessTheme(
             // 🔥 Đã chỉnh: Dùng cam/vàng tương phản với xanh đêm
             selectedSquareColor = 0x60FFAB00,    // Cam đậm
             lastMoveColor = 0x50FFD740,          // Vàng
-            legalMoveColor = 0x28FFFFFF,         // Trắng
+            legalMoveColor = 0xFFFFFFFF,         // Trắng
             captureColor = 0x40FF5252,           // Đỏ
             checkColor = 0xCCD32F2F,             // Đỏ đậm
 

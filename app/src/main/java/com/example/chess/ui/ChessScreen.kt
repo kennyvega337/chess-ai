@@ -167,6 +167,9 @@ fun ChessScreen(
         onSetSoundEnabled = { viewModel.setSoundEnabled(it) },
         onSetMoveHintsEnabled = { viewModel.setMoveHintsEnabled(it) },
         onSetSaveGameEnabled = { viewModel.setSaveGameEnabled(it) },
+        onSetHintEnabled = { viewModel.setHintEnabled(it) },
+        onSetResignEnabled = { viewModel.setResignEnabled(it) },
+        onSetUndoEnabled = { viewModel.setUndoEnabled(it) },
         onCloseThemeModal = { viewModel.closeThemeModal() },
         onCloseCapturedPiecesModal = { viewModel.closeCapturedPiecesModal() },
         onCloseHistoryModal = { viewModel.closeHistoryModal() },
@@ -216,6 +219,9 @@ fun ChessScreenContent(
     onSetSoundEnabled: (Boolean) -> Unit,
     onSetMoveHintsEnabled: (Boolean) -> Unit,
     onSetSaveGameEnabled: (Boolean) -> Unit,
+    onSetHintEnabled: (Boolean) -> Unit = {},
+    onSetResignEnabled: (Boolean) -> Unit = {},
+    onSetUndoEnabled: (Boolean) -> Unit = {},
     onCloseThemeModal: () -> Unit,
     onCloseCapturedPiecesModal: () -> Unit,
     onCloseHistoryModal: () -> Unit,
@@ -275,6 +281,9 @@ fun ChessScreenContent(
                 onSetSoundEnabled = onSetSoundEnabled,
                 onSetMoveHintsEnabled = onSetMoveHintsEnabled,
                 onSetSaveGameEnabled = onSetSaveGameEnabled,
+                onSetHintEnabled = onSetHintEnabled,
+                onSetResignEnabled = onSetResignEnabled,
+                onSetUndoEnabled = onSetUndoEnabled,
                 onCloseThemeModal = onCloseThemeModal,
                 onCloseCapturedPiecesModal = onCloseCapturedPiecesModal,
                 onCloseHistoryModal = onCloseHistoryModal,
@@ -311,6 +320,9 @@ fun ChessScreenContent(
                 onSetSoundEnabled = onSetSoundEnabled,
                 onSetMoveHintsEnabled = onSetMoveHintsEnabled,
                 onSetSaveGameEnabled = onSetSaveGameEnabled,
+                onSetHintEnabled = onSetHintEnabled,
+                onSetResignEnabled = onSetResignEnabled,
+                onSetUndoEnabled = onSetUndoEnabled,
                 onCloseThemeModal = onCloseThemeModal,
                 onCloseGeneralSettingsModal = onCloseGeneralSettingsModal,
                 onConfirmRestart = onConfirmRestart,
@@ -339,6 +351,9 @@ fun ChessScreenContent(
                 onSetSoundEnabled = onSetSoundEnabled,
                 onSetMoveHintsEnabled = onSetMoveHintsEnabled,
                 onSetSaveGameEnabled = onSetSaveGameEnabled,
+                onSetHintEnabled = onSetHintEnabled,
+                onSetResignEnabled = onSetResignEnabled,
+                onSetUndoEnabled = onSetUndoEnabled,
                 onCloseThemeModal = onCloseThemeModal,
                 onCloseGeneralSettingsModal = onCloseGeneralSettingsModal,
                 onConfirmRestart = onConfirmRestart,
@@ -375,6 +390,9 @@ fun ChessBoardScreenContent(
     onSetSoundEnabled: (Boolean) -> Unit,
     onSetMoveHintsEnabled: (Boolean) -> Unit,
     onSetSaveGameEnabled: (Boolean) -> Unit,
+    onSetHintEnabled: (Boolean) -> Unit = {},
+    onSetResignEnabled: (Boolean) -> Unit = {},
+    onSetUndoEnabled: (Boolean) -> Unit = {},
     onCloseThemeModal: () -> Unit,
     onCloseCapturedPiecesModal: () -> Unit,
     onCloseHistoryModal: () -> Unit,
@@ -493,7 +511,7 @@ fun ChessBoardScreenContent(
                                         )
                                     }
                                 }
-                                if (state.gameMode != GameMode.TWO_PLAYERS && state.gameMode != GameMode.TUTORIAL && state.gameMode != GameMode.SPECIAL_MOVE) {
+                                if (state.isHintEnabled && state.gameMode != GameMode.TWO_PLAYERS && state.gameMode != GameMode.TUTORIAL && state.gameMode != GameMode.SPECIAL_MOVE) {
                                     IconButton(
                                         onClick = {
                                             if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking && state.currentTurn == state.userColor) {
@@ -568,15 +586,17 @@ fun ChessBoardScreenContent(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            ActionIconButton(
-                                icon = Icons.Default.Undo,
-                                contentDesc = "Hoàn tác",
-                                enabled = state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS,
-                                isLandscape = true,
-                                onClick = { onUndoMove() },
-                                color = iconColor,
-                                selectedTheme = state.selectedTheme
-                            )
+                            if (state.isUndoEnabled) {
+                                ActionIconButton(
+                                    icon = Icons.Default.Undo,
+                                    contentDesc = "Hoàn tác",
+                                    enabled = state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS,
+                                    isLandscape = true,
+                                    onClick = { onUndoMove() },
+                                    color = iconColor,
+                                    selectedTheme = state.selectedTheme
+                                )
+                            }
                             ActionIconButton(
                                 icon = Icons.Default.Refresh,
                                 contentDesc = "Chơi lại",
@@ -586,24 +606,28 @@ fun ChessBoardScreenContent(
                                 color = iconColor,
                                 selectedTheme = state.selectedTheme
                             )
-                            ActionIconButton(
-                                icon = Icons.Default.Flag,
-                                contentDesc = "Đầu hàng",
-                                enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
-                                isLandscape = true,
-                                onClick = { onResignRequest() },
-                                color = Color(0xFFEF4444),
-                                selectedTheme = state.selectedTheme
-                            )
-                            ActionIconButton(
-                                icon = Icons.Default.Lightbulb,
-                                contentDesc = "Gợi ý",
-                                enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking && state.currentTurn == state.userColor,
-                                isLandscape = true,
-                                onClick = { onShowHint() },
-                                color = iconColor,
-                                selectedTheme = state.selectedTheme
-                            )
+                            if (state.isResignEnabled) {
+                                ActionIconButton(
+                                    icon = Icons.Default.Flag,
+                                    contentDesc = "Đầu hàng",
+                                    enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
+                                    isLandscape = true,
+                                    onClick = { onResignRequest() },
+                                    color = Color(0xFFEF4444),
+                                    selectedTheme = state.selectedTheme
+                                )
+                            }
+                            if (state.isHintEnabled) {
+                                ActionIconButton(
+                                    icon = Icons.Default.Lightbulb,
+                                    contentDesc = "Gợi ý",
+                                    enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking && state.currentTurn == state.userColor,
+                                    isLandscape = true,
+                                    onClick = { onShowHint() },
+                                    color = iconColor,
+                                    selectedTheme = state.selectedTheme
+                                )
+                            }
                         }
                     }
 
@@ -984,22 +1008,24 @@ fun ChessBoardScreenContent(
                             }
                         } else {
                             // 1. NÚT HOÀN TÁC
-                            Button(
-                                onClick = { onUndoMove() },
-                                enabled = state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(46.dp)
-                                    .testTag("undo_button"),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.4f),
-                                    disabledContainerColor = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.2f)
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f)),
-                                contentPadding = PaddingValues(0.dp)
-                            ) {
-                                Icon(imageVector = Icons.Default.Undo, contentDescription = "Hoàn tác", tint = if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) iconColor else iconColor.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                            if (state.isUndoEnabled) {
+                                Button(
+                                    onClick = { onUndoMove() },
+                                    enabled = state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(46.dp)
+                                        .testTag("undo_button"),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.4f),
+                                        disabledContainerColor = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.2f)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f)),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Undo, contentDescription = "Hoàn tác", tint = if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) iconColor else iconColor.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                                }
                             }
 
                             // 2. NÚT CHƠI LẠI (RESET)
@@ -1023,30 +1049,32 @@ fun ChessBoardScreenContent(
                             }
 
                             // 3. NÚT ĐẦU HÀNG
-                            Button(
-                                onClick = { onResignRequest() },
-                                enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(46.dp)
-                                    .testTag("resign_button"),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.4f),
-                                    disabledContainerColor = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.2f)
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.5.dp,
-                                    if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(0xFFEF4444) else Color(0xFFEF4444).copy(alpha = 0.4f)
-                                ),
-                                contentPadding = PaddingValues(0.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Flag,
-                                    contentDescription = "Đầu hàng",
-                                    tint = if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(0xFFEF4444) else Color(0xFFEF4444).copy(alpha = 0.4f),
-                                    modifier = Modifier.size(22.dp)
-                                )
+                            if (state.isResignEnabled) {
+                                Button(
+                                    onClick = { onResignRequest() },
+                                    enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(46.dp)
+                                        .testTag("resign_button"),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.4f),
+                                        disabledContainerColor = Color(state.selectedTheme.surfaceColor).copy(alpha = 0.2f)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.5.dp,
+                                        if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(0xFFEF4444) else Color(0xFFEF4444).copy(alpha = 0.4f)
+                                    ),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Flag,
+                                        contentDescription = "Đầu hàng",
+                                        tint = if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) Color(0xFFEF4444) else Color(0xFFEF4444).copy(alpha = 0.4f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
 
                             // 4. NÚT TRANG CHỦ
@@ -1138,7 +1166,13 @@ fun ChessBoardScreenContent(
                 onMoveHintsToggled = onSetMoveHintsEnabled,
                 onSaveGameToggled = onSetSaveGameEnabled,
                 onDismiss = onCloseGeneralSettingsModal,
-                selectedTheme = state.selectedTheme
+                selectedTheme = state.selectedTheme,
+                isHintEnabled = state.isHintEnabled,
+                isResignEnabled = state.isResignEnabled,
+                isUndoEnabled = state.isUndoEnabled,
+                onHintToggled = onSetHintEnabled,
+                onResignToggled = onSetResignEnabled,
+                onUndoToggled = onSetUndoEnabled
             )
         }
 
@@ -1438,16 +1472,18 @@ internal fun ActionIconButton(
 }
 
 private fun openSetupActivity(context: Context, state: ChessUiState) {
-    val intent = Intent(context, com.example.GameModeSelectionActivity::class.java).apply {
-        val isEligibleMode = state.gameMode == GameMode.VS_AI || state.gameMode == GameMode.TWO_PLAYERS
-        val isGameInProgress = state.gameStatus == GameStatus.IN_PROGRESS && isEligibleMode && state.moveHistory.isNotEmpty()
+    val isEligibleMode = state.gameMode == GameMode.VS_AI || state.gameMode == GameMode.TWO_PLAYERS
+    val isGameInProgress = state.gameStatus == GameStatus.IN_PROGRESS && isEligibleMode
 
+    val intent = Intent(context, com.example.GameModeSelectionActivity::class.java).apply {
         putExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, isGameInProgress)
-        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        flags = if (isGameInProgress) {
+            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        } else {
+            Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
     }
     context.startActivity(intent)
-    val isEligibleMode = state.gameMode == GameMode.VS_AI || state.gameMode == GameMode.TWO_PLAYERS
-    val isGameInProgress = state.gameStatus == GameStatus.IN_PROGRESS && isEligibleMode && state.moveHistory.isNotEmpty()
     if (!isGameInProgress) {
         (context as? Activity)?.finish()
     }
@@ -1469,7 +1505,7 @@ fun ChessScreenPreview() {
         ChessScreenContent(
             state = ChessUiState(
                 currentScreen = AppScreen.GAME,
-                gameMode = GameMode.SPECIAL_MOVE
+                gameMode = GameMode.VS_AI
             ),
             onStartGame = { _, _, _, _, _ -> },
             onStartScoring = { _, _, _ -> },

@@ -55,6 +55,9 @@ fun ScoringScreen(
     onSetSoundEnabled: (Boolean) -> Unit,
     onSetMoveHintsEnabled: (Boolean) -> Unit,
     onSetSaveGameEnabled: (Boolean) -> Unit,
+    onSetHintEnabled: (Boolean) -> Unit = {},
+    onSetResignEnabled: (Boolean) -> Unit = {},
+    onSetUndoEnabled: (Boolean) -> Unit = {},
     onCloseThemeModal: () -> Unit,
     onCloseGeneralSettingsModal: () -> Unit,
     onConfirmRestart: () -> Unit,
@@ -204,19 +207,21 @@ fun ScoringScreen(
                     ) {
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ActionIconButton(
-                                icon = Icons.Default.Lightbulb,
-                                contentDesc = "Gợi ý",
-                                enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
-                                isLandscape = true,
-                                onClick = { onShowHint() },
-                                color = iconColor,
-                                selectedTheme = state.selectedTheme
-                            )
+                        if (state.isHintEnabled) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                ActionIconButton(
+                                    icon = Icons.Default.Lightbulb,
+                                    contentDesc = "Gợi ý",
+                                    enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
+                                    isLandscape = true,
+                                    onClick = { onShowHint() },
+                                    color = iconColor,
+                                    selectedTheme = state.selectedTheme
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -463,7 +468,13 @@ fun ScoringScreen(
                 onMoveHintsToggled = onSetMoveHintsEnabled,
                 onSaveGameToggled = onSetSaveGameEnabled,
                 onDismiss = onCloseGeneralSettingsModal,
-                selectedTheme = state.selectedTheme
+                selectedTheme = state.selectedTheme,
+                isHintEnabled = state.isHintEnabled,
+                isResignEnabled = state.isResignEnabled,
+                isUndoEnabled = state.isUndoEnabled,
+                onHintToggled = onSetHintEnabled,
+                onResignToggled = onSetResignEnabled,
+                onUndoToggled = onSetUndoEnabled
             )
         }
 

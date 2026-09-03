@@ -98,6 +98,30 @@ class ChessThemeManager(context: Context) {
         return prefs.getBoolean("game_persistence_enabled", false)
     }
 
+    fun saveHintEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("hint_enabled", enabled).apply()
+    }
+
+    fun isHintEnabled(): Boolean {
+        return prefs.getBoolean("hint_enabled", true)
+    }
+
+    fun saveResignEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("resign_enabled", enabled).apply()
+    }
+
+    fun isResignEnabled(): Boolean {
+        return prefs.getBoolean("resign_enabled", true)
+    }
+
+    fun saveUndoEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("undo_enabled", enabled).apply()
+    }
+
+    fun isUndoEnabled(): Boolean {
+        return prefs.getBoolean("undo_enabled", true)
+    }
+
     fun saveCurrentGameState(json: String) {
         prefs.edit().putString("persisted_game_state", json).apply()
     }
@@ -108,6 +132,26 @@ class ChessThemeManager(context: Context) {
 
     fun clearPersistedGameState() {
         prefs.edit().remove("persisted_game_state").apply()
+    }
+
+    fun hasValidPersistedGame(): Boolean {
+        if (!isGamePersistenceEnabled()) return false
+        val json = getPersistedGameState() ?: return false
+        return try {
+            val obj = org.json.JSONObject(json)
+            val mode = obj.optString("gameMode")
+            val isEligible = mode == "VS_AI" || mode == "TWO_PLAYERS"
+            val hasBoard = obj.optJSONArray("board") != null
+            if (isEligible && hasBoard) {
+                true
+            } else {
+                clearPersistedGameState()
+                false
+            }
+        } catch (e: Exception) {
+            clearPersistedGameState()
+            false
+        }
     }
 
     fun savePuzzleCompleted(category: String, level: Int, mode: com.example.chess.model.GameMode = com.example.chess.model.GameMode.PUZZLE) {

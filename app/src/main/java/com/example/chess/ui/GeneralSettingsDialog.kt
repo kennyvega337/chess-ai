@@ -10,10 +10,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -41,7 +43,13 @@ fun GeneralSettingsDialog(
     onMoveHintsToggled: (Boolean) -> Unit,
     onSaveGameToggled: (Boolean) -> Unit,
     onDismiss: () -> Unit,
-    selectedTheme: ChessTheme? = null
+    selectedTheme: ChessTheme? = null,
+    isHintEnabled: Boolean = true,
+    isResignEnabled: Boolean = true,
+    isUndoEnabled: Boolean = true,
+    onHintToggled: (Boolean) -> Unit = {},
+    onResignToggled: (Boolean) -> Unit = {},
+    onUndoToggled: (Boolean) -> Unit = {}
 ) {
     val useDarkIcons = selectedTheme?.let { isThemeLight(it) } ?: false
     val statusBarColorInt = selectedTheme?.backgroundColors?.first()?.toInt() ?: android.graphics.Color.TRANSPARENT
@@ -61,7 +69,13 @@ fun GeneralSettingsDialog(
             onMoveHintsToggled = onMoveHintsToggled,
             onSaveGameToggled = onSaveGameToggled,
             onDismiss = onDismiss,
-            selectedTheme = selectedTheme
+            selectedTheme = selectedTheme,
+            isHintEnabled = isHintEnabled,
+            isResignEnabled = isResignEnabled,
+            isUndoEnabled = isUndoEnabled,
+            onHintToggled = onHintToggled,
+            onResignToggled = onResignToggled,
+            onUndoToggled = onUndoToggled
         )
     }
 }
@@ -75,7 +89,13 @@ fun GeneralSettingsDialogContent(
     onMoveHintsToggled: (Boolean) -> Unit,
     onSaveGameToggled: (Boolean) -> Unit,
     onDismiss: () -> Unit,
-    selectedTheme: ChessTheme? = null
+    selectedTheme: ChessTheme? = null,
+    isHintEnabled: Boolean = true,
+    isResignEnabled: Boolean = true,
+    isUndoEnabled: Boolean = true,
+    onHintToggled: (Boolean) -> Unit = {},
+    onResignToggled: (Boolean) -> Unit = {},
+    onUndoToggled: (Boolean) -> Unit = {}
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -167,6 +187,39 @@ fun GeneralSettingsDialogContent(
                         selectedTheme = selectedTheme
                     )
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Row 4: Hint
+                    SettingsRow(
+                        icon = Icons.Default.Lightbulb,
+                        label = "Gợi ý",
+                        checked = isHintEnabled,
+                        onCheckedChange = onHintToggled,
+                        selectedTheme = selectedTheme
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Row 5: Resign
+                    SettingsRow(
+                        icon = Icons.Default.Flag,
+                        label = "Đầu hàng",
+                        checked = isResignEnabled,
+                        onCheckedChange = onResignToggled,
+                        selectedTheme = selectedTheme
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Row 6: Undo
+                    SettingsRow(
+                        icon = Icons.Default.Undo,
+                        label = "Hoàn tác",
+                        checked = isUndoEnabled,
+                        onCheckedChange = onUndoToggled,
+                        selectedTheme = selectedTheme
+                    )
+
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
@@ -248,7 +301,7 @@ private fun SettingsRow(
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = accentColor,
-                uncheckedThumbColor = Color.Gray,
+                uncheckedThumbColor = Color.White,
                 uncheckedTrackColor = Color.Black.copy(alpha = 0.4f)
             )
         )

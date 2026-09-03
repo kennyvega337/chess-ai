@@ -13,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.chess.model.DifficultyLevel
 import com.example.chess.model.GameMode
+import com.example.chess.model.GameStatus
 import com.example.chess.model.GameTimerOption
 import com.example.chess.model.PieceType
 import com.example.chess.model.SideOption
@@ -40,6 +41,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val state by viewModel.uiState.collectAsState()
+            androidx.compose.runtime.LaunchedEffect(state.gameStatus, state.gameMode) {
+                val isEligible = state.gameMode == GameMode.VS_AI || state.gameMode == GameMode.TWO_PLAYERS
+                isGameActiveInMemory = state.gameStatus == GameStatus.IN_PROGRESS && isEligible
+            }
             MyApplicationTheme(selectedTheme = state.selectedTheme) {
                 ChessScreen(viewModel = viewModel)
             }
@@ -49,6 +54,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        viewModel.syncTheme()
         handleIntent(intent)
     }
 
@@ -57,11 +63,17 @@ class MainActivity : ComponentActivity() {
         
         if (intent.getBooleanExtra("RETURN_TO_GAME", false)) {
             viewModel.returnToCurrentGame()
+            if (viewModel.uiState.value.currentScreen != com.example.chess.model.AppScreen.GAME) {
+                finish()
+            }
             return
         }
 
         if (intent.getBooleanExtra("LOAD_PERSISTED", false)) {
             viewModel.loadPersistedGame()
+            if (viewModel.uiState.value.currentScreen != com.example.chess.model.AppScreen.GAME) {
+                finish()
+            }
             return
         }
 
@@ -109,6 +121,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         if (isFinishing) {
+            isGameActiveInMemory = false
             viewModel.handleAppQuitOrPause()
         }
         super.onDestroy()
@@ -116,6 +129,7 @@ class MainActivity : ComponentActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        isGameActiveInMemory = false
         viewModel.handleAppQuitOrPause()
         super.onBackPressed()
     }
@@ -157,6 +171,9 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_CUSTOM_MINUTES = "extra_custom_minutes"
         const val EXTRA_SCORING_SECONDS = "extra_scoring_seconds"
         const val EXTRA_IS_GAME_IN_PROGRESS = "extra_is_game_in_progress"
+
+        @Volatile
+        var isGameActiveInMemory: Boolean = false
     }
 }
 

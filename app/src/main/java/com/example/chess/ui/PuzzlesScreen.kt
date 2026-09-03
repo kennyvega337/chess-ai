@@ -51,6 +51,9 @@ fun PuzzlesScreen(
     onSetSoundEnabled: (Boolean) -> Unit,
     onSetMoveHintsEnabled: (Boolean) -> Unit,
     onSetSaveGameEnabled: (Boolean) -> Unit,
+    onSetHintEnabled: (Boolean) -> Unit = {},
+    onSetResignEnabled: (Boolean) -> Unit = {},
+    onSetUndoEnabled: (Boolean) -> Unit = {},
     onCloseThemeModal: () -> Unit,
     onCloseGeneralSettingsModal: () -> Unit,
     onConfirmRestart: () -> Unit,
@@ -153,22 +156,24 @@ fun PuzzlesScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                IconButton(
-                                    onClick = {
-                                        if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) {
-                                            onShowHint()
-                                        } else {
-                                            onShowMessage("Trò chơi chưa bắt đầu")
-                                        }
-                                    },
-                                    modifier = Modifier.size(36.dp).testTag("hint_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lightbulb,
-                                        contentDescription = "Gợi ý nước đi",
-                                        tint = iconColor,
-                                        modifier = Modifier.size(22.dp)
-                                    )
+                                if (state.isHintEnabled) {
+                                    IconButton(
+                                        onClick = {
+                                            if (state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking) {
+                                                onShowHint()
+                                            } else {
+                                                onShowMessage("Trò chơi chưa bắt đầu")
+                                            }
+                                        },
+                                        modifier = Modifier.size(36.dp).testTag("hint_button")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lightbulb,
+                                            contentDescription = "Gợi ý nước đi",
+                                            tint = iconColor,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
                                 }
                                 IconButton(
                                     onClick = { onOpenThemeModal() },
@@ -228,15 +233,17 @@ fun PuzzlesScreen(
                         val isUserWin = state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor
                         val showNextButton = isUserWin && !state.isLastPuzzleInCategory
                         
-                        ActionIconButton(
-                            icon = if (showNextButton) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Undo,
-                            contentDesc = if (showNextButton) "Ván tiếp theo" else "Hoàn tác",
-                            enabled = if (showNextButton) true else (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS),
-                            isLandscape = true,
-                            color = if (showNextButton) MedievalEmerald else iconColor,
-                            onClick = { if (showNextButton) onNextPuzzle() else onUndoMove() },
-                            selectedTheme = state.selectedTheme
-                        )
+                        if (state.isUndoEnabled || showNextButton) {
+                            ActionIconButton(
+                                icon = if (showNextButton) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Undo,
+                                contentDesc = if (showNextButton) "Ván tiếp theo" else "Hoàn tác",
+                                enabled = if (showNextButton) true else (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS),
+                                isLandscape = true,
+                                color = if (showNextButton) MedievalEmerald else iconColor,
+                                onClick = { if (showNextButton) onNextPuzzle() else onUndoMove() },
+                                selectedTheme = state.selectedTheme
+                            )
+                        }
                         ActionIconButton(
                             icon = Icons.Default.Refresh,
                             contentDesc = "Chơi lại",
@@ -246,15 +253,17 @@ fun PuzzlesScreen(
                             color = iconColor,
                             selectedTheme = state.selectedTheme
                         )
-                        ActionIconButton(
-                            icon = Icons.Default.Lightbulb,
-                            contentDesc = "Gợi ý",
-                            enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
-                            isLandscape = true,
-                            onClick = { onShowHint() },
-                            color = iconColor,
-                            selectedTheme = state.selectedTheme
-                        )
+                        if (state.isHintEnabled) {
+                            ActionIconButton(
+                                icon = Icons.Default.Lightbulb,
+                                contentDesc = "Gợi ý",
+                                enabled = state.gameStatus == GameStatus.IN_PROGRESS && !state.isAiThinking,
+                                isLandscape = true,
+                                onClick = { onShowHint() },
+                                color = iconColor,
+                                selectedTheme = state.selectedTheme
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -478,19 +487,21 @@ fun PuzzlesScreen(
                         val isUserWin = state.gameStatus == GameStatus.CHECKMATE && state.winner == state.userColor
                         val showNextButton = isUserWin && !state.isLastPuzzleInCategory
 
-                        Button(
-                            onClick = { if (showNextButton) onNextPuzzle() else onUndoMove() },
-                            enabled = if (showNextButton) true else (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS),
-                            modifier = Modifier.weight(1f).height(46.dp).testTag(if (showNextButton) "next_puzzle_button_inline" else "undo_button"),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (showNextButton) MedievalEmerald else Color(state.selectedTheme.surfaceColor).copy(alpha = 0.4f),
-                                disabledContainerColor = (if (showNextButton) MedievalEmerald else Color(state.selectedTheme.surfaceColor).copy(alpha = 0.4f)).copy(alpha = 0.5f)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if (showNextButton) ColorEmeraldLight else if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f)),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Icon(imageVector = if (showNextButton) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Undo, contentDescription = if (showNextButton) "Ván tiếp theo" else "Hoàn tác", tint = if (showNextButton) Color.White else if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                        if (state.isUndoEnabled || showNextButton) {
+                            Button(
+                                onClick = { if (showNextButton) onNextPuzzle() else onUndoMove() },
+                                enabled = if (showNextButton) true else (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS),
+                                modifier = Modifier.weight(1f).height(46.dp).testTag(if (showNextButton) "next_puzzle_button_inline" else "undo_button"),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (showNextButton) MedievalEmerald else Color(state.selectedTheme.surfaceColor).copy(alpha = 0.4f),
+                                    disabledContainerColor = (if (showNextButton) MedievalEmerald else Color(state.selectedTheme.surfaceColor).copy(alpha = 0.4f)).copy(alpha = 0.5f)
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, if (showNextButton) ColorEmeraldLight else if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f)),
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Icon(imageVector = if (showNextButton) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.Undo, contentDescription = if (showNextButton) "Ván tiếp theo" else "Hoàn tác", tint = if (showNextButton) Color.White else if (state.moveHistory.isNotEmpty() && !state.isAiThinking && state.gameStatus == GameStatus.IN_PROGRESS) accentColor else accentColor.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
+                            }
                         }
 
                         Button(
@@ -564,7 +575,13 @@ fun PuzzlesScreen(
                 onMoveHintsToggled = onSetMoveHintsEnabled,
                 onSaveGameToggled = onSetSaveGameEnabled,
                 onDismiss = onCloseGeneralSettingsModal,
-                selectedTheme = state.selectedTheme
+                selectedTheme = state.selectedTheme,
+                isHintEnabled = state.isHintEnabled,
+                isResignEnabled = state.isResignEnabled,
+                isUndoEnabled = state.isUndoEnabled,
+                onHintToggled = onSetHintEnabled,
+                onResignToggled = onSetResignEnabled,
+                onUndoToggled = onSetUndoEnabled
             )
         }
 

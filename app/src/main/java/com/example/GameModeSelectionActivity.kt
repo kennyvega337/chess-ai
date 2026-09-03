@@ -31,8 +31,7 @@ class GameModeSelectionActivity : ComponentActivity() {
         enableEdgeToEdge()
         themeManager = com.example.chess.data.ChessThemeManager(this)
         currentThemeState.value = themeManager.getSelectedTheme()
-        isGameInProgressState.value = intent.getBooleanExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, false)
-        hasPersistedGameState.value = themeManager.getPersistedGameState() != null
+        updateResumeGameState()
         hideSystemNavigationBars()
 
         setContent {
@@ -69,7 +68,7 @@ class GameModeSelectionActivity : ComponentActivity() {
                     onReturnToCurrentGame = {
                         val intent = Intent(this@GameModeSelectionActivity, MainActivity::class.java).apply {
                             putExtra("RETURN_TO_GAME", true)
-                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                         }
                         startActivity(intent)
                     },
@@ -104,9 +103,12 @@ class GameModeSelectionActivity : ComponentActivity() {
                 }
 
                 if (showSettings) {
-                    var sound by remember { mutableStateOf(themeManager.isSoundEnabled()) }
-                    var hints by remember { mutableStateOf(themeManager.isMoveHintsEnabled()) }
-                    var save by remember { mutableStateOf(themeManager.isGamePersistenceEnabled()) }
+                    var sound by remember(showSettings) { mutableStateOf(themeManager.isSoundEnabled()) }
+                    var hints by remember(showSettings) { mutableStateOf(themeManager.isMoveHintsEnabled()) }
+                    var save by remember(showSettings) { mutableStateOf(themeManager.isGamePersistenceEnabled()) }
+                    var hint by remember(showSettings) { mutableStateOf(themeManager.isHintEnabled()) }
+                    var resign by remember(showSettings) { mutableStateOf(themeManager.isResignEnabled()) }
+                    var undo by remember(showSettings) { mutableStateOf(themeManager.isUndoEnabled()) }
 
                     GeneralSettingsDialog(
                         isSoundEnabled = sound,
@@ -123,21 +125,41 @@ class GameModeSelectionActivity : ComponentActivity() {
                         onSaveGameToggled = { 
                             themeManager.saveGamePersistenceEnabled(it)
                             save = it
+                            updateResumeGameState()
                         },
                         onDismiss = { showSettings = false },
-                        selectedTheme = currentTheme
+                        selectedTheme = currentTheme,
+                        isHintEnabled = hint,
+                        isResignEnabled = resign,
+                        isUndoEnabled = undo,
+                        onHintToggled = {
+                            themeManager.saveHintEnabled(it)
+                            hint = it
+                        },
+                        onResignToggled = {
+                            themeManager.saveResignEnabled(it)
+                            resign = it
+                        },
+                        onUndoToggled = {
+                            themeManager.saveUndoEnabled(it)
+                            undo = it
+                        }
                     )
                 }
             }
         }
     }
 
+    private fun updateResumeGameState() {
+        isGameInProgressState.value = MainActivity.isGameActiveInMemory
+        hasPersistedGameState.value = themeManager.hasValidPersistedGame()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         currentThemeState.value = themeManager.getSelectedTheme()
-        isGameInProgressState.value = intent.getBooleanExtra(MainActivity.EXTRA_IS_GAME_IN_PROGRESS, false)
-        hasPersistedGameState.value = themeManager.getPersistedGameState() != null
+        updateResumeGameState()
     }
 
     private fun launchSetup(mode: GameMode) {
@@ -158,7 +180,7 @@ class GameModeSelectionActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         currentThemeState.value = themeManager.getSelectedTheme()
-        hasPersistedGameState.value = themeManager.getPersistedGameState() != null
+        updateResumeGameState()
         hideSystemNavigationBars()
     }
 
@@ -172,7 +194,11 @@ class GameModeSelectionActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = isThemeLight(currentTheme)
             show(WindowInsetsCompat.Type.statusBars())
             hide(WindowInsetsCompat.Type.navigationBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        finishAffinity()
     }
 }
